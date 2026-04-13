@@ -1,0 +1,166 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../api/api_client.dart';
+import '../api/api_endpoints.dart';
+import 'auth_state.dart';
+import 'token_storage.dart';
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+final authNotifierProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier(
+    ref.read(tokenStorageProvider),
+    ref.read(dioProvider),
+  );
+});
+
+// ── Convenience selectors ─────────────────────────────────────────────────────
+/// True when there is a valid authenticated session.
+final isAuthenticatedProvider = Provider<bool>((ref) {
+  return ref.watch(authNotifierProvider) is AuthStateAuthenticated;
+});
+
+/// The current user, or null if not authenticated.
+final currentUserProvider = Provider<AuthUser?>((ref) {
+  final state = ref.watch(authNotifierProvider);
+  return state is AuthStateAuthenticated ? state.user : null;
+});
+
+// ── AuthNotifier ──────────────────────────────────────────────────────────────
+/// Manages the global authentication session.
+///
+/// Lifecycle:
+///   App start → loadFromStorage()
+///   Success   → AuthStateAuthenticated
+///   No token  → AuthStateUnauthenticated
+///
+/// Dev 2/3: read current user via ref.watch(currentUserProvider)
+/// School tenant: user.schoolId — never pass schoolId via route params.
+class AuthNotifier extends StateNotifier<AuthState> {
+  final TokenStorage _storage;
+  final Dio _dio;
+
+  AuthNotifier(this._storage, this._dio) : super(const AuthStateLoading()) {
+    loadFromStorage();
+  }
+
+  // ── Boot: check stored tokens ─────────────────────────────────────────────
+  Future<void> loadFromStorage() async {
+    try {
+      final token = await _storage.getAccessToken();
+      if (token == null) {
+        state = const AuthStateUnauthenticated();
+        return;
+      }
+
+      // Validate token by calling /auth/me
+      final resp = await _dio.get(ApiEndpoints.me);
+      final userData = resp.data['data'] as Map<String, dynamic>?;
+      if (userData == null) {
+        state = const AuthStateUnauthenticated();
+        return;
+      }
+
+      state = AuthStateAuthenticated(AuthUser.fromJson(userData));
+    } catch (_) {
+      // Token invalid or network error — treat as unauthenticated
+      await _storage.clearAll();
+      state = const AuthStateUnauthenticated();
+    }
+  }
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+  Future<void> login(String email, String password) async {
+    state = const AuthStateAuthenticating();
+    try {
+      final resp = await _dio.post(
+        ApiEndpoints.login,
+        data: {'email': email, 'password': password},
+      );
+
+      final data = resp.data['data'] as Map<String, dynamic>;
+      final accessToken  = data['access_token'] as String;
+      final refreshToken = data['refresh_token'] as String;
+      final userData     = data['user'] as Map<String, dynamic>;
+
+      await _storage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+
+      state = AuthStateAuthenticated(AuthUser.fromJson(userData));
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      state = AuthStateError(_loginErrorMessage(status));
+    } catch (_) {
+      state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
+    }
+  }
+
+  // ── Register ──────────────────────────────────────────────────────────────
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    state = const AuthStateAuthenticating();
+    try {
+      await _dio.post(
+        ApiEndpoints.register,
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'role': role,
+        },
+      );
+      // After register, redirect to login (don't auto-login).
+      state = const AuthStateUnauthenticated();
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 409) {
+        state = const AuthStateError('Email sudah terdaftar. Gunakan email lain.');
+      } else {
+        state = AuthStateError(_serverMessage(e) ?? 'Registrasi gagal. Coba lagi.');
+      }
+    } catch (_) {
+      state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
+    }
+  }
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  Future<void> logout() async {
+    try {
+      await _dio.post(ApiEndpoints.logout);
+    } catch (_) {
+      // Ignore errors — still clear local tokens
+    } finally {
+      await _storage.clearAll();
+      state = const AuthStateUnauthenticated();
+    }
+  }
+
+  // ── Update local user (after profile edit) ────────────────────────────────
+  void updateUser(AuthUser updated) {
+    if (state is AuthStateAuthenticated) {
+      state = AuthStateAuthenticated(updated);
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  String _loginErrorMessage(int? status) => switch (status) {
+        401 => 'Email atau password salah.',
+        403 => 'Akun Anda tidak aktif. Hubungi administrator.',
+        _   => 'Login gagal. Coba lagi.',
+      };
+
+  String? _serverMessage(DioException e) {
+    try {
+      return e.response?.data['message'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+}

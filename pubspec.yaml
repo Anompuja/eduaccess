@@ -1,0 +1,65 @@
+name: eduaccess
+description: EduAccess — Multi-tenant School Management SaaS for SD/SMP/SMA Indonesia
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management & DI
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Routing
+  go_router: ^14.2.7
+
+  # HTTP client
+  dio: ^5.4.3+1
+
+  # Secure storage
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.2.3
+
+  # Functional error handling
+  fpdart: ^1.1.0
+
+  # Data classes / code-gen annotations
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  equatable: ^2.0.5
+
+  # UI
+  google_fonts: ^6.2.1
+  fl_chart: ^0.68.0
+  lucide_icons: ^0.257.0
+
+  # Flutter core icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Code generation
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+
+  # Linting
+  flutter_lints: ^4.0.0
+
+  # Testing
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  # Uncomment when you add assets:
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
