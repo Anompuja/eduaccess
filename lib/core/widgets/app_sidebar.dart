@@ -148,7 +148,9 @@ class AppSidebar extends ConsumerWidget {
       width: 240,
       height: double.infinity,
       color: AppColors.primary900,
-      child: Column(
+      child: SafeArea(
+        right: false,
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Logo area ────────────────────────────────────────────────────
@@ -211,6 +213,7 @@ class AppSidebar extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
         ],
       ),
+      ), // SafeArea
     );
   }
 }
@@ -299,7 +302,11 @@ class _NavItemTile extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: AppRadius.lgAll,
         child: InkWell(
-          onTap: () => context.go(item.route),
+          onTap: () {
+            // Close drawer if open (mobile), then navigate
+            if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+            context.go(item.route);
+          },
           borderRadius: AppRadius.lgAll,
           child: Container(
             height: 40,
@@ -366,6 +373,7 @@ class _LogoutTile extends StatelessWidget {
         borderRadius: AppRadius.lgAll,
         child: InkWell(
           onTap: () async {
+            if (Navigator.of(context).canPop()) Navigator.of(context).pop();
             await ref.read(authNotifierProvider.notifier).logout();
           },
           borderRadius: AppRadius.lgAll,

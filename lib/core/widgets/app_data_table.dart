@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/responsive.dart';
 import 'app_empty_state.dart';
 import 'app_pagination.dart';
 import 'app_search_bar.dart';
@@ -10,35 +11,36 @@ import 'app_search_bar.dart';
 /// Column definition for AppDataTable.
 class AppTableColumn {
   final String label;
-  final double? width;       // fixed width; null = flex
+  final double? width;    // fixed width; null = flex (ignored on mobile scroll)
+  final double minWidth;  // minimum width for mobile horizontal scroll
   final bool sortable;
   final TextAlign align;
 
   const AppTableColumn({
     required this.label,
     this.width,
+    this.minWidth = 100,
     this.sortable = false,
     this.align = TextAlign.left,
   });
 }
 
-/// EduAccess data table with search + sort + pagination.
+/// EduAccess data table — search, sort, pagination, horizontal scroll on mobile.
 ///
 /// ```dart
 /// AppDataTable(
 ///   columns: [
-///     AppTableColumn(label: 'Nama', sortable: true),
+///     AppTableColumn(label: 'Nama', sortable: true, minWidth: 140),
 ///     AppTableColumn(label: 'NIS', width: 120),
-///     AppTableColumn(label: 'Kelas', width: 80),
 ///     AppTableColumn(label: 'Status', width: 100),
 ///   ],
-///   rows: students.map((s) => [s.name, s.nis, s.classroom, _badge(s)]).toList(),
+///   rows: students.map((s) => [s.name, s.nis, _badge(s)]).toList(),
 ///   totalRows: students.length,
 /// )
 /// ```
 class AppDataTable extends StatefulWidget {
   final List<AppTableColumn> columns;
-  final List<List<dynamic>> rows;   // Widget or String per cell
+  final List<List<dynamic>> rows;
   final int totalRows;
   final int pageSize;
   final bool showSearch;
@@ -83,23 +85,32 @@ class _AppDataTableState extends State<AppDataTable> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPages = (widget.totalRows / widget.pageSize).ceil();
+    final isMobile = Responsive.isMobile(context);
+    final totalPages = widget.totalRows > 0
+        ? (widget.totalRows / widget.pageSize).ceil()
+        : 0;
+
+    // On mobile: compute min scroll width from column minWidths
+    final minTableWidth = isMobile
+        ? widget.columns.fold(0.0,
+            (sum, c) => sum + (c.width ?? c.minWidth))
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Search bar ──────────────────────────────────────────────────────
+        // ── Search ─────────────────────────────────────────────────────────
         if (widget.showSearch && widget.onSearch != null)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.lg),
             child: AppSearchBar(
               hint: widget.searchHint,
               onSearch: widget.onSearch!,
-              width: 280,
+              width: isMobile ? double.infinity : 280,
             ),
           ),
 
-        // ── Table container ─────────────────────────────────────────────────
+        // ── Table ───────────────────────────────────────────────────────────
         Container(
           decoration: BoxDecoration(
             color: AppColors.white,
@@ -107,76 +118,101 @@ class _AppDataTableState extends State<AppDataTable> {
             boxShadow: AppShadows.card,
           ),
           clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              // Header
-              _TableHeader(
-                columns: widget.columns,
-                sortColumn: _sortColumn,
-                sortAsc: _sortAsc,
-                onSort: widget.onSort != null ? _handleSort : null,
-              ),
-              const Divider(height: 1, color: AppColors.neutral100),
-              // Body
-              widget.rows.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xxl),
-                      child: AppEmptyState(message: widget.emptyMessage),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: widget.rows.length,
-                      separatorBuilder: (_, __) =>
-                          const Divider(height: 1, color: AppColors.neutral100),
-                      itemBuilder: (_, i) => _TableRow(
-                        cells: widget.rows[i],
-                        columns: widget.columns,
-                        isAlt: i.isOdd,
-                      ),
+          child: widget.rows.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  child: AppEmptyState(message: widget.emptyMessage),
+                )
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: minTableWidth ??
+                          MediaQuery.of(context).size.width,
                     ),
-            ],
-          ),
+                    child: Column(
+                      children: [
+                        _TableHeader(
+                          columns: widget.columns,
+                          sortColumn: _sortColumn,
+                          sortAsc: _sortAsc,
+                          onSort: widget.onSort != null ? _handleSort : null,
+                          forceFixedWidth: isMobile,
+                        ),
+                        const Divider(
+                            height: 1, color: AppColors.neutral100),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: widget.rows.length,
+                          separatorBuilder: (_, __) => const Divider(
+                              height: 1, color: AppColors.neutral100),
+                          itemBuilder: (_, i) => _TableRow(
+                            cells: widget.rows[i],
+                            columns: widget.columns,
+                            isAlt: i.isOdd,
+                            forceFixedWidth: isMobile,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
         ),
 
         // ── Pagination ──────────────────────────────────────────────────────
         if (totalPages > 1)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.lg),
-            child: Row(
-              children: [
-                Text(
-                  '${widget.totalRows} data',
-                  style:
-                      AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
-                ),
-                const Spacer(),
-                AppPagination(
-                  currentPage: widget.currentPage,
-                  totalPages: totalPages,
-                  onPageChanged: widget.onPageChanged ?? (_) {},
-                ),
-              ],
-            ),
+            child: isMobile
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${widget.totalRows} data',
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.neutral500)),
+                      const SizedBox(height: AppSpacing.sm),
+                      AppPagination(
+                        currentPage: widget.currentPage,
+                        totalPages: totalPages,
+                        onPageChanged: widget.onPageChanged ?? (_) {},
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Text('${widget.totalRows} data',
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.neutral500)),
+                      const Spacer(),
+                      AppPagination(
+                        currentPage: widget.currentPage,
+                        totalPages: totalPages,
+                        onPageChanged: widget.onPageChanged ?? (_) {},
+                      ),
+                    ],
+                  ),
           ),
       ],
     );
   }
 }
 
-// ── Internal sub-widgets ──────────────────────────────────────────────────────
+// ── Internal widgets ──────────────────────────────────────────────────────────
 
 class _TableHeader extends StatelessWidget {
   final List<AppTableColumn> columns;
   final int? sortColumn;
   final bool sortAsc;
   final void Function(int)? onSort;
+  final bool forceFixedWidth;
 
   const _TableHeader({
     required this.columns,
     this.sortColumn,
     required this.sortAsc,
     this.onSort,
+    this.forceFixedWidth = false,
   });
 
   @override
@@ -190,6 +226,9 @@ class _TableHeader extends StatelessWidget {
           final i = e.key;
           final col = e.value;
           final isSorted = sortColumn == i;
+          final colWidth = forceFixedWidth
+              ? (col.width ?? col.minWidth)
+              : col.width;
 
           Widget label = Text(
             col.label,
@@ -224,8 +263,8 @@ class _TableHeader extends StatelessWidget {
             );
           }
 
-          return col.width != null
-              ? SizedBox(width: col.width, child: label)
+          return colWidth != null
+              ? SizedBox(width: colWidth, child: label)
               : Expanded(child: label);
         }).toList(),
       ),
@@ -237,11 +276,13 @@ class _TableRow extends StatelessWidget {
   final List<dynamic> cells;
   final List<AppTableColumn> columns;
   final bool isAlt;
+  final bool forceFixedWidth;
 
   const _TableRow({
     required this.cells,
     required this.columns,
     required this.isAlt,
+    this.forceFixedWidth = false,
   });
 
   @override
@@ -255,20 +296,22 @@ class _TableRow extends StatelessWidget {
           final i = e.key;
           final cell = e.value;
           final col = i < columns.length ? columns[i] : null;
+          final colWidth = forceFixedWidth
+              ? (col?.width ?? col?.minWidth)
+              : col?.width;
 
-          Widget content = cell is Widget
+          final content = cell is Widget
               ? cell
               : Text(
                   cell.toString(),
-                  style: AppTextStyles.bodyMd.copyWith(
-                    color: AppColors.neutral900,
-                  ),
+                  style: AppTextStyles.bodyMd
+                      .copyWith(color: AppColors.neutral900),
                   textAlign: col?.align ?? TextAlign.left,
                   overflow: TextOverflow.ellipsis,
                 );
 
-          return col?.width != null
-              ? SizedBox(width: col!.width, child: content)
+          return colWidth != null
+              ? SizedBox(width: colWidth, child: content)
               : Expanded(child: content);
         }).toList(),
       ),
