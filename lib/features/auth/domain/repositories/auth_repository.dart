@@ -5,7 +5,7 @@ import '../entities/user_entity.dart';
 
 /// Abstract contract for authentication operations.
 /// Implementations live in the data layer.
-/// All methods return Either<Failure, T> — never throw.
+/// All methods return `Either<Failure, T>` — never throw.
 abstract interface class AuthRepository {
   /// Authenticate with email + password.
   /// Returns the authenticated user on success.

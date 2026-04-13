@@ -28,7 +28,7 @@ class AppLayout extends ConsumerWidget {
     final screen = Responsive.of(context);
 
     if (screen.isDesktop) return _DesktopLayout(child: child);
-    return _MobileLayout(child: child, showBottomNav: screen.isMobile);
+    return _MobileLayout(showBottomNav: screen.isMobile, child: child);
   }
 }
 

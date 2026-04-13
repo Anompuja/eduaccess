@@ -145,7 +145,7 @@ class _AppDataTableState extends State<AppDataTable> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: widget.rows.length,
-                          separatorBuilder: (_, __) => const Divider(
+                          separatorBuilder: (_, _) => const Divider(
                               height: 1, color: AppColors.neutral100),
                           itemBuilder: (_, i) => _TableRow(
                             cells: widget.rows[i],

@@ -45,39 +45,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Public routes ───────────────────────────────────────────────────
       GoRoute(
         path: RouteNames.login,
-        builder: (_, __) => const LoginScreen(),
+        builder: (_, _) => const LoginScreen(),
       ),
       GoRoute(
         path: RouteNames.register,
-        builder: (_, __) => const RegisterScreen(),
+        builder: (_, _) => const RegisterScreen(),
       ),
 
       // ── Protected shell (AppLayout wraps all protected screens) ─────────
       ShellRoute(
-        builder: (_, __, child) => AppLayout(child: child),
+        builder: (_, _, child) => AppLayout(child: child),
         routes: [
           // Dev 1 — Dashboard & core screens
           GoRoute(
             path: RouteNames.dashboard,
-            builder: (_, __) => const DashboardScreen(),
+            builder: (_, _) => const DashboardScreen(),
           ),
           GoRoute(
             path: RouteNames.profile,
-            builder: (_, __) => const ProfileScreen(),
+            builder: (_, _) => const ProfileScreen(),
           ),
           GoRoute(
             path: RouteNames.settings,
-            builder: (_, __) => const SettingsScreen(),
+            builder: (_, _) => const SettingsScreen(),
           ),
           GoRoute(
             path: RouteNames.notifications,
-            builder: (_, __) => const NotificationsScreen(),
+            builder: (_, _) => const NotificationsScreen(),
           ),
 
           // Dev 2 — People management (placeholder until Session Dev2)
           GoRoute(
             path: RouteNames.students,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Manajemen Siswa',
               assignedTo: 'Dev 2',
             ),
@@ -91,7 +91,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.staff,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Guru & Staff',
               assignedTo: 'Dev 2',
             ),
@@ -105,7 +105,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.parents,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Orang Tua',
               assignedTo: 'Dev 2',
             ),
@@ -121,21 +121,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           // Dev 3 — Academic & operations (placeholder)
           GoRoute(
             path: RouteNames.academic,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Struktur Akademik',
               assignedTo: 'Dev 3',
             ),
           ),
           GoRoute(
             path: RouteNames.gradePromotion,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Naik Kelas',
               assignedTo: 'Dev 3',
             ),
           ),
           GoRoute(
             path: RouteNames.cbt,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'CBT / Ujian',
               assignedTo: 'Dev 3',
             ),
@@ -149,21 +149,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.attendance,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Absensi',
               assignedTo: 'Dev 3',
             ),
           ),
           GoRoute(
             path: RouteNames.subscription,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Subscription',
               assignedTo: 'Dev 3',
             ),
           ),
           GoRoute(
             path: RouteNames.help,
-            builder: (_, __) => const PlaceholderScreen(
+            builder: (_, _) => const PlaceholderScreen(
               title: 'Bantuan',
               assignedTo: 'Dev 3',
             ),
@@ -182,6 +182,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 /// Notifies GoRouter to re-evaluate the redirect whenever auth state changes.
 class _AuthStateListenable extends ChangeNotifier {
   _AuthStateListenable(Ref ref) {
-    ref.listen(authNotifierProvider, (_, __) => notifyListeners());
+    ref.listen(authNotifierProvider, (_, _) => notifyListeners());
   }
 }

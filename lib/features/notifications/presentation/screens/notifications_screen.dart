@@ -139,7 +139,7 @@ class NotificationsScreen extends ConsumerWidget {
                   )
                 : ListView.separated(
                     itemCount: notifs.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(height: AppSpacing.md),
                     itemBuilder: (_, i) => _NotifCard(
                       notif: notifs[i],

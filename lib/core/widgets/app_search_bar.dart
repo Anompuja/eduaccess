@@ -69,7 +69,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
           ),
           suffixIcon: ValueListenableBuilder(
             valueListenable: _ctrl,
-            builder: (_, value, __) => value.text.isEmpty
+            builder: (_, value, _) => value.text.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
                     icon: const Icon(Icons.close_rounded,
