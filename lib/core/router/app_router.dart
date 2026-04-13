@@ -11,6 +11,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../widgets/app_layout.dart';
+import '../widgets/not_found_screen.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_names.dart';
 
@@ -172,36 +173,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
 
     // ── 404 error page ───────────────────────────────────────────────────────
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Color(0xFF6B7280)),
-            const SizedBox(height: 16),
-            Text(
-              '404 — Halaman Tidak Ditemukan',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              state.error?.message ?? 'Halaman yang Anda cari tidak tersedia.',
-              style: TextStyle(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Kembali'),
-            ),
-          ],
-        ),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        NotFoundScreen(message: state.error?.message),
   );
 });
 
