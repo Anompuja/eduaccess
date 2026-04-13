@@ -12,26 +12,26 @@ enum UserRole {
 
   /// Parse from raw JWT role string (snake_case).
   static UserRole fromString(String raw) => switch (raw) {
-        'superadmin'      => UserRole.superadmin,
-        'admin_sekolah'   => UserRole.adminSekolah,
-        'kepala_sekolah'  => UserRole.kepalaSekolah,
-        'guru'            => UserRole.guru,
-        'siswa'           => UserRole.siswa,
-        'orangtua'        => UserRole.orangtua,
-        'staff'           => UserRole.staff,
-        _                 => UserRole.staff,
-      };
+    'superadmin' => UserRole.superadmin,
+    'admin_sekolah' => UserRole.adminSekolah,
+    'kepala_sekolah' => UserRole.kepalaSekolah,
+    'guru' => UserRole.guru,
+    'siswa' => UserRole.siswa,
+    'orangtua' => UserRole.orangtua,
+    'staff' => UserRole.staff,
+    _ => UserRole.staff,
+  };
 
   /// Human-readable Indonesian label for UI display.
   String get displayName => switch (this) {
-        UserRole.superadmin     => 'Super Admin',
-        UserRole.adminSekolah   => 'Admin Sekolah',
-        UserRole.kepalaSekolah  => 'Kepala Sekolah',
-        UserRole.guru           => 'Guru',
-        UserRole.siswa          => 'Siswa',
-        UserRole.orangtua       => 'Orang Tua',
-        UserRole.staff          => 'Staff',
-      };
+    UserRole.superadmin => 'Super Admin',
+    UserRole.adminSekolah => 'Admin Sekolah',
+    UserRole.kepalaSekolah => 'Kepala Sekolah',
+    UserRole.guru => 'Guru',
+    UserRole.siswa => 'Siswa',
+    UserRole.orangtua => 'Orang Tua',
+    UserRole.staff => 'Staff',
+  };
 }
 
 /// Immutable snapshot of the authenticated user, derived from JWT + /auth/me.
@@ -53,26 +53,22 @@ class AuthUser extends Equatable {
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        email: json['email'] as String,
-        role: UserRole.fromString(json['role'] as String? ?? ''),
-        schoolId: json['school_id'] as String?,
-        avatarUrl: json['avatar_url'] as String?,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    email: json['email'] as String,
+    role: UserRole.fromString(json['role'] as String? ?? ''),
+    schoolId: json['school_id'] as String?,
+    avatarUrl: (json['avatar_url'] ?? json['avatar']) as String?,
+  );
 
-  AuthUser copyWith({
-    String? name,
-    String? avatarUrl,
-  }) =>
-      AuthUser(
-        id: id,
-        name: name ?? this.name,
-        email: email,
-        role: role,
-        schoolId: schoolId,
-        avatarUrl: avatarUrl ?? this.avatarUrl,
-      );
+  AuthUser copyWith({String? name, String? avatarUrl}) => AuthUser(
+    id: id,
+    name: name ?? this.name,
+    email: email,
+    role: role,
+    schoolId: schoolId,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
+  );
 
   @override
   List<Object?> get props => [id, name, email, role, schoolId, avatarUrl];

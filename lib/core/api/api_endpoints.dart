@@ -3,11 +3,11 @@
 /// Usage: ApiEndpoints.login → '/auth/login'
 abstract final class ApiEndpoints {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  static const String login   = '/auth/login';
+  static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String refresh = '/auth/refresh';
-  static const String logout  = '/auth/logout';
-  static const String me      = '/auth/me';
+  static const String logout = '/auth/logout';
+  static const String me = '/profile';
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   static const String dashboardStats = '/dashboard/stats';

@@ -1,15 +1,27 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/token_storage.dart';
 
 // ── Environment config ────────────────────────────────────────────────────────
 // Set EDUACCESS_BASE_URL via --dart-define at build time.
-// Default falls back to localhost for dev.
+// Default falls back based on runtime platform for local development.
 const _kBaseUrl = String.fromEnvironment(
   'EDUACCESS_BASE_URL',
-  defaultValue: 'http://localhost:8080',
+  defaultValue: '',
 );
+
+String _resolveBaseUrl() {
+  if (_kBaseUrl.isNotEmpty) return _kBaseUrl;
+
+  if (kIsWeb) return 'http://localhost:8080/api/v1';
+
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.android => 'http://10.0.2.2:8080/api/v1',
+    _ => 'http://localhost:8080/api/v1',
+  };
+}
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 final dioProvider = Provider<Dio>((ref) {
@@ -21,7 +33,7 @@ final dioProvider = Provider<Dio>((ref) {
 Dio _buildDio(TokenStorage tokenStorage) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: _kBaseUrl,
+      baseUrl: _resolveBaseUrl(),
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
@@ -56,7 +68,8 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Skip auth header for auth endpoints (login, register, refresh)
-    final isAuthPath = options.path.startsWith('/auth/login') ||
+    final isAuthPath =
+        options.path.startsWith('/auth/login') ||
         options.path.startsWith('/auth/register') ||
         options.path.startsWith('/auth/refresh');
 
@@ -85,7 +98,7 @@ class _AuthInterceptor extends Interceptor {
         }
 
         // Attempt silent refresh using a clean Dio (no interceptors to avoid loops)
-        final refreshDio = Dio(BaseOptions(baseUrl: _kBaseUrl));
+        final refreshDio = Dio(BaseOptions(baseUrl: _resolveBaseUrl()));
         final refreshResp = await refreshDio.post(
           '/auth/refresh',
           data: {'refresh_token': refreshToken},
@@ -93,6 +106,8 @@ class _AuthInterceptor extends Interceptor {
 
         final newAccessToken =
             refreshResp.data['data']?['access_token'] as String?;
+        final newRefreshToken =
+            refreshResp.data['data']?['refresh_token'] as String?;
         if (newAccessToken == null) {
           await _handleLogout();
           handler.next(err);
@@ -100,10 +115,9 @@ class _AuthInterceptor extends Interceptor {
         }
 
         // Persist new access token
-        final currentRefresh = await _storage.getRefreshToken();
         await _storage.saveTokens(
           accessToken: newAccessToken,
-          refreshToken: currentRefresh ?? refreshToken,
+          refreshToken: newRefreshToken ?? refreshToken,
         );
 
         // Retry original request with new token
@@ -157,7 +171,9 @@ class _LogInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     assert(() {
       // ignore: avoid_print
-      print('[API] ✗ ${err.response?.statusCode} ${err.requestOptions.uri} — ${err.message}');
+      print(
+        '[API] ✗ ${err.response?.statusCode} ${err.requestOptions.uri} — ${err.message}',
+      );
       return true;
     }());
     handler.next(err);

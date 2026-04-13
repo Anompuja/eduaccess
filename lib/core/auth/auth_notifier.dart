@@ -7,12 +7,10 @@ import 'auth_state.dart';
 import 'token_storage.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(
-    ref.read(tokenStorageProvider),
-    ref.read(dioProvider),
-  );
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
+  return AuthNotifier(ref.read(tokenStorageProvider), ref.read(dioProvider));
 });
 
 // ── Convenience selectors ─────────────────────────────────────────────────────
@@ -80,14 +78,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       final data = resp.data['data'] as Map<String, dynamic>;
-      final accessToken  = data['access_token'] as String;
+      final accessToken = data['access_token'] as String;
       final refreshToken = data['refresh_token'] as String;
-      final userData     = data['user'] as Map<String, dynamic>;
 
       await _storage.saveTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+
+      final profileResp = await _dio.get(ApiEndpoints.me);
+      final userData = profileResp.data['data'] as Map<String, dynamic>?;
+      if (userData == null) {
+        state = const AuthStateError('Profil pengguna tidak ditemukan.');
+        return;
+      }
 
       state = AuthStateAuthenticated(AuthUser.fromJson(userData));
     } on DioException catch (e) {
@@ -121,9 +125,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (status == 409) {
-        state = const AuthStateError('Email sudah terdaftar. Gunakan email lain.');
+        state = const AuthStateError(
+          'Email sudah terdaftar. Gunakan email lain.',
+        );
       } else {
-        state = AuthStateError(_serverMessage(e) ?? 'Registrasi gagal. Coba lagi.');
+        state = AuthStateError(
+          _serverMessage(e) ?? 'Registrasi gagal. Coba lagi.',
+        );
       }
     } catch (_) {
       state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
@@ -133,7 +141,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     try {
-      await _dio.post(ApiEndpoints.logout);
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken != null) {
+        await _dio.post(
+          ApiEndpoints.logout,
+          data: {'refresh_token': refreshToken},
+        );
+      }
     } catch (_) {
       // Ignore errors — still clear local tokens
     } finally {
@@ -151,10 +165,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   String _loginErrorMessage(int? status) => switch (status) {
-        401 => 'Email atau password salah.',
-        403 => 'Akun Anda tidak aktif. Hubungi administrator.',
-        _   => 'Login gagal. Coba lagi.',
-      };
+    401 => 'Email atau password salah.',
+    403 => 'Akun Anda tidak aktif. Hubungi administrator.',
+    _ => 'Login gagal. Coba lagi.',
+  };
 
   String? _serverMessage(DioException e) {
     try {
