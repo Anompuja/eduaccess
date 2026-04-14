@@ -11,20 +11,60 @@ import '../theme/app_text_styles.dart';
 typedef _PageInfo = ({String title, String subtitle});
 
 _PageInfo _infoForRoute(String location) => switch (location) {
-      String l when l.startsWith(RouteNames.dashboard)      => (title: 'Dashboard',         subtitle: 'Selamat datang di EduAccess'),
-      String l when l.startsWith(RouteNames.students)       => (title: 'Manajemen Siswa',   subtitle: 'Kelola data siswa sekolah'),
-      String l when l.startsWith(RouteNames.staff)          => (title: 'Guru & Staff',       subtitle: 'Kelola tenaga pendidik dan staf'),
-      String l when l.startsWith(RouteNames.parents)        => (title: 'Orang Tua',          subtitle: 'Kelola data wali murid'),
-      String l when l.startsWith(RouteNames.academic)       => (title: 'Struktur Akademik',  subtitle: 'Tahun ajaran, kelas & mata pelajaran'),
-      String l when l.startsWith(RouteNames.gradePromotion) => (title: 'Naik Kelas',         subtitle: 'Proses kenaikan kelas siswa'),
-      String l when l.startsWith(RouteNames.cbt)            => (title: 'CBT / Ujian',        subtitle: 'Buat dan kelola ujian online'),
-      String l when l.startsWith(RouteNames.attendance)     => (title: 'Absensi',            subtitle: 'Rekap kehadiran harian'),
-      String l when l.startsWith(RouteNames.subscription)   => (title: 'Subscription',       subtitle: 'Kelola paket langganan sekolah'),
-      String l when l.startsWith(RouteNames.settings)       => (title: 'Pengaturan',         subtitle: 'Preferensi aplikasi'),
-      String l when l.startsWith(RouteNames.notifications)  => (title: 'Notifikasi',         subtitle: 'Pesan dan pemberitahuan sistem'),
-      String l when l.startsWith(RouteNames.profile)        => (title: 'Profil',             subtitle: 'Informasi akun Anda'),
-      _ => (title: 'EduAccess', subtitle: ''),
-    };
+  String l when l.startsWith(RouteNames.dashboard) => (
+    title: 'Dashboard',
+    subtitle: 'Selamat datang di EduAccess',
+  ),
+  String l when l.startsWith(RouteNames.students) => (
+    title: 'Manajemen Siswa',
+    subtitle: 'Kelola data siswa sekolah',
+  ),
+  String l when l.startsWith(RouteNames.teachers) => (
+    title: 'Manajemen Guru',
+    subtitle: 'Kelola data guru sekolah',
+  ),
+  String l when l.startsWith(RouteNames.staff) => (
+    title: 'Manajemen Staff',
+    subtitle: 'Kelola data staf sekolah',
+  ),
+  String l when l.startsWith(RouteNames.parents) => (
+    title: 'Orang Tua',
+    subtitle: 'Kelola data wali murid',
+  ),
+  String l when l.startsWith(RouteNames.academic) => (
+    title: 'Struktur Akademik',
+    subtitle: 'Tahun ajaran, kelas & mata pelajaran',
+  ),
+  String l when l.startsWith(RouteNames.gradePromotion) => (
+    title: 'Naik Kelas',
+    subtitle: 'Proses kenaikan kelas siswa',
+  ),
+  String l when l.startsWith(RouteNames.cbt) => (
+    title: 'CBT / Ujian',
+    subtitle: 'Buat dan kelola ujian online',
+  ),
+  String l when l.startsWith(RouteNames.attendance) => (
+    title: 'Absensi',
+    subtitle: 'Rekap kehadiran harian',
+  ),
+  String l when l.startsWith(RouteNames.subscription) => (
+    title: 'Subscription',
+    subtitle: 'Kelola paket langganan sekolah',
+  ),
+  String l when l.startsWith(RouteNames.settings) => (
+    title: 'Pengaturan',
+    subtitle: 'Preferensi aplikasi',
+  ),
+  String l when l.startsWith(RouteNames.notifications) => (
+    title: 'Notifikasi',
+    subtitle: 'Pesan dan pemberitahuan sistem',
+  ),
+  String l when l.startsWith(RouteNames.profile) => (
+    title: 'Profil',
+    subtitle: 'Informasi akun Anda',
+  ),
+  _ => (title: 'EduAccess', subtitle: ''),
+};
 
 // ── AppTopbar ──────────────────────────────────────────────────────────────────
 /// Topbar for all protected screens.
@@ -95,8 +135,9 @@ class AppTopbar extends ConsumerWidget {
                   if (!isMobile && info.subtitle.isNotEmpty)
                     Text(
                       info.subtitle,
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.neutral500),
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.neutral500,
+                      ),
                     ),
                 ],
               ),
