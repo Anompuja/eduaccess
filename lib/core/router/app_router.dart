@@ -6,8 +6,13 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/staff/presentation/screens/staff_screen.dart';
+import '../../features/teachers/presentation/screens/teachers_screen.dart';
+import '../../features/users/presentation/screens/users_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../widgets/app_layout.dart';
@@ -15,38 +20,18 @@ import '../widgets/not_found_screen.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_names.dart';
 
-// ── Provider ──────────────────────────────────────────────────────────────────
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Listen to auth state changes to refresh the router redirect
   final authListenable = _AuthStateListenable(ref);
 
   return GoRouter(
-    initialLocation: RouteNames.dashboard,
+    initialLocation: RouteNames.users,
     refreshListenable: authListenable,
-    redirect: (context, state) {
-      final authState = ref.read(authNotifierProvider);
-      final isLoading = authState is AuthStateLoading;
-      final isAuthenticated = authState is AuthStateAuthenticated;
-      final isPublicRoute = state.matchedLocation == RouteNames.login ||
-          state.matchedLocation == RouteNames.register;
-
-      // While checking storage, show nothing (splash)
-      if (isLoading) return null;
-
-      // Unauthenticated → push to login (unless already on public route)
-      if (!isAuthenticated && !isPublicRoute) return RouteNames.login;
-
-      // Already authenticated → redirect away from login/register
-      if (isAuthenticated && isPublicRoute) return RouteNames.dashboard;
-
-      return null;
-    },
+    // Temporary dev mode: disable auth guard so every page can be opened.
+    redirect: (_, __) => null,
     routes: [
       // ── Public routes ───────────────────────────────────────────────────
-      GoRoute(
-        path: RouteNames.login,
-        builder: (_, _) => const LoginScreen(),
-      ),
+      GoRoute(path: RouteNames.login, builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: RouteNames.register,
         builder: (_, _) => const RegisterScreen(),
@@ -76,23 +61,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
           // Dev 2 — People management (placeholder until Session Dev2)
           GoRoute(
-            path: RouteNames.students,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Manajemen Siswa',
+            path: RouteNames.users,
+            builder: (_, _) => const UsersScreen(),
+          ),
+          GoRoute(
+            path: '/users/:id',
+            builder: (_, state) => PlaceholderScreen(
+              title: 'Detail User (${state.pathParameters['id']})',
               assignedTo: 'Dev 2',
             ),
           ),
           GoRoute(
-            path: '/students/:id',
-            builder: (_, state) => PlaceholderScreen(
-              title: 'Detail Siswa (${state.pathParameters['id']})',
-              assignedTo: 'Dev 2',
-            ),
+            path: RouteNames.students,
+            builder: (_, _) => const StudentsScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.teachers,
+            builder: (_, _) => const TeachersScreen(),
           ),
           GoRoute(
             path: RouteNames.staff,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Guru & Staff',
+            builder: (_, _) => const StaffScreen(),
+          ),
+          GoRoute(
+            path: '/teachers/:id',
+            builder: (_, state) => PlaceholderScreen(
+              title: 'Detail Guru (${state.pathParameters['id']})',
               assignedTo: 'Dev 2',
             ),
           ),
@@ -105,10 +99,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.parents,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Orang Tua',
-              assignedTo: 'Dev 2',
-            ),
+            builder: (_, _) => const ParentsScreen(),
           ),
           GoRoute(
             path: '/parents/:id',
@@ -149,10 +140,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.attendance,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Absensi',
-              assignedTo: 'Dev 3',
-            ),
+            builder: (_, _) =>
+                const PlaceholderScreen(title: 'Absensi', assignedTo: 'Dev 3'),
           ),
           GoRoute(
             path: RouteNames.subscription,
@@ -163,10 +152,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.help,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Bantuan',
-              assignedTo: 'Dev 3',
-            ),
+            builder: (_, _) =>
+                const PlaceholderScreen(title: 'Bantuan', assignedTo: 'Dev 3'),
           ),
         ],
       ),
