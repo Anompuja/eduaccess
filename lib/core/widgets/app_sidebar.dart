@@ -38,35 +38,34 @@ const _menuItems = [
     allowedRoles: _allRoles,
   ),
   _NavItem(
+    label: 'User Management',
+    route: RouteNames.users,
+    icon: Icons.manage_accounts_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
     label: 'Manajemen Siswa',
     route: RouteNames.students,
     icon: Icons.school_outlined,
-    allowedRoles: {
-      UserRole.superadmin,
-      UserRole.adminSekolah,
-      UserRole.kepalaSekolah,
-      UserRole.guru,
-    },
+    allowedRoles: _allRoles,
   ),
   _NavItem(
-    label: 'Guru & Staff',
+    label: 'Manajemen Guru',
+    route: RouteNames.teachers,
+    icon: Icons.badge_outlined,
+    allowedRoles: _allRoles,
+  ),
+  _NavItem(
+    label: 'Manajemen Staff',
     route: RouteNames.staff,
     icon: Icons.badge_outlined,
-    allowedRoles: {
-      UserRole.superadmin,
-      UserRole.adminSekolah,
-      UserRole.kepalaSekolah,
-    },
+    allowedRoles: _allRoles,
   ),
   _NavItem(
     label: 'Orang Tua',
     route: RouteNames.parents,
     icon: Icons.family_restroom_outlined,
-    allowedRoles: {
-      UserRole.superadmin,
-      UserRole.adminSekolah,
-      UserRole.kepalaSekolah,
-    },
+    allowedRoles: _allRoles,
   ),
   _NavItem(
     label: 'Struktur Akademik',
@@ -151,68 +150,72 @@ class AppSidebar extends ConsumerWidget {
       child: SafeArea(
         right: false,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Logo area ────────────────────────────────────────────────────
-          _LogoArea(),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Logo area ────────────────────────────────────────────────────
+            _LogoArea(),
 
-          // ── Divider ───────────────────────────────────────────────────────
-          const Divider(
-            color: AppColors.sidebarDivider,
-            height: 1,
-            thickness: 1,
-          ),
+            // ── Divider ───────────────────────────────────────────────────────
+            const Divider(
+              color: AppColors.sidebarDivider,
+              height: 1,
+              thickness: 1,
+            ),
 
-          // ── Scrollable nav ────────────────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.lg,
-                bottom: AppSpacing.lg,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // MENU section
-                  _SectionLabel('MENU'),
-                  ..._menuItems
-                      .where((i) => i.isVisibleTo(role))
-                      .map((i) => _NavItemTile(
+            // ── Scrollable nav ────────────────────────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.lg,
+                  bottom: AppSpacing.lg,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // MENU section
+                    _SectionLabel('MENU'),
+                    ..._menuItems
+                        .where((i) => i.isVisibleTo(role))
+                        .map(
+                          (i) => _NavItemTile(
                             item: i,
                             currentLocation: currentLocation,
-                          )),
+                          ),
+                        ),
 
-                  const SizedBox(height: AppSpacing.md),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Divider(
-                      color: AppColors.sidebarDivider,
-                      height: 1,
-                      thickness: 1,
+                    const SizedBox(height: AppSpacing.md),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: Divider(
+                        color: AppColors.sidebarDivider,
+                        height: 1,
+                        thickness: 1,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.md),
 
-                  // GENERAL section
-                  _SectionLabel('GENERAL'),
-                  ..._generalItems
-                      .where((i) => i.isVisibleTo(role))
-                      .map((i) => _NavItemTile(
+                    // GENERAL section
+                    _SectionLabel('GENERAL'),
+                    ..._generalItems
+                        .where((i) => i.isVisibleTo(role))
+                        .map(
+                          (i) => _NavItemTile(
                             item: i,
                             currentLocation: currentLocation,
-                          )),
-                ],
+                          ),
+                        ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // ── Logout + CTA ────────────────────────────────────────────────
-          _LogoutTile(ref: ref),
-          const SizedBox(height: AppSpacing.md),
-          _MobileAppCta(),
-          const SizedBox(height: AppSpacing.xl),
-        ],
-      ),
+            // ── Logout + CTA ────────────────────────────────────────────────
+            _LogoutTile(ref: ref),
+            const SizedBox(height: AppSpacing.md),
+            _MobileAppCta(),
+            const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
       ), // SafeArea
     );
   }
@@ -284,10 +287,7 @@ class _NavItemTile extends StatelessWidget {
   final _NavItem item;
   final String currentLocation;
 
-  const _NavItemTile({
-    required this.item,
-    required this.currentLocation,
-  });
+  const _NavItemTile({required this.item, required this.currentLocation});
 
   bool get isActive => currentLocation.startsWith(item.route);
 
@@ -341,9 +341,7 @@ class _NavItemTile extends StatelessWidget {
                       color: isActive
                           ? AppColors.white
                           : AppColors.sidebarNavText,
-                      fontWeight: isActive
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
