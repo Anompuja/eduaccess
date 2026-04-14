@@ -9,8 +9,10 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 });
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
-const _kAccessToken = 'edu_access_token';
+const _kAccessToken  = 'edu_access_token';
 const _kRefreshToken = 'edu_refresh_token';
+const _kDemoRole     = 'edu_demo_role';
+const _kDemoName     = 'edu_demo_name';
 
 // ── TokenStorage ─────────────────────────────────────────────────────────────
 /// Wraps token persistence.
@@ -68,7 +70,7 @@ class TokenStorage {
     return token != null;
   }
 
-  /// Clears all tokens (called on logout or refresh failure).
+  /// Clears all real tokens (called on logout or refresh failure).
   Future<void> clearAll() async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
@@ -82,5 +84,34 @@ class TokenStorage {
         _secure.delete(key: _kRefreshToken),
       ]);
     }
+  }
+
+  // ── Demo / offline session ─────────────────────────────────────────────────
+  /// Saves a demo session (role + display name) to SharedPreferences.
+  /// Bypasses the real auth API — used for offline / midterm demo mode.
+  Future<void> saveDemoSession(String roleBackendString, String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setString(_kDemoRole, roleBackendString),
+      prefs.setString(_kDemoName, name),
+    ]);
+  }
+
+  /// Returns `(role, name)` if a demo session exists, otherwise null.
+  Future<({String role, String name})?> loadDemoSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString(_kDemoRole);
+    if (role == null) return null;
+    final name = prefs.getString(_kDemoName) ?? 'Demo User';
+    return (role: role, name: name);
+  }
+
+  /// Removes the demo session (called on logout).
+  Future<void> clearDemoSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_kDemoRole),
+      prefs.remove(_kDemoName),
+    ]);
   }
 }

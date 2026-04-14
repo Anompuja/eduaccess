@@ -9,9 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/utils/validators.dart';
-import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,26 +18,16 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey     = GlobalKey<FormState>();
-  final _emailCtrl   = TextEditingController();
-  final _passCtrl    = TextEditingController();
-  final _emailFocus  = FocusNode();
-  final _passFocus   = FocusNode();
+  UserRole? _selectedRole;
+  bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    _emailFocus.dispose();
-    _passFocus.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    await ref
-        .read(authNotifierProvider.notifier)
-        .login(_emailCtrl.text.trim(), _passCtrl.text);
+  Future<void> _loginAs(UserRole role) async {
+    setState(() {
+      _selectedRole = role;
+      _isLoading = true;
+    });
+    await ref.read(authNotifierProvider.notifier).demoLogin(role);
+    // Router redirect handles navigation once state becomes Authenticated
   }
 
   @override
@@ -49,12 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next is AuthStateAuthenticated) context.go(RouteNames.dashboard);
     });
 
-    final authState   = ref.watch(authNotifierProvider);
-    final isLoading   = authState is AuthStateAuthenticating;
-    final errorMsg    = authState is AuthStateError ? authState.message : null;
-    final isMobile    = Responsive.isMobile(context);
-    final cardPad     = isMobile ? AppSpacing.xl : AppSpacing.xxl;
-    final outerPad    = isMobile ? AppSpacing.lg : AppSpacing.xl;
+    final isMobile = Responsive.isMobile(context);
+    final outerPad = isMobile ? AppSpacing.lg : AppSpacing.xl;
 
     return Scaffold(
       backgroundColor: AppColors.bgPage,
@@ -63,118 +46,83 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: SingleChildScrollView(
             padding: EdgeInsets.all(outerPad),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(maxWidth: 480),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Logo
+                  // ── Logo ──────────────────────────────────────────────
                   _Logo(compact: isMobile),
-                  SizedBox(height: isMobile ? AppSpacing.xxl : AppSpacing.xxxl),
+                  SizedBox(height: isMobile ? AppSpacing.xl : AppSpacing.xxl),
 
-                  // Card
+                  // ── Demo mode card ────────────────────────────────────
                   Container(
-                    padding: EdgeInsets.all(cardPad),
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isMobile ? AppSpacing.lg : AppSpacing.xl),
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: AppRadius.xlAll,
                       boxShadow: AppShadows.card,
                     ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Masuk ke EduAccess',
-                              style: (isMobile ? AppTextStyles.h3 : AppTextStyles.h2)
-                                  .copyWith(color: AppColors.neutral900)),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text('Kelola sekolah Anda dengan mudah',
-                              style: AppTextStyles.bodyMd
-                                  .copyWith(color: AppColors.neutral500)),
-                          SizedBox(height: isMobile ? AppSpacing.lg : AppSpacing.xxl),
-
-                          // Error banner
-                          if (errorMsg != null) ...[
-                            _ErrorBanner(message: errorMsg),
-                            const SizedBox(height: AppSpacing.lg),
-                          ],
-
-                          // Email
-                          AppTextField(
-                            label: 'Email',
-                            hint: 'contoh@sekolah.id',
-                            controller: _emailCtrl,
-                            focusNode: _emailFocus,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            prefixIcon: Icons.email_outlined,
-                            validator: Validators.email,
-                            onSubmitted: (_) => _passFocus.requestFocus(),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-
-                          // Password
-                          AppTextField.password(
-                            label: 'Password',
-                            controller: _passCtrl,
-                            focusNode: _passFocus,
-                            textInputAction: TextInputAction.done,
-                            validator: Validators.password,
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-
-                          // Forgot password
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {},
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(0, 36),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: 3,
                               ),
-                              child: Text('Lupa password?',
-                                  style: AppTextStyles.bodySm.copyWith(
-                                      color: AppColors.primary700,
-                                      fontWeight: FontWeight.w500)),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent500.withValues(alpha: 0.12),
+                                borderRadius: AppRadius.smAll,
+                              ),
+                              child: Text(
+                                'DEMO MODE',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.accent700,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Pilih Peran',
+                          style: (isMobile ? AppTextStyles.h3 : AppTextStyles.h2)
+                              .copyWith(color: AppColors.neutral900),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'Tap salah satu peran untuk masuk dan menjelajahi aplikasi.',
+                          style: AppTextStyles.bodyMd
+                              .copyWith(color: AppColors.neutral500),
+                        ),
+                        SizedBox(height: isMobile ? AppSpacing.lg : AppSpacing.xl),
 
-                          // Login button
-                          AppButton.primary(
-                            label: 'Masuk',
-                            onPressed: isLoading ? null : _submit,
-                            isLoading: isLoading,
-                            isFullWidth: true,
-                            height: 48,
+                        // ── Role cards ─────────────────────────────────
+                        ..._roles.map(
+                          (r) => _RoleCard(
+                            config: r,
+                            isSelected: _selectedRole == r.role,
+                            isLoading: _isLoading && _selectedRole == r.role,
+                            disabled: _isLoading,
+                            onTap: () => _loginAs(r.role),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
-
-                          // Register link
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Belum punya akun? ',
-                                  style: AppTextStyles.bodyMd
-                                      .copyWith(color: AppColors.neutral500)),
-                              GestureDetector(
-                                onTap: () => context.push(RouteNames.register),
-                                child: Text('Daftar sekarang',
-                                    style: AppTextStyles.bodyMdSemiBold
-                                        .copyWith(color: AppColors.primary700)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: AppSpacing.xl),
-                  Text('© 2024 EduAccess. All rights reserved.',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.neutral500)),
+                  Text(
+                    '© 2025 EduAccess. All rights reserved.',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.neutral300),
+                  ),
                 ],
               ),
             ),
@@ -185,15 +133,192 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
+// ── Role definitions ──────────────────────────────────────────────────────────
+class _RoleConfig {
+  final UserRole role;
+  final String label;
+  final String description;
+  final IconData icon;
+  final Color accent;
 
+  const _RoleConfig({
+    required this.role,
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.accent,
+  });
+}
+
+const _roles = [
+  _RoleConfig(
+    role: UserRole.superadmin,
+    label: 'Super Admin',
+    description: 'Akses penuh ke semua sekolah & fitur',
+    icon: Icons.admin_panel_settings_outlined,
+    accent: AppColors.primary700,
+  ),
+  _RoleConfig(
+    role: UserRole.adminSekolah,
+    label: 'Admin Sekolah',
+    description: 'Kelola data sekolah, siswa, guru & staff',
+    icon: Icons.manage_accounts_outlined,
+    accent: AppColors.primary500,
+  ),
+  _RoleConfig(
+    role: UserRole.kepalaSekolah,
+    label: 'Kepala Sekolah',
+    description: 'Pantau statistik & laporan sekolah',
+    icon: Icons.account_balance_outlined,
+    accent: AppColors.info,
+  ),
+  _RoleConfig(
+    role: UserRole.guru,
+    label: 'Guru',
+    description: 'Kelola absensi kelas & ujian CBT',
+    icon: Icons.school_outlined,
+    accent: AppColors.success,
+  ),
+  _RoleConfig(
+    role: UserRole.siswa,
+    label: 'Siswa',
+    description: 'Lihat absensi & ikuti ujian CBT',
+    icon: Icons.menu_book_outlined,
+    accent: AppColors.accent500,
+  ),
+  _RoleConfig(
+    role: UserRole.orangtua,
+    label: 'Orang Tua',
+    description: 'Pantau kehadiran & nilai ujian anak',
+    icon: Icons.family_restroom_outlined,
+    accent: AppColors.warning,
+  ),
+  _RoleConfig(
+    role: UserRole.staff,
+    label: 'Staff',
+    description: 'Akses terbatas ke absensi harian',
+    icon: Icons.badge_outlined,
+    accent: AppColors.neutral500,
+  ),
+];
+
+// ── Role card widget ──────────────────────────────────────────────────────────
+class _RoleCard extends StatelessWidget {
+  final _RoleConfig config;
+  final bool isSelected;
+  final bool isLoading;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  const _RoleCard({
+    required this.config,
+    required this.isSelected,
+    required this.isLoading,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Material(
+        color: isSelected
+            ? config.accent.withValues(alpha: 0.08)
+            : AppColors.neutral50,
+        borderRadius: AppRadius.lgAll,
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          borderRadius: AppRadius.lgAll,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.lgAll,
+              border: Border.all(
+                color: isSelected
+                    ? config.accent.withValues(alpha: 0.4)
+                    : AppColors.neutral300,
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Icon circle
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: config.accent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(config.icon, color: config.accent, size: 20),
+                ),
+                const SizedBox(width: AppSpacing.md),
+
+                // Label + description
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        config.label,
+                        style: AppTextStyles.bodyMdSemiBold.copyWith(
+                          color: isSelected
+                              ? config.accent
+                              : AppColors.neutral900,
+                        ),
+                      ),
+                      Text(
+                        config.description,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.neutral500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: AppSpacing.sm),
+                // Trailing: spinner or arrow
+                if (isLoading)
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: config.accent,
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: isSelected
+                        ? config.accent
+                        : AppColors.neutral300,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Logo ──────────────────────────────────────────────────────────────────────
 class _Logo extends StatelessWidget {
   final bool compact;
   const _Logo({this.compact = false});
 
   @override
   Widget build(BuildContext context) {
-    final iconSize  = compact ? 34.0 : 40.0;
+    final iconSize = compact ? 34.0 : 40.0;
     final textStyle = compact ? AppTextStyles.h3 : AppTextStyles.h2;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -212,34 +337,6 @@ class _Logo extends StatelessWidget {
         Text('EduAccess',
             style: textStyle.copyWith(color: AppColors.primary900)),
       ],
-    );
-  }
-}
-
-class _ErrorBanner extends StatelessWidget {
-  final String message;
-  const _ErrorBanner({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
-        borderRadius: AppRadius.mdAll,
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(message,
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.error)),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -45,6 +45,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // ── Boot: check stored tokens ─────────────────────────────────────────────
   Future<void> loadFromStorage() async {
+    // 1. Check for demo/offline session no network needed
+    final demo = await _storage.loadDemoSession();
+    if (demo != null) {
+      state = AuthStateAuthenticated(_buildDemoUser(demo.role, demo.name));
+      return;
+    }
+
+    // 2. Real session: validate stored token via /auth/me
     try {
       final token = await _storage.getAccessToken();
       if (token == null) {
@@ -52,7 +60,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
-      // Validate token by calling /auth/me
       final resp = await _dio.get(ApiEndpoints.me);
       final userData = resp.data['data'] as Map<String, dynamic>?;
       if (userData == null) {
@@ -66,6 +73,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _storage.clearAll();
       state = const AuthStateUnauthenticated();
     }
+  }
+
+  // ── Demo login (no backend required) ─────────────────────────────────────
+  /// Signs in instantly as [role] with a mock user — for offline / demo use.
+  Future<void> demoLogin(UserRole role) async {
+    final name = _demoDisplayName(role);
+    final backendRole = _roleToBackendString(role);
+    await _storage.saveDemoSession(backendRole, name);
+    state = AuthStateAuthenticated(_buildDemoUser(backendRole, name));
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────
@@ -141,17 +157,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     try {
-      final refreshToken = await _storage.getRefreshToken();
-      if (refreshToken != null) {
-        await _dio.post(
-          ApiEndpoints.logout,
-          data: {'refresh_token': refreshToken},
-        );
+      final demo = await _storage.loadDemoSession();
+      if (demo == null) {
+        // Only call revoke endpoint for real sessions
+        final refreshToken = await _storage.getRefreshToken();
+        if (refreshToken != null) {
+          await _dio.post(
+            ApiEndpoints.logout,
+            data: {'refresh_token': refreshToken},
+          );
+        }
       }
     } catch (_) {
-      // Ignore errors — still clear local tokens
+      // Ignore errors — always clear local state
     } finally {
-      await _storage.clearAll();
+      await Future.wait([_storage.clearAll(), _storage.clearDemoSession()]);
       state = const AuthStateUnauthenticated();
     }
   }
@@ -164,6 +184,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+  AuthUser _buildDemoUser(String backendRole, String name) {
+    final role = UserRole.fromString(backendRole);
+    return AuthUser(
+      id: 'demo-$backendRole',
+      name: name,
+      email: '$backendRole@demo.eduaccess.id',
+      role: role,
+      schoolId: role == UserRole.superadmin ? null : 'demo-school-001',
+    );
+  }
+
+  String _demoDisplayName(UserRole role) => switch (role) {
+    UserRole.superadmin => 'Super Admin',
+    UserRole.adminSekolah => 'Admin Sekolah',
+    UserRole.kepalaSekolah => 'Kepala Sekolah',
+    UserRole.guru => 'Budi Santoso',
+    UserRole.siswa => 'Andi Pratama',
+    UserRole.orangtua => 'Siti Rahayu',
+    UserRole.staff => 'Staff Sekolah',
+  };
+
+  String _roleToBackendString(UserRole role) => switch (role) {
+    UserRole.superadmin => 'superadmin',
+    UserRole.adminSekolah => 'admin_sekolah',
+    UserRole.kepalaSekolah => 'kepala_sekolah',
+    UserRole.guru => 'guru',
+    UserRole.siswa => 'siswa',
+    UserRole.orangtua => 'orangtua',
+    UserRole.staff => 'staff',
+  };
+
   String _loginErrorMessage(int? status) => switch (status) {
     401 => 'Email atau password salah.',
     403 => 'Akun Anda tidak aktif. Hubungi administrator.',
