@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 final tokenStorageProvider = Provider<TokenStorage>((ref) {
@@ -7,14 +9,19 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) {
 });
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
-const _kAccessToken  = 'edu_access_token';
+const _kAccessToken = 'edu_access_token';
 const _kRefreshToken = 'edu_refresh_token';
 
 // ── TokenStorage ─────────────────────────────────────────────────────────────
-/// Wraps flutter_secure_storage for JWT token persistence.
-/// All token I/O must go through this class — never read SecureStorage directly.
+/// Wraps token persistence.
+/// On web: uses SharedPreferences (localStorage) to avoid the Web Crypto API
+/// race condition in flutter_secure_storage_web (OperationError on read after
+/// write in the same session).
+/// On mobile/desktop: uses flutter_secure_storage for OS-level encryption.
+///
+/// All token I/O must go through this class — never read storage directly.
 class TokenStorage {
-  final _storage = const FlutterSecureStorage(
+  final _secure = const FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
@@ -23,17 +30,37 @@ class TokenStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await Future.wait([
-      _storage.write(key: _kAccessToken, value: accessToken),
-      _storage.write(key: _kRefreshToken, value: refreshToken),
-    ]);
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.setString(_kAccessToken, accessToken),
+        prefs.setString(_kRefreshToken, refreshToken),
+      ]);
+    } else {
+      await Future.wait([
+        _secure.write(key: _kAccessToken, value: accessToken),
+        _secure.write(key: _kRefreshToken, value: refreshToken),
+      ]);
+    }
   }
 
   /// Returns the stored access token, or null if not present.
-  Future<String?> getAccessToken() => _storage.read(key: _kAccessToken);
+  Future<String?> getAccessToken() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_kAccessToken);
+    }
+    return _secure.read(key: _kAccessToken);
+  }
 
   /// Returns the stored refresh token, or null if not present.
-  Future<String?> getRefreshToken() => _storage.read(key: _kRefreshToken);
+  Future<String?> getRefreshToken() async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_kRefreshToken);
+    }
+    return _secure.read(key: _kRefreshToken);
+  }
 
   /// Returns true if an access token exists in storage.
   Future<bool> hasToken() async {
@@ -43,9 +70,17 @@ class TokenStorage {
 
   /// Clears all tokens (called on logout or refresh failure).
   Future<void> clearAll() async {
-    await Future.wait([
-      _storage.delete(key: _kAccessToken),
-      _storage.delete(key: _kRefreshToken),
-    ]);
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await Future.wait([
+        prefs.remove(_kAccessToken),
+        prefs.remove(_kRefreshToken),
+      ]);
+    } else {
+      await Future.wait([
+        _secure.delete(key: _kAccessToken),
+        _secure.delete(key: _kRefreshToken),
+      ]);
+    }
   }
 }
