@@ -47,25 +47,38 @@ const _menuItems = [
     label: 'Manajemen Siswa',
     route: RouteNames.students,
     icon: Icons.school_outlined,
-    allowedRoles: _allRoles,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+      UserRole.guru,
+    },
   ),
   _NavItem(
     label: 'Manajemen Guru',
     route: RouteNames.teachers,
     icon: Icons.badge_outlined,
-    allowedRoles: _allRoles,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
   ),
   _NavItem(
     label: 'Manajemen Staff',
     route: RouteNames.staff,
     icon: Icons.badge_outlined,
-    allowedRoles: _allRoles,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
   ),
   _NavItem(
     label: 'Orang Tua',
     route: RouteNames.parents,
     icon: Icons.family_restroom_outlined,
-    allowedRoles: _allRoles,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
   ),
   _NavItem(
     label: 'Struktur Akademik',
@@ -96,6 +109,8 @@ const _menuItems = [
       UserRole.adminSekolah,
       UserRole.kepalaSekolah,
       UserRole.guru,
+      UserRole.siswa,
+      UserRole.orangtua,
     },
   ),
   _NavItem(
@@ -107,6 +122,9 @@ const _menuItems = [
       UserRole.adminSekolah,
       UserRole.kepalaSekolah,
       UserRole.guru,
+      UserRole.siswa,
+      UserRole.orangtua,
+      UserRole.staff,
     },
   ),
 ];

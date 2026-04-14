@@ -12,7 +12,6 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
-import '../../features/users/presentation/screens/users_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../widgets/app_layout.dart';
@@ -20,15 +19,82 @@ import '../widgets/not_found_screen.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_names.dart';
 
+// ── Role-based route guard ────────────────────────────────────────────────────
+/// Returns a redirect path if [role] is not allowed to access [location],
+/// otherwise null (allow through).
+String? _roleGuard(UserRole role, String location) {
+  // Everyone can access these
+  const universalRoutes = {
+    RouteNames.dashboard,
+    RouteNames.profile,
+    RouteNames.settings,
+    RouteNames.notifications,
+    RouteNames.help,
+  };
+
+  // Guru + admins
+  const guruRoutes = {
+    RouteNames.attendance,
+    RouteNames.cbt,
+  };
+
+  // Siswa + orangtua (personal access to attendance & CBT)
+  const studentRoutes = {
+    RouteNames.attendance,
+    RouteNames.cbt,
+  };
+
+  bool can(Set<String> allowed) =>
+      allowed.any((r) => location.startsWith(r));
+
+  if (can(universalRoutes)) return null;
+
+  return switch (role) {
+    UserRole.superadmin ||
+    UserRole.adminSekolah ||
+    UserRole.kepalaSekolah =>
+      null, // full access
+    UserRole.guru =>
+      can(guruRoutes) ? null : RouteNames.dashboard,
+    UserRole.siswa ||
+    UserRole.orangtua =>
+      can(studentRoutes) ? null : RouteNames.dashboard,
+    UserRole.staff =>
+      can({RouteNames.attendance}) ? null : RouteNames.dashboard,
+  };
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   // Listen to auth state changes to refresh the router redirect
   final authListenable = _AuthStateListenable(ref);
 
   return GoRouter(
-    initialLocation: RouteNames.users,
+    initialLocation: RouteNames.dashboard,
     refreshListenable: authListenable,
-    // Temporary dev mode: disable auth guard so every page can be opened.
-    redirect: (_, __) => null,
+    redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
+      final location = state.matchedLocation;
+      final isPublic = location == RouteNames.login ||
+          location == RouteNames.register;
+
+      // Still loading tokens — don't redirect yet
+      if (authState is AuthStateLoading) return null;
+
+      // Unauthenticated: send to login (unless already on a public route)
+      if (authState is AuthStateUnauthenticated) {
+        return isPublic ? null : RouteNames.login;
+      }
+
+      // Authenticated: bounce away from public routes
+      if (isPublic) return RouteNames.dashboard;
+
+      // Role-based guard
+      if (authState is AuthStateAuthenticated) {
+        return _roleGuard(authState.user.role, location);
+      }
+
+      return null;
+    },
     routes: [
       // ── Public routes ───────────────────────────────────────────────────
       GoRoute(path: RouteNames.login, builder: (_, _) => const LoginScreen()),
@@ -59,11 +125,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const NotificationsScreen(),
           ),
 
-          // Dev 2 — People management (placeholder until Session Dev2)
-          GoRoute(
-            path: RouteNames.users,
-            builder: (_, _) => const UsersScreen(),
-          ),
           GoRoute(
             path: '/users/:id',
             builder: (_, state) => PlaceholderScreen(

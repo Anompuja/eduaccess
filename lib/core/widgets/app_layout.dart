@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../auth/auth_notifier.dart';
+import '../auth/auth_state.dart';
 import '../router/route_names.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
@@ -59,14 +61,15 @@ class _DesktopLayout extends StatelessWidget {
 }
 
 // ── Mobile / Tablet ────────────────────────────────────────────────────────────
-class _MobileLayout extends StatelessWidget {
+class _MobileLayout extends ConsumerWidget {
   final Widget child;
   final bool showBottomNav;
   const _MobileLayout({required this.child, required this.showBottomNav});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
+    final role = ref.watch(currentUserProvider)?.role ?? UserRole.staff;
 
     return Scaffold(
       backgroundColor: AppColors.bgPage,
@@ -82,11 +85,11 @@ class _MobileLayout extends StatelessWidget {
       drawer: Drawer(
         width: 240,
         backgroundColor: AppColors.primary900,
-        child: SafeArea(child: const AppSidebar()),
+        child: const SafeArea(child: AppSidebar()),
       ),
       body: child,
       bottomNavigationBar:
-          showBottomNav ? _BottomNav(currentLocation: location) : null,
+          showBottomNav ? _BottomNav(currentLocation: location, role: role) : null,
     );
   }
 }
@@ -94,39 +97,60 @@ class _MobileLayout extends StatelessWidget {
 // ── Bottom navigation (mobile only) ───────────────────────────────────────────
 class _BottomNav extends StatelessWidget {
   final String currentLocation;
-  const _BottomNav({required this.currentLocation});
+  final UserRole role;
+  const _BottomNav({required this.currentLocation, required this.role});
 
-  static const _items = [
-    _NavItem(
-      label: 'Dashboard',
-      icon: Icons.space_dashboard_outlined,
-      activeIcon: Icons.space_dashboard_rounded,
-      route: RouteNames.dashboard,
-    ),
-    _NavItem(
-      label: 'Siswa',
-      icon: Icons.school_outlined,
-      activeIcon: Icons.school_rounded,
-      route: RouteNames.students,
-    ),
-    _NavItem(
-      label: 'Absensi',
-      icon: Icons.fact_check_outlined,
-      activeIcon: Icons.fact_check_rounded,
-      route: RouteNames.attendance,
-    ),
-    _NavItem(
-      label: 'Pengaturan',
-      icon: Icons.settings_outlined,
-      activeIcon: Icons.settings_rounded,
-      route: RouteNames.settings,
-    ),
+  // Admin / kepalaSekolah bottom nav
+  static const _adminItems = [
+    _NavItem(label: 'Dashboard', icon: Icons.space_dashboard_outlined, activeIcon: Icons.space_dashboard_rounded, route: RouteNames.dashboard),
+    _NavItem(label: 'Siswa', icon: Icons.school_outlined, activeIcon: Icons.school_rounded, route: RouteNames.students),
+    _NavItem(label: 'Absensi', icon: Icons.fact_check_outlined, activeIcon: Icons.fact_check_rounded, route: RouteNames.attendance),
+    _NavItem(label: 'Pengaturan', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, route: RouteNames.settings),
   ];
+
+  // Guru bottom nav
+  static const _guruItems = [
+    _NavItem(label: 'Dashboard', icon: Icons.space_dashboard_outlined, activeIcon: Icons.space_dashboard_rounded, route: RouteNames.dashboard),
+    _NavItem(label: 'Absensi', icon: Icons.fact_check_outlined, activeIcon: Icons.fact_check_rounded, route: RouteNames.attendance),
+    _NavItem(label: 'CBT', icon: Icons.quiz_outlined, activeIcon: Icons.quiz_rounded, route: RouteNames.cbt),
+    _NavItem(label: 'Pengaturan', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, route: RouteNames.settings),
+  ];
+
+  // Siswa / Orangtua bottom nav
+  static const _studentItems = [
+    _NavItem(label: 'Dashboard', icon: Icons.space_dashboard_outlined, activeIcon: Icons.space_dashboard_rounded, route: RouteNames.dashboard),
+    _NavItem(label: 'Absensi', icon: Icons.fact_check_outlined, activeIcon: Icons.fact_check_rounded, route: RouteNames.attendance),
+    _NavItem(label: 'CBT', icon: Icons.quiz_outlined, activeIcon: Icons.quiz_rounded, route: RouteNames.cbt),
+    _NavItem(label: 'Profil', icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, route: RouteNames.profile),
+  ];
+
+  // Staff bottom nav
+  static const _staffItems = [
+    _NavItem(label: 'Dashboard', icon: Icons.space_dashboard_outlined, activeIcon: Icons.space_dashboard_rounded, route: RouteNames.dashboard),
+    _NavItem(label: 'Absensi', icon: Icons.fact_check_outlined, activeIcon: Icons.fact_check_rounded, route: RouteNames.attendance),
+    _NavItem(label: 'Pengaturan', icon: Icons.settings_outlined, activeIcon: Icons.settings_rounded, route: RouteNames.settings),
+  ];
+
+  List<_NavItem> get _items => switch (role) {
+    UserRole.superadmin ||
+    UserRole.adminSekolah =>
+      _adminItems,
+    UserRole.kepalaSekolah =>
+      _adminItems,
+    UserRole.guru =>
+      _guruItems,
+    UserRole.siswa ||
+    UserRole.orangtua =>
+      _studentItems,
+    UserRole.staff =>
+      _staffItems,
+  };
 
   @override
   Widget build(BuildContext context) {
+    final items = _items;
     final currentIndex = () {
-      final i = _items.indexWhere((n) => currentLocation.startsWith(n.route));
+      final i = items.indexWhere((n) => currentLocation.startsWith(n.route));
       return i < 0 ? 0 : i;
     }();
 
@@ -145,7 +169,7 @@ class _BottomNav extends StatelessWidget {
         child: SizedBox(
           height: 60,
           child: Row(
-            children: _items.asMap().entries.map((e) {
+            children: items.asMap().entries.map((e) {
               final i = e.key;
               final item = e.value;
               final isActive = i == currentIndex;

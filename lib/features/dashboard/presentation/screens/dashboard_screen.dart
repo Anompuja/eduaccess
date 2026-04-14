@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/auth/auth_notifier.dart';
+import '../../../../core/auth/auth_state.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -20,23 +22,44 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(dashboardStatsProvider);
+    final user = ref.watch(currentUserProvider);
+    final role = user?.role ?? UserRole.staff;
 
+    // Siswa and orangtua see a personal dashboard — no school-wide stats
+    if (role == UserRole.siswa || role == UserRole.orangtua) {
+      final statsAsync = ref.watch(dashboardStatsProvider);
+      return statsAsync.when(
+        loading: () => const AppLoadingIndicator(message: 'Memuat dashboard...'),
+        error: (e, _) => AppErrorState(
+          message: e.toString(),
+          onRetry: () => ref.read(dashboardStatsProvider.notifier).refresh(),
+        ),
+        data: (stats) => _PersonalDashboard(
+          userName: user?.name ?? '',
+          role: role,
+          stats: stats,
+        ),
+      );
+    }
+
+    // All other roles see the full stats dashboard (content filtered by role)
+    final statsAsync = ref.watch(dashboardStatsProvider);
     return statsAsync.when(
       loading: () => const AppLoadingIndicator(message: 'Memuat dashboard...'),
       error: (e, _) => AppErrorState(
         message: e.toString(),
         onRetry: () => ref.read(dashboardStatsProvider.notifier).refresh(),
       ),
-      data: (stats) => _DashboardContent(stats: stats),
+      data: (stats) => _DashboardContent(stats: stats, role: role),
     );
   }
 }
 
-// ── Main content ──────────────────────────────────────────────────────────────
+// ── Main content (admin / kepala / guru) ──────────────────────────────────────
 class _DashboardContent extends StatelessWidget {
   final DashboardStats stats;
-  const _DashboardContent({required this.stats});
+  final UserRole role;
+  const _DashboardContent({required this.stats, required this.role});
 
   @override
   Widget build(BuildContext context) {
@@ -69,14 +92,14 @@ class _DashboardContent extends StatelessWidget {
                         data: stats.weeklyAttendance, compact: false),
                   ),
                   const SizedBox(width: AppSpacing.xl),
-                  Expanded(flex: 2, child: _QuickActions()),
+                  Expanded(flex: 2, child: _QuickActions(role: role)),
                 ],
               )
             else ...[
               _AttendanceChart(
                   data: stats.weeklyAttendance, compact: screen.isMobile),
               SizedBox(height: pad),
-              _QuickActions(),
+              _QuickActions(role: role),
             ],
             SizedBox(height: pad),
 
@@ -510,11 +533,149 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
+// ── Personal dashboard (siswa / orangtua) ─────────────────────────────────────
+class _PersonalDashboard extends StatelessWidget {
+  final String userName;
+  final UserRole role;
+  final DashboardStats stats;
+  const _PersonalDashboard({
+    required this.userName,
+    required this.role,
+    required this.stats,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = Responsive.of(context);
+    final compact = screen.isMobile;
+    final pad = compact ? AppSpacing.lg : AppSpacing.xl;
+    final isOrangtua = role == UserRole.orangtua;
+
+    // Mock personal attendance figures (replaced by real API later)
+    const hadirCount = '22';
+    const absenCount = '2';
+    const terlambatCount = '1';
+    const nilaiCbt = '87';
+
+    return RefreshIndicator(
+      color: AppColors.primary500,
+      onRefresh: () async {},
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(pad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Greeting banner ─────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(pad),
+              decoration: BoxDecoration(
+                color: AppColors.primary900,
+                borderRadius: AppRadius.xlAll,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isOrangtua
+                        ? 'Selamat datang, ${userName.split(' ').first}!'
+                        : 'Halo, ${userName.split(' ').first}!',
+                    style: AppTextStyles.h3.copyWith(color: AppColors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    isOrangtua
+                        ? 'Pantau perkembangan anak Anda di sini.'
+                        : 'Semangat belajar hari ini!',
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: AppColors.primary300),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: pad),
+
+            // ── Personal stat cards ─────────────────────────────────────
+            Text(
+              isOrangtua ? 'Rekap Absensi Anak' : 'Rekap Absensi Bulan Ini',
+              style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: AppSpacing.md,
+              mainAxisSpacing: AppSpacing.md,
+              childAspectRatio: compact ? 1.5 : 1.7,
+              children: [
+                _StatCard(
+                  label: 'Hadir',
+                  value: hadirCount,
+                  subtitle: 'Hari ini bulan ini',
+                  icon: Icons.check_circle_outline_rounded,
+                  isPrimary: true,
+                  compact: compact,
+                ),
+                _StatCard(
+                  label: 'Tidak Hadir',
+                  value: absenCount,
+                  subtitle: 'Perlu perhatian',
+                  icon: Icons.cancel_outlined,
+                  compact: compact,
+                ),
+                _StatCard(
+                  label: 'Terlambat',
+                  value: terlambatCount,
+                  subtitle: 'Bulan ini',
+                  icon: Icons.schedule_outlined,
+                  compact: compact,
+                ),
+                _StatCard(
+                  label: 'Nilai CBT',
+                  value: nilaiCbt,
+                  subtitle: 'Rata-rata',
+                  icon: Icons.emoji_events_outlined,
+                  compact: compact,
+                ),
+              ],
+            ),
+            SizedBox(height: pad),
+
+            // ── Weekly attendance chart ─────────────────────────────────
+            _AttendanceChart(
+              data: stats.weeklyAttendance,
+              compact: compact,
+            ),
+            SizedBox(height: pad),
+
+            // ── Active exams ────────────────────────────────────────────
+            _ActiveExams(exams: stats.activeExams),
+            SizedBox(height: pad),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Quick actions ─────────────────────────────────────────────────────────────
 class _QuickActions extends StatelessWidget {
+  final UserRole role;
+  const _QuickActions({required this.role});
+
   @override
   Widget build(BuildContext context) {
     final compact = Responsive.isMobile(context);
+
+    // Guru: attendance + CBT only (no student management)
+    final isGuru = role == UserRole.guru;
+    // KepalaSekolah: read-only, no add/create actions
+    final isReadOnly = role == UserRole.kepalaSekolah;
+
     return AppCard(
       padding: EdgeInsets.all(compact ? AppSpacing.lg : AppSpacing.xl),
       child: Column(
@@ -523,15 +684,17 @@ class _QuickActions extends StatelessWidget {
           Text('Aksi Cepat',
               style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
           SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
-          _ActionBtn(
-            label: 'Tambah Siswa',
-            icon: Icons.person_add_outlined,
-            bgColor: AppColors.primary100,
-            fgColor: AppColors.primary700,
-            onTap: () => context.push(RouteNames.students),
-            compact: compact,
-          ),
-          SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
+          if (!isGuru && !isReadOnly) ...[
+            _ActionBtn(
+              label: 'Tambah Siswa',
+              icon: Icons.person_add_outlined,
+              bgColor: AppColors.primary100,
+              fgColor: AppColors.primary700,
+              onTap: () => context.push(RouteNames.students),
+              compact: compact,
+            ),
+            SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
+          ],
           _ActionBtn(
             label: 'Input Absensi',
             icon: Icons.fact_check_outlined,
@@ -541,15 +704,17 @@ class _QuickActions extends StatelessWidget {
             compact: compact,
           ),
           SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
-          _ActionBtn(
-            label: 'Buat Ujian CBT',
-            icon: Icons.quiz_outlined,
-            bgColor: AppColors.accent100,
-            fgColor: AppColors.accent700,
-            onTap: () => context.push(RouteNames.cbt),
-            compact: compact,
-          ),
-          SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
+          if (!isReadOnly) ...[
+            _ActionBtn(
+              label: 'Buat Ujian CBT',
+              icon: Icons.quiz_outlined,
+              bgColor: AppColors.accent100,
+              fgColor: AppColors.accent700,
+              onTap: () => context.push(RouteNames.cbt),
+              compact: compact,
+            ),
+            SizedBox(height: compact ? AppSpacing.xs : AppSpacing.sm),
+          ],
           _ActionBtn(
             label: 'Lihat Laporan',
             icon: Icons.bar_chart_rounded,
