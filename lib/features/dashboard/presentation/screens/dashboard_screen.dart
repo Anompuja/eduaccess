@@ -118,45 +118,48 @@ class _StatCardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatCard(
-            label: 'Total Siswa',
-            value: _fmt(stats.totalStudents),
-            subtitle: '+12 bulan ini',
-            icon: Icons.school_outlined,
-            isPrimary: true,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _StatCard(
+              label: 'Total Siswa',
+              value: _fmt(stats.totalStudents),
+              subtitle: '+12 bulan ini',
+              icon: Icons.school_outlined,
+              isPrimary: true,
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: _StatCard(
-            label: 'Total Guru',
-            value: _fmt(stats.totalTeachers),
-            subtitle: '+2 bulan ini',
-            icon: Icons.badge_outlined,
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: _StatCard(
+              label: 'Total Guru',
+              value: _fmt(stats.totalTeachers),
+              subtitle: '+2 bulan ini',
+              icon: Icons.badge_outlined,
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: _StatCard(
-            label: 'Kelas Aktif',
-            value: _fmt(stats.activeClasses),
-            subtitle: 'Semester ini',
-            icon: Icons.class_outlined,
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: _StatCard(
+              label: 'Kelas Aktif',
+              value: _fmt(stats.activeClasses),
+              subtitle: 'Semester ini',
+              icon: Icons.class_outlined,
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: _StatCard(
-            label: 'Langganan',
-            value: stats.subscriptionPlan,
-            subtitle: 'Aktif hingga Des 2024',
-            icon: Icons.workspace_premium_outlined,
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: _StatCard(
+              label: 'Langganan',
+              value: stats.subscriptionPlan,
+              subtitle: 'Aktif hingga Des 2024',
+              icon: Icons.workspace_premium_outlined,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -179,7 +182,7 @@ class _StatCardGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: gap,
       mainAxisSpacing: gap,
-      childAspectRatio: compact ? 1.55 : 1.7,
+      childAspectRatio: compact ? 1.4 : 1.65,
       children: [
         _StatCard(
           label: 'Total Siswa',
@@ -284,7 +287,7 @@ class _StatCard extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             subtitle,
             style: AppTextStyles.caption.copyWith(color: subColor),
@@ -312,37 +315,52 @@ class _AttendanceChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Statistik Absensi',
-                        style: AppTextStyles.h4
-                            .copyWith(color: AppColors.neutral900)),
-                    Text('Per hari — minggu ini',
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.neutral500)),
-                  ],
+          if (compact) ...[
+            Text('Statistik Absensi',
+                style: AppTextStyles.h4
+                    .copyWith(color: AppColors.neutral900)),
+            Text('Per hari — minggu ini',
+                style: AppTextStyles.bodySm
+                    .copyWith(color: AppColors.neutral500)),
+            const SizedBox(height: AppSpacing.sm),
+            _Legend(compact: compact),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Statistik Absensi',
+                          style: AppTextStyles.h4
+                              .copyWith(color: AppColors.neutral900)),
+                      Text('Per hari — minggu ini',
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.neutral500)),
+                    ],
+                  ),
                 ),
-              ),
-              _Legend(compact: compact),
-            ],
-          ),
+                _Legend(compact: compact),
+              ],
+            ),
           SizedBox(height: compact ? AppSpacing.lg : AppSpacing.xl),
-          // Horizontal scroll on mobile so chart never gets squished
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: compact
-                  ? (data.length * 64.0).clamp(300.0, double.infinity)
-                  : double.infinity,
+          // Mobile: horizontal scroll so chart never gets squished.
+          // Desktop: fill available width directly (no scroll wrapper).
+          if (compact)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: (data.length * 64.0).clamp(300.0, 800.0),
+                height: chartHeight,
+                child: _BarChartWidget(data: data),
+              ),
+            )
+          else
+            SizedBox(
               height: chartHeight,
               child: _BarChartWidget(data: data),
             ),
-          ),
         ],
       ),
     );
