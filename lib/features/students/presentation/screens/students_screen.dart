@@ -7,6 +7,12 @@ import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../data/datasources/students_dummy_data.dart';
+import '../../data/models/student_row_data.dart';
+import '../widgets/student_create_modal.dart';
+import '../widgets/student_delete_modal.dart';
+import '../widgets/student_detail_modal.dart';
+import '../widgets/student_edit_modal.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -22,69 +28,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
   String _subClassFilter = 'Semua Sub-Kelas';
   int _page = 1;
 
-  final List<_StudentRow> _dummyRows = const [
-    _StudentRow(
-      name: 'Dina Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'Rizky Maulana',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'Fahri Akbar',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'Dina Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'vedo',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'rira',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'Dreaza Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'dgas',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'made',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'anom',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-  ];
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -95,7 +38,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.sizeOf(context).width < 700;
     final query = _searchCtrl.text.toLowerCase().trim();
-    final filteredRows = _dummyRows.where((e) {
+    final filteredRows = studentDummyRows.where((e) {
       return query.isEmpty ||
           e.name.toLowerCase().contains(query) ||
           e.nis.contains(query);
@@ -195,7 +138,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     size: 18,
                     color: AppColors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: _openStudentCreateModal,
                 ),
               ],
             )
@@ -243,7 +186,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   }),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0, left: 8.0),
+                  padding: const EdgeInsets.only(bottom: 4.0, left: 30.0),
                   child: AppButton.accent(
                     height: 50,
                     label: 'Tambah Siswa',
@@ -252,7 +195,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       size: 18,
                       color: AppColors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: _openStudentCreateModal,
                   ),
                 ),
               ],
@@ -399,19 +342,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                           _actionIconButton(
                                             icon: Icons.visibility_outlined,
                                             backgroundColor: AppColors.info,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentDetailModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
                                             icon: Icons.edit_outlined,
                                             backgroundColor: AppColors.warning,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentEditModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
                                             icon: Icons.delete_outline,
                                             backgroundColor: AppColors.error,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentDeleteModal(e),
                                           ),
                                         ],
                                       ),
@@ -545,18 +491,20 @@ class _StudentsScreenState extends State<StudentsScreen> {
       ),
     );
   }
-}
 
-class _StudentRow {
-  final String name;
-  final String nis;
-  final String studentClass;
-  final String status;
+  void _openStudentDetailModal(StudentRowData row) {
+    showStudentDetailModal(context, data: row);
+  }
 
-  const _StudentRow({
-    required this.name,
-    required this.nis,
-    required this.studentClass,
-    required this.status,
-  });
+  void _openStudentDeleteModal(StudentRowData row) {
+    showStudentDeleteModal(context, data: row);
+  }
+
+  void _openStudentEditModal(StudentRowData row) {
+    showStudentEditModal(context, data: row);
+  }
+
+  void _openStudentCreateModal() {
+    showStudentCreateModal(context);
+  }
 }
