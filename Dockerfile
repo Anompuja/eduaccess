@@ -1,6 +1,9 @@
 # ── Stage 1: Build Flutter Web ──────────────────────────────────────────────
 FROM ghcr.io/cirruslabs/flutter:stable AS builder
 
+
+ENV FLUTTER_ALLOW_ROOT=true
+
 WORKDIR /app
 
 # Copy dependency files first for better layer caching
@@ -11,7 +14,7 @@ RUN flutter pub get
 COPY . .
 
 # Build release web output
-RUN flutter build web --release --web-renderer canvaskit --no-wasm-dry-run
+RUN flutter build web --release
 
 # ── Stage 2: Serve with nginx ────────────────────────────────────────────────
 FROM nginx:alpine

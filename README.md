@@ -4,21 +4,6 @@ A Flutter multiplatform app for managing school operations: attendance, CBT exam
 
 > **Demo Mode** — the app runs fully offline with no backend required. Pick any role on the login screen to explore the app.
 
----
-
-## Assessment Criteria Coverage
-
-| Criterion | Weight | Status |
-|---|---|---|
-| Framework Implementation | 20% | Flutter 3 + clean feature-based structure, Riverpod, GoRouter |
-| Theming & Consistency | 20% | `AppTheme.light` via `ThemeData`, unified `AppColors`, `AppTextStyles`, `AppSpacing` |
-| Responsiveness | 20% | `Responsive` breakpoints (mobile ≤767 / tablet 768–1023 / desktop ≥1024), adaptive layouts |
-| Navigation & Content | 20% | 10+ screens, GoRouter with role-based guards, ShellRoute with sidebar + bottom nav |
-| Version Control | 20% | See git log — commits across multiple sessions |
-| Image Handling | Pass/Fail | `Image.asset('assets/images/logo.png')` in login screen with fallback |
-
----
-
 ## Quick Start — Docker (Recommended for Assessment)
 
 > Requires: [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/)
@@ -36,6 +21,7 @@ docker compose up --build
 ```
 
 To stop:
+
 ```bash
 docker compose down
 ```
@@ -83,15 +69,15 @@ The app starts in **Demo Mode** — no backend or credentials needed.
 2. You are taken to the **Login** screen
 3. Tap any role card to sign in instantly:
 
-| Role | Access |
-|---|---|
-| Super Admin | All screens and all data |
-| Admin Sekolah | All screens except subscription |
-| Kepala Sekolah | Dashboard, reports, students, teachers |
-| Guru | Dashboard, attendance, CBT |
-| Siswa | Personal dashboard, own attendance, CBT |
-| Orang Tua | Personal dashboard, child attendance, CBT |
-| Staff | Dashboard and attendance only |
+| Role           | Access                                    |
+| -------------- | ----------------------------------------- |
+| Super Admin    | All screens and all data                  |
+| Admin Sekolah  | All screens except subscription           |
+| Kepala Sekolah | Dashboard, reports, students, teachers    |
+| Guru           | Dashboard, attendance, CBT                |
+| Siswa          | Personal dashboard, own attendance, CBT   |
+| Orang Tua      | Personal dashboard, child attendance, CBT |
+| Staff          | Dashboard and attendance only             |
 
 4. Use the sidebar (desktop) or bottom nav (mobile) to navigate
 5. Tap your avatar or **Logout** in settings to switch roles
@@ -133,16 +119,16 @@ docker/
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| UI Framework | Flutter 3 (Dart 3) |
-| State Management | Riverpod 2 (`StateNotifierProvider`) |
-| Navigation | GoRouter 14 (`ShellRoute`, role guards) |
-| HTTP Client | Dio 5 (interceptors, token refresh) |
-| Local Storage | SharedPreferences (demo session) + FlutterSecureStorage (real tokens) |
-| Typography | Google Fonts — Inter |
-| Charts | fl_chart |
-| Container | Docker + nginx (SPA) |
+| Layer            | Technology                                                            |
+| ---------------- | --------------------------------------------------------------------- |
+| UI Framework     | Flutter 3 (Dart 3)                                                    |
+| State Management | Riverpod 2 (`StateNotifierProvider`)                                  |
+| Navigation       | GoRouter 14 (`ShellRoute`, role guards)                               |
+| HTTP Client      | Dio 5 (interceptors, token refresh)                                   |
+| Local Storage    | SharedPreferences (demo session) + FlutterSecureStorage (real tokens) |
+| Typography       | Google Fonts — Inter                                                  |
+| Charts           | fl_chart                                                              |
+| Container        | Docker + nginx (SPA)                                                  |
 
 ---
 
@@ -155,6 +141,7 @@ flutter run --dart-define=EDUACCESS_BASE_URL=http://your-api-host/api/v1
 ```
 
 Default fallbacks (when no `--dart-define` is provided):
+
 - Web / Desktop: `http://localhost:8080/api/v1`
 - Android emulator: `http://10.0.2.2:8080/api/v1`
 
