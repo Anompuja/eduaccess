@@ -323,15 +323,24 @@ class _Logo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: iconSize,
-          height: iconSize,
-          decoration: BoxDecoration(
-            color: AppColors.primary700,
-            borderRadius: BorderRadius.circular(iconSize * 0.25),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(iconSize * 0.25),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: iconSize,
+            height: iconSize,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Container(
+              width: iconSize,
+              height: iconSize,
+              decoration: BoxDecoration(
+                color: AppColors.primary700,
+                borderRadius: BorderRadius.circular(iconSize * 0.25),
+              ),
+              child: Icon(Icons.school_rounded,
+                  color: AppColors.white, size: iconSize * 0.6),
+            ),
           ),
-          child: Icon(Icons.school_rounded,
-              color: AppColors.white, size: iconSize * 0.6),
         ),
         const SizedBox(width: AppSpacing.md),
         Text('EduAccess',

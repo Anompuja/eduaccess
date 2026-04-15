@@ -11,7 +11,7 @@ RUN flutter pub get
 COPY . .
 
 # Build release web output
-RUN flutter build web --release --web-renderer canvaskit
+RUN flutter build web --release --web-renderer canvaskit --no-wasm-dry-run
 
 # ── Stage 2: Serve with nginx ────────────────────────────────────────────────
 FROM nginx:alpine
