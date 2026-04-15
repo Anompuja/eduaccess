@@ -70,15 +70,18 @@ class _MobileLayout extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
     final role = ref.watch(currentUserProvider)?.role ?? UserRole.staff;
+    // showBottomNav is true only for mobile — tablet has no bottom nav
+    final isMobileSize = showBottomNav;
+    final topbarHeight = isMobileSize ? 64.0 : 72.0;
 
     return Scaffold(
       backgroundColor: AppColors.bgPage,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
+        preferredSize: Size.fromHeight(topbarHeight),
         child: Builder(
           builder: (ctx) => AppTopbar(
             onMenuPressed: () => Scaffold.of(ctx).openDrawer(),
-            isMobile: true,
+            isMobile: isMobileSize,
           ),
         ),
       ),
