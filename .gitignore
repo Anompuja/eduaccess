@@ -1,46 +1,69 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
+# ── OS / Editor ──────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.class
+*.pyc
+*.log
 .atom/
-.build/
-.buildlog/
 .history
 .svn/
 .swiftpm/
-migrate_working_dir/
-.claude
+.claude/
 
-# IntelliJ related
+# ── VS Code (optional — uncomment to ignore launch configs) ──────────────────
+# .vscode/
+
+# ── IntelliJ / Android Studio ────────────────────────────────────────────────
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# ── Flutter / Dart / Pub ─────────────────────────────────────────────────────
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# Symbolication related
-app.*.symbols
+# ── Generated code ────────────────────────────────────────────────────────────
+*.g.dart
+*.freezed.dart
+*.gen.dart
 
-# Obfuscation related
+# ── Obfuscation / symbolication ───────────────────────────────────────────────
+app.*.symbols
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ── Android ───────────────────────────────────────────────────────────────────
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+android/local.properties
+android/.gradle/
+**/android/**/GeneratedPluginRegistrant.java
+
+# ── iOS / macOS ───────────────────────────────────────────────────────────────
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Pods/
+**/ios/.symlinks/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/Flutter-Debug.xcconfig
+**/macos/Flutter/Flutter-Release.xcconfig
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+!*.env.example
+
+# ── Dart build / migration artifacts ─────────────────────────────────────────
+migrate_working_dir/
+*.orig
