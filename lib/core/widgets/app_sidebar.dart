@@ -8,6 +8,7 @@ import '../router/route_names.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import 'app_logo.dart';
 
 // ── Nav item model ─────────────────────────────────────────────────────────────
 class _NavItem {
@@ -250,17 +251,13 @@ class _LogoArea extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Row(
           children: [
-            Container(
+            const SizedBox(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary500,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.school_rounded,
-                color: AppColors.white,
-                size: 20,
+              child: AppLogo(
+                variant: AppLogoVariant.logoOnly,
+                height: 32,
+                alignment: Alignment.center,
               ),
             ),
             const SizedBox(width: AppSpacing.md),

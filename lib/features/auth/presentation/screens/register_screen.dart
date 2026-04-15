@@ -10,17 +10,18 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 
 final _roleItems = [
-  const AppDropdownItem(value: 'admin_sekolah',  label: 'Admin Sekolah'),
+  const AppDropdownItem(value: 'admin_sekolah', label: 'Admin Sekolah'),
   const AppDropdownItem(value: 'kepala_sekolah', label: 'Kepala Sekolah'),
-  const AppDropdownItem(value: 'guru',           label: 'Guru'),
-  const AppDropdownItem(value: 'staff',          label: 'Staff'),
-  const AppDropdownItem(value: 'orangtua',       label: 'Orang Tua'),
-  const AppDropdownItem(value: 'siswa',          label: 'Siswa'),
+  const AppDropdownItem(value: 'guru', label: 'Guru'),
+  const AppDropdownItem(value: 'staff', label: 'Staff'),
+  const AppDropdownItem(value: 'orangtua', label: 'Orang Tua'),
+  const AppDropdownItem(value: 'siswa', label: 'Siswa'),
 ];
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -31,15 +32,15 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey      = GlobalKey<FormState>();
-  final _nameCtrl     = TextEditingController();
-  final _emailCtrl    = TextEditingController();
-  final _passCtrl     = TextEditingController();
-  final _confirmCtrl  = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
 
-  final _nameFocus    = FocusNode();
-  final _emailFocus   = FocusNode();
-  final _passFocus    = FocusNode();
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passFocus = FocusNode();
   final _confirmFocus = FocusNode();
 
   String? _selectedRole;
@@ -60,7 +61,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authNotifierProvider.notifier).register(
+    await ref
+        .read(authNotifierProvider.notifier)
+        .register(
           name: _nameCtrl.text.trim(),
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text,
@@ -78,10 +81,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState is AuthStateAuthenticating;
-    final errorMsg  = authState is AuthStateError ? authState.message : null;
-    final isMobile  = Responsive.isMobile(context);
-    final cardPad   = isMobile ? AppSpacing.xl : AppSpacing.xxl;
-    final outerPad  = isMobile ? AppSpacing.lg : AppSpacing.xl;
+    final errorMsg = authState is AuthStateError ? authState.message : null;
+    final isMobile = Responsive.isMobile(context);
+    final cardPad = isMobile ? AppSpacing.xl : AppSpacing.xxl;
+    final outerPad = isMobile ? AppSpacing.lg : AppSpacing.xl;
 
     return Scaffold(
       backgroundColor: AppColors.bgPage,
@@ -98,8 +101,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   SizedBox(height: isMobile ? AppSpacing.xl : AppSpacing.xxl),
 
                   if (_success)
-                    _SuccessBanner(
-                        onLogin: () => context.go(RouteNames.login))
+                    _SuccessBanner(onLogin: () => context.go(RouteNames.login))
                   else
                     Container(
                       padding: EdgeInsets.all(cardPad),
@@ -113,19 +115,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Buat Akun EduAccess',
-                                style: (isMobile
-                                        ? AppTextStyles.h3
-                                        : AppTextStyles.h2)
-                                    .copyWith(color: AppColors.neutral900)),
+                            Text(
+                              'Buat Akun EduAccess',
+                              style:
+                                  (isMobile
+                                          ? AppTextStyles.h3
+                                          : AppTextStyles.h2)
+                                      .copyWith(color: AppColors.neutral900),
+                            ),
                             const SizedBox(height: AppSpacing.xs),
-                            Text('Isi data di bawah untuk mendaftar',
-                                style: AppTextStyles.bodyMd
-                                    .copyWith(color: AppColors.neutral500)),
+                            Text(
+                              'Isi data di bawah untuk mendaftar',
+                              style: AppTextStyles.bodyMd.copyWith(
+                                color: AppColors.neutral500,
+                              ),
+                            ),
                             SizedBox(
-                                height: isMobile
-                                    ? AppSpacing.lg
-                                    : AppSpacing.xxl),
+                              height: isMobile ? AppSpacing.lg : AppSpacing.xxl,
+                            ),
 
                             // Error banner
                             if (errorMsg != null) ...[
@@ -142,8 +149,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               textInputAction: TextInputAction.next,
                               prefixIcon: Icons.person_outline,
                               validator: Validators.name,
-                              onSubmitted: (_) =>
-                                  _emailFocus.requestFocus(),
+                              onSubmitted: (_) => _emailFocus.requestFocus(),
                             ),
                             const SizedBox(height: AppSpacing.lg),
 
@@ -157,8 +163,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               textInputAction: TextInputAction.next,
                               prefixIcon: Icons.email_outlined,
                               validator: Validators.email,
-                              onSubmitted: (_) =>
-                                  _passFocus.requestFocus(),
+                              onSubmitted: (_) => _passFocus.requestFocus(),
                             ),
                             const SizedBox(height: AppSpacing.lg),
 
@@ -169,8 +174,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               value: _selectedRole,
                               items: _roleItems,
                               validator: (v) => Validators.requiredDropdown(
-                                  v,
-                                  fieldName: 'Role'),
+                                v,
+                                fieldName: 'Role',
+                              ),
                               onChanged: (v) =>
                                   setState(() => _selectedRole = v),
                             ),
@@ -192,8 +198,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               controller: _confirmCtrl,
                               focusNode: _confirmFocus,
                               textInputAction: TextInputAction.done,
-                              validator: (v) => Validators.confirmPassword(
-                                  v, _passCtrl.text),
+                              validator: (v) =>
+                                  Validators.confirmPassword(v, _passCtrl.text),
                             ),
                             const SizedBox(height: AppSpacing.xl),
 
@@ -211,17 +217,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('Sudah punya akun? ',
-                                    style: AppTextStyles.bodyMd.copyWith(
-                                        color: AppColors.neutral500)),
+                                Text(
+                                  'Sudah punya akun? ',
+                                  style: AppTextStyles.bodyMd.copyWith(
+                                    color: AppColors.neutral500,
+                                  ),
+                                ),
                                 GestureDetector(
-                                  onTap: () =>
-                                      context.go(RouteNames.login),
-                                  child: Text('Masuk',
-                                      style: AppTextStyles.bodyMdSemiBold
-                                          .copyWith(
-                                              color:
-                                                  AppColors.primary700)),
+                                  onTap: () => context.go(RouteNames.login),
+                                  child: Text(
+                                    'Masuk',
+                                    style: AppTextStyles.bodyMdSemiBold
+                                        .copyWith(color: AppColors.primary700),
+                                  ),
                                 ),
                               ],
                             ),
@@ -231,9 +239,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
 
                   const SizedBox(height: AppSpacing.xl),
-                  Text('© 2024 EduAccess. All rights reserved.',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.neutral500)),
+                  Text(
+                    '© 2024 EduAccess. All rights reserved.',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.neutral500,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -252,25 +263,13 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize  = compact ? 34.0 : 40.0;
-    final textStyle = compact ? AppTextStyles.h3 : AppTextStyles.h2;
+    final logoVariant = compact
+        ? AppLogoVariant.textOnly
+        : AppLogoVariant.logoAndText;
+    final logoHeight = compact ? 40.0 : 60.0;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: iconSize,
-          height: iconSize,
-          decoration: BoxDecoration(
-            color: AppColors.primary700,
-            borderRadius: BorderRadius.circular(iconSize * 0.25),
-          ),
-          child: Icon(Icons.school_rounded,
-              color: AppColors.white, size: iconSize * 0.6),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Text('EduAccess',
-            style: textStyle.copyWith(color: AppColors.primary900)),
-      ],
+      children: [AppLogo(variant: logoVariant, height: logoHeight)],
     );
   }
 }
@@ -294,9 +293,10 @@ class _ErrorBanner extends StatelessWidget {
           const Icon(Icons.error_outline, color: AppColors.error, size: 18),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(message,
-                style:
-                    AppTextStyles.bodySm.copyWith(color: AppColors.error)),
+            child: Text(
+              message,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -326,24 +326,29 @@ class _SuccessBanner extends StatelessWidget {
               color: AppColors.primary100,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_outline_rounded,
-                color: AppColors.primary700, size: 36),
+            child: const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppColors.primary700,
+              size: 36,
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Pendaftaran Berhasil!',
-              style: AppTextStyles.h3.copyWith(color: AppColors.neutral900)),
+          Text(
+            'Pendaftaran Berhasil!',
+            style: AppTextStyles.h3.copyWith(color: AppColors.neutral900),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Akun Anda telah dibuat. Silakan masuk untuk melanjutkan.',
-            style:
-                AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xl),
           AppButton.primary(
-              label: 'Masuk Sekarang',
-              onPressed: onLogin,
-              isFullWidth: true),
+            label: 'Masuk Sekarang',
+            onPressed: onLogin,
+            isFullWidth: true,
+          ),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../../core/widgets/app_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -57,7 +58,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // ── Demo mode card ────────────────────────────────────
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(isMobile ? AppSpacing.lg : AppSpacing.xl),
+                    padding: EdgeInsets.all(
+                      isMobile ? AppSpacing.lg : AppSpacing.xl,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.white,
                       borderRadius: AppRadius.xlAll,
@@ -75,7 +78,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.accent500.withValues(alpha: 0.12),
+                                color: AppColors.accent500.withValues(
+                                  alpha: 0.12,
+                                ),
                                 borderRadius: AppRadius.smAll,
                               ),
                               child: Text(
@@ -92,16 +97,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           'Pilih Peran',
-                          style: (isMobile ? AppTextStyles.h3 : AppTextStyles.h2)
-                              .copyWith(color: AppColors.neutral900),
+                          style:
+                              (isMobile ? AppTextStyles.h3 : AppTextStyles.h2)
+                                  .copyWith(color: AppColors.neutral900),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           'Tap salah satu peran untuk masuk dan menjelajahi aplikasi.',
-                          style: AppTextStyles.bodyMd
-                              .copyWith(color: AppColors.neutral500),
+                          style: AppTextStyles.bodyMd.copyWith(
+                            color: AppColors.neutral500,
+                          ),
                         ),
-                        SizedBox(height: isMobile ? AppSpacing.lg : AppSpacing.xl),
+                        SizedBox(
+                          height: isMobile ? AppSpacing.lg : AppSpacing.xl,
+                        ),
 
                         // ── Role cards ─────────────────────────────────
                         ..._roles.map(
@@ -120,8 +129,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     '© 2025 EduAccess. All rights reserved.',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.neutral300),
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.neutral300,
+                    ),
                   ),
                 ],
               ),
@@ -298,9 +308,7 @@ class _RoleCard extends StatelessWidget {
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 14,
-                    color: isSelected
-                        ? config.accent
-                        : AppColors.neutral300,
+                    color: isSelected ? config.accent : AppColors.neutral300,
                   ),
               ],
             ),
@@ -318,34 +326,13 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = compact ? 34.0 : 40.0;
-    final textStyle = compact ? AppTextStyles.h3 : AppTextStyles.h2;
+    final logoVariant = compact
+        ? AppLogoVariant.textOnly
+        : AppLogoVariant.logoAndText;
+    final logoHeight = compact ? 40.0 : 60.0;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(iconSize * 0.25),
-          child: Image.asset(
-            'assets/images/logo.png',
-            width: iconSize,
-            height: iconSize,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              width: iconSize,
-              height: iconSize,
-              decoration: BoxDecoration(
-                color: AppColors.primary700,
-                borderRadius: BorderRadius.circular(iconSize * 0.25),
-              ),
-              child: Icon(Icons.school_rounded,
-                  color: AppColors.white, size: iconSize * 0.6),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Text('EduAccess',
-            style: textStyle.copyWith(color: AppColors.primary900)),
-      ],
+      children: [AppLogo(variant: logoVariant, height: logoHeight)],
     );
   }
 }
