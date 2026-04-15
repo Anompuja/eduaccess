@@ -11,6 +11,7 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
+import '../../features/users/presentation/screens/users_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
@@ -131,6 +132,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               title: 'Detail User (${state.pathParameters['id']})',
               assignedTo: 'Dev 2',
             ),
+          ),
+             GoRoute(
+            path: RouteNames.users,
+            builder: (_, _) => const UsersScreen(),
           ),
           GoRoute(
             path: RouteNames.students,
