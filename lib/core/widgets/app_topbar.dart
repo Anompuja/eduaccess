@@ -39,6 +39,14 @@ _PageInfo _infoForRoute(String location) => switch (location) {
     title: 'Naik Kelas',
     subtitle: 'Proses kenaikan kelas siswa',
   ),
+  String l when l.startsWith(RouteNames.studentTracking) => (
+    title: 'Tracking Siswa',
+    subtitle: 'Riwayat akademik dan progres siswa',
+  ),
+  String l when l.startsWith(RouteNames.school) => (
+    title: 'Profil Sekolah',
+    subtitle: 'Informasi sekolah dan aturan operasional',
+  ),
   String l when l.startsWith(RouteNames.cbt) => (
     title: 'CBT / Ujian',
     subtitle: 'Buat dan kelola ujian online',
@@ -50,6 +58,14 @@ _PageInfo _infoForRoute(String location) => switch (location) {
   String l when l.startsWith(RouteNames.subscription) => (
     title: 'Subscription',
     subtitle: 'Kelola paket langganan sekolah',
+  ),
+  String l when l.startsWith(RouteNames.payment) => (
+    title: 'Payment',
+    subtitle: 'Riwayat pembayaran dan status invoice',
+  ),
+  String l when l.startsWith(RouteNames.reports) => (
+    title: 'Reports',
+    subtitle: 'Ringkasan statistik dan export laporan',
   ),
   String l when l.startsWith(RouteNames.settings) => (
     title: 'Pengaturan',
@@ -66,34 +82,88 @@ _PageInfo _infoForRoute(String location) => switch (location) {
   _ => (title: 'EduAccess', subtitle: ''),
 };
 
-// ── AppTopbar ──────────────────────────────────────────────────────────────────
-/// Topbar for all protected screens.
-/// - Desktop: 72px, shows title + subtitle
-/// - Mobile/Tablet: 64px, shows only title + hamburger menu
 class AppTopbar extends ConsumerWidget {
   final String? titleOverride;
   final VoidCallback? onMenuPressed;
   final bool isMobile;
+  final bool inAppBar;
 
   const AppTopbar({
     super.key,
     this.titleOverride,
     this.onMenuPressed,
     this.isMobile = false,
+    this.inAppBar = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final info = titleOverride != null
-        ? (title: titleOverride!, subtitle: '')
-        : _infoForRoute(location);
+    final info =
+        titleOverride != null ? (title: titleOverride!, subtitle: '') : _infoForRoute(location);
     final user = ref.watch(currentUserProvider);
     final initials = _initials(user?.name ?? '');
-    final height = isMobile ? 64.0 : 72.0;
+    final contentHeight = isMobile ? 64.0 : 72.0;
+    final topInset = inAppBar ? 0.0 : MediaQuery.paddingOf(context).top;
+
+    final row = Row(
+      children: [
+        if (onMenuPressed != null) ...[
+          IconButton(
+            onPressed: onMenuPressed,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: const Icon(
+              Icons.menu_rounded,
+              color: AppColors.neutral700,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                info.title,
+                style: (isMobile ? AppTextStyles.h4 : AppTextStyles.h3)
+                    .copyWith(color: AppColors.neutral900),
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (!isMobile && info.subtitle.isNotEmpty)
+                Text(
+                  info.subtitle,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral500,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        _NotificationBell(compact: isMobile),
+        SizedBox(width: isMobile ? AppSpacing.sm : AppSpacing.md),
+        GestureDetector(
+          onTap: () => context.push(RouteNames.profile),
+          child: CircleAvatar(
+            radius: isMobile ? 16 : 18,
+            backgroundColor: AppColors.primary500,
+            child: Text(
+              initials,
+              style: AppTextStyles.label.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: isMobile ? 11 : 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
 
     return Container(
-      height: height,
+      height: contentHeight + topInset,
       decoration: const BoxDecoration(
         color: AppColors.white,
         boxShadow: AppShadows.topbar,
@@ -101,71 +171,7 @@ class AppTopbar extends ConsumerWidget {
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? AppSpacing.lg : AppSpacing.xl,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            // ── Hamburger (mobile/tablet) ─────────────────────────────────
-            if (onMenuPressed != null) ...[
-              IconButton(
-                onPressed: onMenuPressed,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: const Icon(
-                  Icons.menu_rounded,
-                  color: AppColors.neutral700,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-
-            // ── Title + subtitle ──────────────────────────────────────────
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    info.title,
-                    style: (isMobile ? AppTextStyles.h4 : AppTextStyles.h3)
-                        .copyWith(color: AppColors.neutral900),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (!isMobile && info.subtitle.isNotEmpty)
-                    Text(
-                      info.subtitle,
-                      style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.neutral500,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // ── Notification bell ────────────────────────────────────────
-            _NotificationBell(compact: isMobile),
-            SizedBox(width: isMobile ? AppSpacing.sm : AppSpacing.md),
-
-            // ── User avatar ───────────────────────────────────────────────
-            GestureDetector(
-              onTap: () => context.push(RouteNames.profile),
-              child: CircleAvatar(
-                radius: isMobile ? 16 : 18,
-                backgroundColor: AppColors.primary500,
-                child: Text(
-                  initials,
-                  style: AppTextStyles.label.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: isMobile ? 11 : 12,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: inAppBar ? row : SafeArea(bottom: false, child: row),
     );
   }
 
@@ -177,7 +183,6 @@ class AppTopbar extends ConsumerWidget {
   }
 }
 
-// ── Notification bell ─────────────────────────────────────────────────────────
 class _NotificationBell extends ConsumerWidget {
   final bool compact;
   const _NotificationBell({this.compact = false});

@@ -102,6 +102,26 @@ const _menuItems = [
     },
   ),
   _NavItem(
+    label: 'Tracking Siswa',
+    route: RouteNames.studentTracking,
+    icon: Icons.timeline_outlined,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
+  ),
+  _NavItem(
+    label: 'Profil Sekolah',
+    route: RouteNames.school,
+    icon: Icons.apartment_outlined,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
+  ),
+  _NavItem(
     label: 'CBT / Ujian',
     route: RouteNames.cbt,
     icon: Icons.quiz_outlined,
@@ -135,6 +155,18 @@ const _generalItems = [
     label: 'Subscription',
     route: RouteNames.subscription,
     icon: Icons.workspace_premium_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
+    label: 'Payment',
+    route: RouteNames.payment,
+    icon: Icons.receipt_long_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
+    label: 'Reports',
+    route: RouteNames.reports,
+    icon: Icons.bar_chart_outlined,
     allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
   ),
   _NavItem(

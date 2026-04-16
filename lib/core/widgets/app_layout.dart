@@ -82,6 +82,7 @@ class _MobileLayout extends ConsumerWidget {
           builder: (ctx) => AppTopbar(
             onMenuPressed: () => Scaffold.of(ctx).openDrawer(),
             isMobile: isMobileSize,
+            inAppBar: true,
           ),
         ),
       ),
