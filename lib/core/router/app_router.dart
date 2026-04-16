@@ -10,6 +10,7 @@ import '../../features/notifications/presentation/screens/notifications_screen.d
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
@@ -157,7 +158,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.school,
-            builder: (_, _) => const PlaceholderScreen(title: 'Profil Sekolah', assignedTo: 'Dev 3'),
+            builder: (_, _) => const SchoolScreen(),
           ),
           GoRoute(
             path: RouteNames.cbt,
