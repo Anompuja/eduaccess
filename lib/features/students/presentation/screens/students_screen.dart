@@ -7,7 +7,8 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
 import '../../data/datasources/students_dummy_data.dart';
 import '../../data/models/student_row_data.dart';
 import '../constants/students_screen_constants.dart';
@@ -24,26 +25,19 @@ class StudentsScreen extends StatefulWidget {
 }
 
 class _StudentsScreenState extends State<StudentsScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   String _levelFilter = 'Semua Level';
   String _classFilter = 'Semua Kelas';
   String _subClassFilter = 'Semua Sub-Kelas';
   int _page = 1;
 
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final isSmallScreen = Responsive.isMobile(context);
-    final query = _searchCtrl.text.toLowerCase().trim();
     final filteredRows = studentDummyRows.where((e) {
-      return query.isEmpty ||
-          e.name.toLowerCase().contains(query) ||
-          e.nis.contains(query);
+      return _searchQuery.isEmpty ||
+          e.name.toLowerCase().contains(_searchQuery) ||
+          e.nis.contains(_searchQuery);
     }).toList();
 
     const rowsPerPage = StudentsScreenConstants.rowsPerPage;
@@ -90,12 +84,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: StudentsScreenConstants.searchLabel,
+                AppSearchBar(
                   hint: StudentsScreenConstants.searchHint,
-                  controller: _searchCtrl,
-                  prefixIcon: StudentsScreenConstants.searchIcon,
-                  onChanged: (_) => setState(() => _page = 1),
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _dropdown(
@@ -152,12 +147,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
               children: [
                 SizedBox(
                   width: StudentsScreenConstants.desktopSearchWidth,
-                  child: AppTextField(
-                    label: StudentsScreenConstants.searchLabel,
+                  child: AppSearchBar(
                     hint: StudentsScreenConstants.searchHint,
-                    controller: _searchCtrl,
-                    prefixIcon: StudentsScreenConstants.searchIcon,
-                    onChanged: (_) => setState(() => _page = 1),
+                    width: StudentsScreenConstants.desktopSearchWidth,
+                    onSearch: (value) => setState(() {
+                      _searchQuery = value.toLowerCase().trim();
+                      _page = 1;
+                    }),
                   ),
                 ),
                 _dropdown(
@@ -457,27 +453,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label:
-                                  StudentsScreenConstants.previousButtonLabel,
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: StudentsScreenConstants.nextButtonLabel,
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -485,13 +466,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: StudentsScreenConstants.previousButtonLabel,
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -499,11 +473,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: StudentsScreenConstants.nextButtonLabel,
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),
