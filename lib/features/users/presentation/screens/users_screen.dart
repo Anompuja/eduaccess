@@ -6,7 +6,8 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
 import '../../data/models/user_row_data.dart';
 import '../widgets/user_create_modal.dart';
 import '../widgets/user_delete_modal.dart';
@@ -24,24 +25,17 @@ class UsersScreen extends StatefulWidget {
 }
 
 class _UsersScreenState extends State<UsersScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   int _page = 1;
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final isSmallScreen = Responsive.isMobile(context);
-    final query = _searchCtrl.text.toLowerCase().trim();
     final filteredRows = usersDummyRows.where((row) {
-      return query.isEmpty ||
-          row.name.toLowerCase().contains(query) ||
-          row.email.toLowerCase().contains(query) ||
-          row.role.toLowerCase().contains(query);
+      return _searchQuery.isEmpty ||
+          row.name.toLowerCase().contains(_searchQuery) ||
+          row.email.toLowerCase().contains(_searchQuery) ||
+          row.role.toLowerCase().contains(_searchQuery);
     }).toList();
 
     const rowsPerPage = UsersScreenConstants.rowsPerPage;
@@ -51,7 +45,6 @@ class _UsersScreenState extends State<UsersScreen> {
     final safePage = _page < 1 ? 1 : (_page > totalPages ? totalPages : _page);
     final startIndex = (safePage - 1) * rowsPerPage;
     final pagedRows = filteredRows.skip(startIndex).take(rowsPerPage).toList();
-
     return SingleChildScrollView(
       padding: isSmallScreen
           ? const EdgeInsets.all(AppSpacing.lg)
@@ -68,12 +61,13 @@ class _UsersScreenState extends State<UsersScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: UsersScreenConstants.searchLabel,
+                AppSearchBar(
                   hint: UsersScreenConstants.searchHint,
-                  controller: _searchCtrl,
-                  prefixIcon: UsersScreenConstants.searchIcon,
-                  onChanged: (_) => setState(() => _page = 1),
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppButton.accent(
@@ -98,12 +92,13 @@ class _UsersScreenState extends State<UsersScreen> {
                     alignment: Alignment.centerLeft,
                     child: SizedBox(
                       width: UsersScreenConstants.desktopSearchWidth,
-                      child: AppTextField(
-                        label: UsersScreenConstants.searchLabel,
+                      child: AppSearchBar(
                         hint: UsersScreenConstants.searchHint,
-                        controller: _searchCtrl,
-                        prefixIcon: UsersScreenConstants.searchIcon,
-                        onChanged: (_) => setState(() => _page = 1),
+                        width: UsersScreenConstants.desktopSearchWidth,
+                        onSearch: (value) => setState(() {
+                          _searchQuery = value.toLowerCase().trim();
+                          _page = 1;
+                        }),
                       ),
                     ),
                   ),
@@ -372,26 +367,12 @@ class _UsersScreenState extends State<UsersScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label: UsersScreenConstants.previousButtonLabel,
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: UsersScreenConstants.nextButtonLabel,
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -399,13 +380,6 @@ class _UsersScreenState extends State<UsersScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: UsersScreenConstants.previousButtonLabel,
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -413,11 +387,10 @@ class _UsersScreenState extends State<UsersScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: UsersScreenConstants.nextButtonLabel,
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),

@@ -5,7 +5,16 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
+import '../../data/models/parent_row_data.dart';
+import '../widgets/parent_create_modal.dart';
+import '../widgets/parent_delete_modal.dart';
+import '../widgets/parent_detail_modal.dart';
+import '../widgets/parent_edit_modal.dart';
+import '../constants/parents_screen_constants.dart';
+import '../../data/datasources/parents_dummy_data.dart';
+import '../../../../core/utils/responsive.dart';
 
 class ParentsScreen extends StatefulWidget {
   const ParentsScreen({super.key});
@@ -15,72 +24,20 @@ class ParentsScreen extends StatefulWidget {
 }
 
 class _ParentsScreenState extends State<ParentsScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   int _page = 1;
-
-  final List<_ParentRow> _dummyRows = const [
-    _ParentRow(
-      name: 'Iwan Kurniawan',
-      email: 'iwan.parent@edu.id',
-      phone: '081234567890',
-      childrenCount: 2,
-    ),
-    _ParentRow(
-      name: 'Maya Rachma',
-      email: 'maya.parent@edu.id',
-      phone: '082233445566',
-      childrenCount: 1,
-    ),
-    _ParentRow(
-      name: 'Heri Saputra',
-      email: 'heri.parent@edu.id',
-      phone: '083322114455',
-      childrenCount: 3,
-    ),
-    _ParentRow(
-      name: 'Rina Wahyuni',
-      email: 'rina.parent@edu.id',
-      phone: '081998877665',
-      childrenCount: 2,
-    ),
-    _ParentRow(
-      name: 'Arif Nugroho',
-      email: 'arif.parent@edu.id',
-      phone: '082177766655',
-      childrenCount: 1,
-    ),
-    _ParentRow(
-      name: 'Sari Puspita',
-      email: 'sari.parent@edu.id',
-      phone: '083355544433',
-      childrenCount: 4,
-    ),
-    _ParentRow(
-      name: 'Budi Prasetyo',
-      email: 'budi.parent@edu.id',
-      phone: '081122334455',
-      childrenCount: 2,
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.sizeOf(context).width < 700;
-    final filteredRows = _dummyRows.where((item) {
-      final q = _searchCtrl.text.trim().toLowerCase();
-      return q.isEmpty ||
-          item.name.toLowerCase().contains(q) ||
-          item.email.toLowerCase().contains(q) ||
-          item.phone.contains(q);
+    final isSmallScreen = Responsive.isMobile(context);
+    final filteredRows = parentsDummyRows.where((item) {
+      return _searchQuery.isEmpty ||
+          item.name.toLowerCase().contains(_searchQuery) ||
+          item.email.toLowerCase().contains(_searchQuery) ||
+          item.phone.contains(_searchQuery);
     }).toList();
 
-    const rowsPerPage = 5;
+    const rowsPerPage = ParentsScreenConstants.rowsPerPage;
     final totalPages = filteredRows.isEmpty
         ? 1
         : ((filteredRows.length + rowsPerPage - 1) / rowsPerPage).floor();
@@ -102,7 +59,7 @@ class _ParentsScreenState extends State<ParentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Manajemen Orang Tua',
+                      ParentsScreenConstants.title,
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.neutral900,
                       ),
@@ -124,24 +81,25 @@ class _ParentsScreenState extends State<ParentsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: 'Cari nama / email / no hp',
-                  hint: 'Contoh: iwan atau parent@edu.id',
-                  controller: _searchCtrl,
-                  prefixIcon: Icons.search,
-                  onChanged: (_) => setState(() => _page = 1),
+                AppSearchBar(
+                  hint: ParentsScreenConstants.searchHint,
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppButton.accent(
-                  height: 50,
+                  height: ParentsScreenConstants.addButtonHeight,
                   isFullWidth: true,
-                  label: 'Tambah Orang Tua',
+                  label: ParentsScreenConstants.addButtonLabel,
                   prefixIcon: const Icon(
-                    Icons.group_add,
-                    size: 18,
+                    ParentsScreenConstants.addIcon,
+                    size: ParentsScreenConstants.actionIconSize,
                     color: AppColors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: _openParentCreateModal,
                 ),
               ],
             )
@@ -153,28 +111,33 @@ class _ParentsScreenState extends State<ParentsScreen> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: SizedBox(
-                      width: 320,
-                      child: AppTextField(
-                        label: 'Cari nama / email / no hp',
-                        hint: 'Contoh: iwan atau parent@edu.id',
-                        controller: _searchCtrl,
-                        prefixIcon: Icons.search,
-                        onChanged: (_) => setState(() => _page = 1),
+                      width: ParentsScreenConstants.desktopSearchWidth,
+                      child: AppSearchBar(
+                        hint: ParentsScreenConstants.searchHint,
+                        width: ParentsScreenConstants.desktopSearchWidth,
+                        onSearch: (value) => setState(() {
+                          _searchQuery = value.toLowerCase().trim();
+                          _page = 1;
+                        }),
                       ),
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0),
+                  padding: const EdgeInsets.only(
+                    bottom:
+                        ParentsScreenConstants.desktopAddButtonBottomPadding,
+                    right: ParentsScreenConstants.desktopAddButtonRightPadding,
+                  ),
                   child: AppButton.accent(
-                    height: 50,
-                    label: 'Tambah Orang Tua',
+                    height: ParentsScreenConstants.addButtonHeight,
+                    label: ParentsScreenConstants.addButtonLabel,
                     prefixIcon: const Icon(
-                      Icons.group_add,
-                      size: 18,
+                      ParentsScreenConstants.addIcon,
+                      size: ParentsScreenConstants.actionIconSize,
                       color: AppColors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: _openParentCreateModal,
                   ),
                 ),
               ],
@@ -196,11 +159,22 @@ class _ParentsScreenState extends State<ParentsScreen> {
                             context,
                           ).copyWith(dividerColor: AppColors.neutral100),
                           child: DataTable(
-                            columnSpacing: isSmallScreen ? 24 : 36,
+                            columnSpacing: isSmallScreen
+                                ? ParentsScreenConstants
+                                      .tableColumnSpacingMobile
+                                : ParentsScreenConstants
+                                      .tableColumnSpacingDesktop,
                             horizontalMargin: AppSpacing.md,
-                            headingRowHeight: isSmallScreen ? 50 : 56,
-                            dataRowMinHeight: isSmallScreen ? 70 : 78,
-                            dataRowMaxHeight: isSmallScreen ? 70 : 78,
+                            headingRowHeight: isSmallScreen
+                                ? ParentsScreenConstants.headingRowHeightMobile
+                                : ParentsScreenConstants
+                                      .headingRowHeightDesktop,
+                            dataRowMinHeight: isSmallScreen
+                                ? ParentsScreenConstants.dataRowHeightMobile
+                                : ParentsScreenConstants.dataRowHeightDesktop,
+                            dataRowMaxHeight: isSmallScreen
+                                ? ParentsScreenConstants.dataRowHeightMobile
+                                : ParentsScreenConstants.dataRowHeightDesktop,
                             dividerThickness: 1,
                             headingTextStyle: AppTextStyles.label.copyWith(
                               color: AppColors.neutral700,
@@ -212,35 +186,60 @@ class _ParentsScreenState extends State<ParentsScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                             columns: [
-                              DataColumn(label: _tableHeader('NO', width: 44)),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NAMA',
-                                  width: isSmallScreen ? 170 : 240,
+                                  ParentsScreenConstants.noHeader,
+                                  width: ParentsScreenConstants.noColumnWidth,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'EMAIL',
-                                  width: isSmallScreen ? 220 : 250,
+                                  ParentsScreenConstants.nameHeader,
+                                  width: isSmallScreen
+                                      ? ParentsScreenConstants
+                                            .nameColumnWidthMobile
+                                      : ParentsScreenConstants
+                                            .nameColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NO. HP',
-                                  width: isSmallScreen ? 120 : 130,
+                                  ParentsScreenConstants.emailHeader,
+                                  width: isSmallScreen
+                                      ? ParentsScreenConstants
+                                            .emailColumnWidthMobile
+                                      : ParentsScreenConstants
+                                            .emailColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ANAK',
-                                  width: isSmallScreen ? 90 : 120,
+                                  ParentsScreenConstants.phoneHeader,
+                                  width: isSmallScreen
+                                      ? ParentsScreenConstants
+                                            .phoneColumnWidthMobile
+                                      : ParentsScreenConstants
+                                            .phoneColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ACTIONS',
-                                  width: isSmallScreen ? 132 : 150,
+                                  ParentsScreenConstants.childrenHeader,
+                                  width: isSmallScreen
+                                      ? ParentsScreenConstants
+                                            .childrenColumnWidthMobile
+                                      : ParentsScreenConstants
+                                            .childrenColumnWidthDesktop,
+                                ),
+                              ),
+                              DataColumn(
+                                label: _tableHeader(
+                                  ParentsScreenConstants.actionsHeader,
+                                  width: isSmallScreen
+                                      ? ParentsScreenConstants
+                                            .actionsColumnWidthMobile
+                                      : ParentsScreenConstants
+                                            .actionsColumnWidthDesktop,
                                 ),
                               ),
                             ],
@@ -251,7 +250,8 @@ class _ParentsScreenState extends State<ParentsScreen> {
                                 cells: [
                                   DataCell(
                                     SizedBox(
-                                      width: 44,
+                                      width:
+                                          ParentsScreenConstants.noColumnWidth,
                                       child: Text(
                                         '${startIndex + index + 1}',
                                         style: AppTextStyles.bodyMdSemiBold
@@ -263,7 +263,11 @@ class _ParentsScreenState extends State<ParentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 170 : 240,
+                                      width: isSmallScreen
+                                          ? ParentsScreenConstants
+                                                .nameColumnWidthMobile
+                                          : ParentsScreenConstants
+                                                .nameColumnWidthDesktop,
                                       child: Text(
                                         e.name,
                                         overflow: TextOverflow.ellipsis,
@@ -272,7 +276,11 @@ class _ParentsScreenState extends State<ParentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 220 : 250,
+                                      width: isSmallScreen
+                                          ? ParentsScreenConstants
+                                                .emailColumnWidthMobile
+                                          : ParentsScreenConstants
+                                                .emailColumnWidthDesktop,
                                       child: Text(
                                         e.email,
                                         overflow: TextOverflow.ellipsis,
@@ -281,13 +289,21 @@ class _ParentsScreenState extends State<ParentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 120 : 130,
+                                      width: isSmallScreen
+                                          ? ParentsScreenConstants
+                                                .phoneColumnWidthMobile
+                                          : ParentsScreenConstants
+                                                .phoneColumnWidthDesktop,
                                       child: Text(e.phone),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 90 : 120,
+                                      width: isSmallScreen
+                                          ? ParentsScreenConstants
+                                                .childrenColumnWidthMobile
+                                          : ParentsScreenConstants
+                                                .childrenColumnWidthDesktop,
                                       child: _childrenCountPill(
                                         e.childrenCount,
                                       ),
@@ -295,25 +311,35 @@ class _ParentsScreenState extends State<ParentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 132 : 150,
+                                      width: isSmallScreen
+                                          ? ParentsScreenConstants
+                                                .actionsColumnWidthMobile
+                                          : ParentsScreenConstants
+                                                .actionsColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           _actionIconButton(
-                                            icon: Icons.visibility_outlined,
+                                            icon:
+                                                ParentsScreenConstants.viewIcon,
                                             backgroundColor: AppColors.info,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openParentDetailModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.edit_outlined,
+                                            icon:
+                                                ParentsScreenConstants.editIcon,
                                             backgroundColor: AppColors.warning,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openParentEditModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.delete_outline,
+                                            icon: ParentsScreenConstants
+                                                .deleteIcon,
                                             backgroundColor: AppColors.error,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openParentDeleteModal(e),
                                           ),
                                         ],
                                       ),
@@ -341,26 +367,12 @@ class _ParentsScreenState extends State<ParentsScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label: 'Sebelumnya',
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: 'Berikutnya',
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -368,13 +380,6 @@ class _ParentsScreenState extends State<ParentsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: 'Sebelumnya',
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -382,11 +387,10 @@ class _ParentsScreenState extends State<ParentsScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: 'Berikutnya',
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),
@@ -409,15 +413,15 @@ class _ParentsScreenState extends State<ParentsScreen> {
       alignment: Alignment.centerLeft,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: 4,
+          horizontal: ParentsScreenConstants.childrenPillHorizontalPadding,
+          vertical: ParentsScreenConstants.childrenPillVerticalPadding,
         ),
         decoration: BoxDecoration(
           color: AppColors.primary100,
           borderRadius: AppRadius.pillAll,
         ),
         child: Text(
-          '$count siswa',
+          '$count ${ParentsScreenConstants.childrenSuffix}',
           style: AppTextStyles.caption.copyWith(
             color: AppColors.primary700,
             fontWeight: FontWeight.w600,
@@ -433,31 +437,37 @@ class _ParentsScreenState extends State<ParentsScreen> {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: 34,
-      height: 34,
+      width: ParentsScreenConstants.actionButtonSize,
+      height: ParentsScreenConstants.actionButtonSize,
       child: Material(
         color: backgroundColor,
         borderRadius: AppRadius.mdAll,
         child: InkWell(
           borderRadius: AppRadius.mdAll,
           onTap: onTap,
-          child: Icon(icon, color: AppColors.white, size: 18),
+          child: Icon(
+            icon,
+            color: AppColors.white,
+            size: ParentsScreenConstants.actionIconSize,
+          ),
         ),
       ),
     );
   }
-}
 
-class _ParentRow {
-  final String name;
-  final String email;
-  final String phone;
-  final int childrenCount;
+  void _openParentDetailModal(ParentRowData row) {
+    showParentDetailModal(context, data: row);
+  }
 
-  const _ParentRow({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.childrenCount,
-  });
+  void _openParentEditModal(ParentRowData row) {
+    showParentEditModal(context, data: row);
+  }
+
+  void _openParentDeleteModal(ParentRowData row) {
+    showParentDeleteModal(context, data: row);
+  }
+
+  void _openParentCreateModal() {
+    showParentCreateModal(context);
+  }
 }
