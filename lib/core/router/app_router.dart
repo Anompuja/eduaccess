@@ -15,6 +15,7 @@ import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
+import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
 import '../../features/users/presentation/screens/users_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
@@ -155,7 +156,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.studentTracking,
-            builder: (_, _) => const PlaceholderScreen(title: 'Tracking Siswa', assignedTo: 'Dev 3'),
+            builder: (_, _) => const StudentTrackingScreen(),
           ),
           GoRoute(
             path: RouteNames.school,
