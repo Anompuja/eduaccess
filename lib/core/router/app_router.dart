@@ -13,6 +13,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/users/presentation/screens/users_screen.dart';
 import '../auth/auth_notifier.dart';
@@ -177,7 +178,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.subscription,
-            builder: (_, _) => const PlaceholderScreen(title: 'Subscription', assignedTo: 'Dev 3'),
+            builder: (_, _) => const SubscriptionScreen(),
           ),
           GoRoute(
             path: RouteNames.payment,
