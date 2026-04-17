@@ -10,6 +10,7 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
@@ -18,6 +19,7 @@ import '../../features/subscription/presentation/screens/subscription_screen.dar
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
 import '../../features/users/presentation/screens/users_screen.dart';
+import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../widgets/app_layout.dart';
@@ -184,11 +186,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.payment,
-            builder: (_, _) => const PlaceholderScreen(title: 'Payment', assignedTo: 'Dev 3'),
+            builder: (_, _) => const PaymentScreen(),
           ),
           GoRoute(
             path: RouteNames.reports,
-            builder: (_, _) => const PlaceholderScreen(title: 'Reports', assignedTo: 'Dev 3'),
+            builder: (_, _) => const ReportsScreen(),
           ),
           GoRoute(
             path: RouteNames.help,
