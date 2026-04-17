@@ -449,7 +449,7 @@ class _SchoolScreenState extends ConsumerState<SchoolScreen> {
                 AppTextField(
                   label: 'Image Path',
                   controller: imagePathCtrl,
-                  hint: 'assets/images/logo.png',
+                  hint: 'assets/images/logo/logoandtext.png',
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppDropdown<String>(

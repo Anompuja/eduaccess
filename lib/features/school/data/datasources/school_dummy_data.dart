@@ -8,7 +8,7 @@ const schoolDummyProfile = SchoolProfile(
   email: 'admin@smaeduaccess.sch.id',
   description:
       'Sekolah menengah berbasis teknologi dengan fokus pada karakter, akademik, dan literasi digital.',
-  imagePath: 'assets/images/school_logo.png',
+  imagePath: 'assets/images/logo/logoandtext.png',
   timeZone: 'Asia/Makassar',
   status: SchoolStatus.active,
 );
