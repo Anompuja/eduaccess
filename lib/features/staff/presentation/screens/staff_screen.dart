@@ -6,7 +6,16 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
+import '../../data/models/staff_row_data.dart';
+import '../widgets/staff_create_modal.dart';
+import '../widgets/staff_delete_modal.dart';
+import '../widgets/staff_detail_modal.dart';
+import '../widgets/staff_edit_modal.dart';
+import '../../data/datasources/staff_dummy_data.dart';
+import '../constants/staff_screen_constants.dart';
+import '../../../../core/utils/responsive.dart';
 
 class StaffScreen extends StatefulWidget {
   const StaffScreen({super.key});
@@ -16,60 +25,20 @@ class StaffScreen extends StatefulWidget {
 }
 
 class _StaffScreenState extends State<StaffScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   int _page = 1;
-
-  final List<_StaffRow> _staffRows = const [
-    _StaffRow(
-      name: 'Taufik Hidayat',
-      email: 'taufik.staff@edu.id',
-      role: 'Administrasi',
-      status: 'Aktif',
-    ),
-    _StaffRow(
-      name: 'Rina Amelia',
-      email: 'rina.staff@edu.id',
-      role: 'Keuangan',
-      status: 'Nonaktif',
-    ),
-    _StaffRow(
-      name: 'Dewi Sartika',
-      email: 'dewi.staff@edu.id',
-      role: 'Operator',
-      status: 'Aktif',
-    ),
-    _StaffRow(
-      name: 'Maya Putri',
-      email: 'maya.staff@edu.id',
-      role: 'TU',
-      status: 'Aktif',
-    ),
-    _StaffRow(
-      name: 'Arif Nugraha',
-      email: 'arif.staff@edu.id',
-      role: 'Perpustakaan',
-      status: 'Nonaktif',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.sizeOf(context).width < 700;
-    final query = _searchCtrl.text.toLowerCase().trim();
-    final filteredRows = _staffRows.where((row) {
-      return query.isEmpty ||
-          row.name.toLowerCase().contains(query) ||
-          row.email.toLowerCase().contains(query) ||
-          row.role.toLowerCase().contains(query);
+    final isSmallScreen = Responsive.isMobile(context);
+    final filteredRows = staffDummyRows.where((row) {
+      return _searchQuery.isEmpty ||
+          row.name.toLowerCase().contains(_searchQuery) ||
+          row.email.toLowerCase().contains(_searchQuery) ||
+          row.role.toLowerCase().contains(_searchQuery);
     }).toList();
 
-    const rowsPerPage = 5;
+    const rowsPerPage = StaffScreenConstants.rowsPerPage;
     final totalPages = filteredRows.isEmpty
         ? 1
         : ((filteredRows.length + rowsPerPage - 1) / rowsPerPage).floor();
@@ -85,7 +54,7 @@ class _StaffScreenState extends State<StaffScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Manajemen Staff',
+            StaffScreenConstants.title,
             style: AppTextStyles.h2.copyWith(color: AppColors.neutral900),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -93,54 +62,62 @@ class _StaffScreenState extends State<StaffScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: 'Cari nama / email / role',
-                  hint: 'Contoh: taufik atau staff@edu.id',
-                  controller: _searchCtrl,
-                  prefixIcon: Icons.search,
-                  onChanged: (_) => setState(() => _page = 1),
+                AppSearchBar(
+                  hint: StaffScreenConstants.searchHint,
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppButton.accent(
-                  height: 50,
+                  height: StaffScreenConstants.addButtonHeight,
                   isFullWidth: true,
-                  label: 'Tambah Staff',
+                  label: StaffScreenConstants.addButtonLabel,
                   prefixIcon: const Icon(
-                    Icons.badge_outlined,
-                    size: 18,
+                    StaffScreenConstants.addIcon,
+                    size: StaffScreenConstants.actionIconSize,
                     color: AppColors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: _openStaffCreateModal,
                 ),
               ],
             )
           else
-            Wrap(
-              runSpacing: AppSpacing.md,
-              spacing: AppSpacing.md,
-              crossAxisAlignment: WrapCrossAlignment.end,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                SizedBox(
-                  width: 320,
-                  child: AppTextField(
-                    label: 'Cari nama / email / role',
-                    hint: 'Contoh: taufik atau staff@edu.id',
-                    controller: _searchCtrl,
-                    prefixIcon: Icons.search,
-                    onChanged: (_) => setState(() => _page = 1),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: StaffScreenConstants.desktopSearchWidth,
+                      child: AppSearchBar(
+                        hint: StaffScreenConstants.searchHint,
+                        width: StaffScreenConstants.desktopSearchWidth,
+                        onSearch: (value) => setState(() {
+                          _searchQuery = value.toLowerCase().trim();
+                          _page = 1;
+                        }),
+                      ),
+                    ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0, left: 8.0),
+                  padding: const EdgeInsets.only(
+                    bottom: StaffScreenConstants.desktopAddButtonBottomPadding,
+                    right: StaffScreenConstants.desktopAddButtonRightPadding,
+                  ),
                   child: AppButton.accent(
-                    height: 50,
-                    label: 'Tambah Staff',
+                    height: StaffScreenConstants.addButtonHeight,
+                    label: StaffScreenConstants.addButtonLabel,
                     prefixIcon: const Icon(
-                      Icons.badge_outlined,
-                      size: 18,
+                      StaffScreenConstants.addIcon,
+                      size: StaffScreenConstants.actionIconSize,
                       color: AppColors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: _openStaffCreateModal,
                   ),
                 ),
               ],
@@ -162,11 +139,20 @@ class _StaffScreenState extends State<StaffScreen> {
                             context,
                           ).copyWith(dividerColor: AppColors.neutral100),
                           child: DataTable(
-                            columnSpacing: isSmallScreen ? 24 : 36,
+                            columnSpacing: isSmallScreen
+                                ? StaffScreenConstants.tableColumnSpacingMobile
+                                : StaffScreenConstants
+                                      .tableColumnSpacingDesktop,
                             horizontalMargin: AppSpacing.md,
-                            headingRowHeight: isSmallScreen ? 50 : 56,
-                            dataRowMinHeight: isSmallScreen ? 70 : 78,
-                            dataRowMaxHeight: isSmallScreen ? 70 : 78,
+                            headingRowHeight: isSmallScreen
+                                ? StaffScreenConstants.headingRowHeightMobile
+                                : StaffScreenConstants.headingRowHeightDesktop,
+                            dataRowMinHeight: isSmallScreen
+                                ? StaffScreenConstants.dataRowHeightMobile
+                                : StaffScreenConstants.dataRowHeightDesktop,
+                            dataRowMaxHeight: isSmallScreen
+                                ? StaffScreenConstants.dataRowHeightMobile
+                                : StaffScreenConstants.dataRowHeightDesktop,
                             dividerThickness: 1,
                             headingTextStyle: AppTextStyles.label.copyWith(
                               color: AppColors.neutral700,
@@ -178,35 +164,60 @@ class _StaffScreenState extends State<StaffScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                             columns: [
-                              DataColumn(label: _tableHeader('NO', width: 44)),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NAMA',
-                                  width: isSmallScreen ? 180 : 280,
+                                  StaffScreenConstants.noHeader,
+                                  width: StaffScreenConstants.noColumnWidth,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'EMAIL',
-                                  width: isSmallScreen ? 180 : 260,
+                                  StaffScreenConstants.nameHeader,
+                                  width: isSmallScreen
+                                      ? StaffScreenConstants
+                                            .nameColumnWidthMobile
+                                      : StaffScreenConstants
+                                            .nameColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ROLE',
-                                  width: isSmallScreen ? 120 : 150,
+                                  StaffScreenConstants.emailHeader,
+                                  width: isSmallScreen
+                                      ? StaffScreenConstants
+                                            .emailColumnWidthMobile
+                                      : StaffScreenConstants
+                                            .emailColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'STATUS',
-                                  width: isSmallScreen ? 100 : 120,
+                                  StaffScreenConstants.roleHeader,
+                                  width: isSmallScreen
+                                      ? StaffScreenConstants
+                                            .roleColumnWidthMobile
+                                      : StaffScreenConstants
+                                            .roleColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ACTIONS',
-                                  width: isSmallScreen ? 132 : 150,
+                                  StaffScreenConstants.statusHeader,
+                                  width: isSmallScreen
+                                      ? StaffScreenConstants
+                                            .statusColumnWidthMobile
+                                      : StaffScreenConstants
+                                            .statusColumnWidthDesktop,
+                                ),
+                              ),
+                              DataColumn(
+                                label: _tableHeader(
+                                  StaffScreenConstants.actionsHeader,
+                                  width: isSmallScreen
+                                      ? StaffScreenConstants
+                                            .actionsColumnWidthMobile
+                                      : StaffScreenConstants
+                                            .actionsColumnWidthDesktop,
                                 ),
                               ),
                             ],
@@ -217,7 +228,7 @@ class _StaffScreenState extends State<StaffScreen> {
                                 cells: [
                                   DataCell(
                                     SizedBox(
-                                      width: 44,
+                                      width: StaffScreenConstants.noColumnWidth,
                                       child: Text(
                                         '${startIndex + index + 1}',
                                         style: AppTextStyles.bodyMdSemiBold
@@ -229,16 +240,23 @@ class _StaffScreenState extends State<StaffScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 180 : 280,
+                                      width: isSmallScreen
+                                          ? StaffScreenConstants
+                                                .nameColumnWidthMobile
+                                          : StaffScreenConstants
+                                                .nameColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           const CircleAvatar(
-                                            radius: 16,
+                                            radius: StaffScreenConstants
+                                                .rowAvatarRadius,
                                             backgroundColor:
                                                 AppColors.primary100,
                                             child: Icon(
-                                              Icons.badge,
-                                              size: 16,
+                                              StaffScreenConstants
+                                                  .rowAvatarIcon,
+                                              size: StaffScreenConstants
+                                                  .rowAvatarIconSize,
                                               color: AppColors.primary700,
                                             ),
                                           ),
@@ -255,24 +273,39 @@ class _StaffScreenState extends State<StaffScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 180 : 260,
+                                      width: isSmallScreen
+                                          ? StaffScreenConstants
+                                                .emailColumnWidthMobile
+                                          : StaffScreenConstants
+                                                .emailColumnWidthDesktop,
                                       child: Text(row.email),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 120 : 150,
+                                      width: isSmallScreen
+                                          ? StaffScreenConstants
+                                                .roleColumnWidthMobile
+                                          : StaffScreenConstants
+                                                .roleColumnWidthDesktop,
                                       child: Text(row.role),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 100 : 120,
+                                      width: isSmallScreen
+                                          ? StaffScreenConstants
+                                                .statusColumnWidthMobile
+                                          : StaffScreenConstants
+                                                .statusColumnWidthDesktop,
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: AppBadge(
                                           label: row.status.toUpperCase(),
-                                          status: row.status == 'Aktif'
+                                          status:
+                                              row.status ==
+                                                  StaffScreenConstants
+                                                      .activeStatus
                                               ? BadgeStatus.info
                                               : BadgeStatus.muted,
                                         ),
@@ -281,25 +314,33 @@ class _StaffScreenState extends State<StaffScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 132 : 150,
+                                      width: isSmallScreen
+                                          ? StaffScreenConstants
+                                                .actionsColumnWidthMobile
+                                          : StaffScreenConstants
+                                                .actionsColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           _actionIconButton(
-                                            icon: Icons.visibility_outlined,
+                                            icon: StaffScreenConstants.viewIcon,
                                             backgroundColor: AppColors.info,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStaffDetailModal(row),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.edit_outlined,
+                                            icon: StaffScreenConstants.editIcon,
                                             backgroundColor: AppColors.warning,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStaffEditModal(row),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.delete_outline,
+                                            icon:
+                                                StaffScreenConstants.deleteIcon,
                                             backgroundColor: AppColors.error,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStaffDeleteModal(row),
                                           ),
                                         ],
                                       ),
@@ -327,26 +368,12 @@ class _StaffScreenState extends State<StaffScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label: 'Sebelumnya',
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: 'Berikutnya',
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -354,13 +381,6 @@ class _StaffScreenState extends State<StaffScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: 'Sebelumnya',
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -368,11 +388,10 @@ class _StaffScreenState extends State<StaffScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: 'Berikutnya',
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),
@@ -396,31 +415,37 @@ class _StaffScreenState extends State<StaffScreen> {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: 34,
-      height: 34,
+      width: StaffScreenConstants.actionButtonSize,
+      height: StaffScreenConstants.actionButtonSize,
       child: Material(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.mdAll,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.mdAll,
           onTap: onTap,
-          child: Icon(icon, color: AppColors.white, size: 18),
+          child: Icon(
+            icon,
+            color: AppColors.white,
+            size: StaffScreenConstants.actionIconSize,
+          ),
         ),
       ),
     );
   }
-}
 
-class _StaffRow {
-  final String name;
-  final String email;
-  final String role;
-  final String status;
+  void _openStaffDetailModal(StaffRowData row) {
+    showStaffDetailModal(context, data: row);
+  }
 
-  const _StaffRow({
-    required this.name,
-    required this.email,
-    required this.role,
-    required this.status,
-  });
+  void _openStaffEditModal(StaffRowData row) {
+    showStaffEditModal(context, data: row);
+  }
+
+  void _openStaffDeleteModal(StaffRowData row) {
+    showStaffDeleteModal(context, data: row);
+  }
+
+  void _openStaffCreateModal() {
+    showStaffCreateModal(context);
+  }
 }
