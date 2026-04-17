@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/academic/presentation/screens/academic_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
@@ -152,7 +153,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: RouteNames.academic, builder: (_, _) => const AcademicScreen()),
           GoRoute(
             path: RouteNames.gradePromotion,
-            builder: (_, _) => const PlaceholderScreen(title: 'Naik Kelas', assignedTo: 'Dev 3'),
+            builder: (_, _) => const ClassPromotionScreen(),
           ),
           GoRoute(
             path: RouteNames.studentTracking,
