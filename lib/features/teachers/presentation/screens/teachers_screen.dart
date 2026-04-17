@@ -6,7 +6,16 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
+import '../../data/models/teacher_row_data.dart';
+import '../widgets/teacher_create_modal.dart';
+import '../widgets/teacher_delete_modal.dart';
+import '../widgets/teacher_detail_modal.dart';
+import '../widgets/teacher_edit_modal.dart';
+import '../constants/teachers_screen_constants.dart';
+import '../../data/datasources/teachers_dummy_data.dart';
+import '../../../../core/utils/responsive.dart';
 
 class TeachersScreen extends StatefulWidget {
   const TeachersScreen({super.key});
@@ -16,66 +25,21 @@ class TeachersScreen extends StatefulWidget {
 }
 
 class _TeachersScreenState extends State<TeachersScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   int _page = 1;
-
-  final List<_TeacherRow> _teacherRows = const [
-    _TeacherRow(
-      name: 'Budi Santoso',
-      nip: '198704122010011002',
-      subject: 'Matematika',
-      status: 'Aktif',
-    ),
-    _TeacherRow(
-      name: 'Nina Lestari',
-      nip: '199003182012032001',
-      subject: 'Bahasa Indonesia',
-      status: 'Aktif',
-    ),
-    _TeacherRow(
-      name: 'Siti Aisyah',
-      nip: '198902102011012003',
-      subject: 'IPA',
-      status: 'Nonaktif',
-    ),
-    _TeacherRow(
-      name: 'Andi Pratama',
-      nip: '198612242009041001',
-      subject: 'Informatika',
-      status: 'Aktif',
-    ),
-    _TeacherRow(
-      name: 'Lina Oktaviani',
-      nip: '199110052014022004',
-      subject: 'Bahasa Inggris',
-      status: 'Aktif',
-    ),
-    _TeacherRow(
-      name: 'Rizal Maulana',
-      nip: '198503162008011005',
-      subject: 'Sejarah',
-      status: 'Nonaktif',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.sizeOf(context).width < 700;
-    final query = _searchCtrl.text.toLowerCase().trim();
-    final filteredRows = _teacherRows.where((row) {
-      return query.isEmpty ||
-          row.name.toLowerCase().contains(query) ||
-          row.nip.contains(query) ||
-          row.subject.toLowerCase().contains(query);
+    final isSmallScreen = Responsive.isMobile(context);
+    final filteredRows = teacherDummyRows.where((row) {
+      return _searchQuery.isEmpty ||
+          row.name.toLowerCase().contains(_searchQuery) ||
+          row.nip.contains(_searchQuery) ||
+          row.subject.toLowerCase().contains(_searchQuery) ||
+          row.email.toLowerCase().contains(_searchQuery);
     }).toList();
 
-    const rowsPerPage = 5;
+    const rowsPerPage = TeachersScreenConstants.rowsPerPage;
     final totalPages = filteredRows.isEmpty
         ? 1
         : ((filteredRows.length + rowsPerPage - 1) / rowsPerPage).floor();
@@ -91,7 +55,7 @@ class _TeachersScreenState extends State<TeachersScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Manajemen Guru',
+            TeachersScreenConstants.title,
             style: AppTextStyles.h2.copyWith(color: AppColors.neutral900),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -99,54 +63,63 @@ class _TeachersScreenState extends State<TeachersScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: 'Cari nama / NIP / mapel',
-                  hint: 'Contoh: budi atau 198704122010011002',
-                  controller: _searchCtrl,
-                  prefixIcon: Icons.search,
-                  onChanged: (_) => setState(() => _page = 1),
+                AppSearchBar(
+                  hint: TeachersScreenConstants.searchHint,
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppButton.accent(
-                  height: 50,
+                  height: TeachersScreenConstants.addButtonHeight,
                   isFullWidth: true,
-                  label: 'Tambah Guru',
+                  label: TeachersScreenConstants.addButtonLabel,
                   prefixIcon: const Icon(
-                    Icons.person_add_alt_1,
-                    size: 18,
+                    TeachersScreenConstants.addIcon,
+                    size: TeachersScreenConstants.actionIconSize,
                     color: AppColors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: _openTeacherCreateModal,
                 ),
               ],
             )
           else
-            Wrap(
-              runSpacing: AppSpacing.md,
-              spacing: AppSpacing.md,
-              crossAxisAlignment: WrapCrossAlignment.end,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                SizedBox(
-                  width: 320,
-                  child: AppTextField(
-                    label: 'Cari nama / NIP / mapel',
-                    hint: 'Contoh: budi atau 198704122010011002',
-                    controller: _searchCtrl,
-                    prefixIcon: Icons.search,
-                    onChanged: (_) => setState(() => _page = 1),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: TeachersScreenConstants.desktopSearchWidth,
+                      child: AppSearchBar(
+                        hint: TeachersScreenConstants.searchHint,
+                        width: TeachersScreenConstants.desktopSearchWidth,
+                        onSearch: (value) => setState(() {
+                          _searchQuery = value.toLowerCase().trim();
+                          _page = 1;
+                        }),
+                      ),
+                    ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0, left: 8.0),
+                  padding: const EdgeInsets.only(
+                    bottom:
+                        TeachersScreenConstants.desktopAddButtonBottomPadding,
+                    right: TeachersScreenConstants.desktopAddButtonRightPadding,
+                  ),
                   child: AppButton.accent(
-                    height: 50,
-                    label: 'Tambah Guru',
+                    height: TeachersScreenConstants.addButtonHeight,
+                    label: TeachersScreenConstants.addButtonLabel,
                     prefixIcon: const Icon(
-                      Icons.person_add_alt_1,
-                      size: 18,
+                      TeachersScreenConstants.addIcon,
+                      size: TeachersScreenConstants.actionIconSize,
                       color: AppColors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: _openTeacherCreateModal,
                   ),
                 ),
               ],
@@ -168,11 +141,22 @@ class _TeachersScreenState extends State<TeachersScreen> {
                             context,
                           ).copyWith(dividerColor: AppColors.neutral100),
                           child: DataTable(
-                            columnSpacing: isSmallScreen ? 24 : 36,
+                            columnSpacing: isSmallScreen
+                                ? TeachersScreenConstants
+                                      .tableColumnSpacingMobile
+                                : TeachersScreenConstants
+                                      .tableColumnSpacingDesktop,
                             horizontalMargin: AppSpacing.md,
-                            headingRowHeight: isSmallScreen ? 50 : 56,
-                            dataRowMinHeight: isSmallScreen ? 70 : 78,
-                            dataRowMaxHeight: isSmallScreen ? 70 : 78,
+                            headingRowHeight: isSmallScreen
+                                ? TeachersScreenConstants.headingRowHeightMobile
+                                : TeachersScreenConstants
+                                      .headingRowHeightDesktop,
+                            dataRowMinHeight: isSmallScreen
+                                ? TeachersScreenConstants.dataRowHeightMobile
+                                : TeachersScreenConstants.dataRowHeightDesktop,
+                            dataRowMaxHeight: isSmallScreen
+                                ? TeachersScreenConstants.dataRowHeightMobile
+                                : TeachersScreenConstants.dataRowHeightDesktop,
                             dividerThickness: 1,
                             headingTextStyle: AppTextStyles.label.copyWith(
                               color: AppColors.neutral700,
@@ -184,35 +168,60 @@ class _TeachersScreenState extends State<TeachersScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                             columns: [
-                              DataColumn(label: _tableHeader('NO', width: 44)),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NAMA',
-                                  width: isSmallScreen ? 180 : 280,
+                                  TeachersScreenConstants.noHeader,
+                                  width: TeachersScreenConstants.noColumnWidth,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NIP',
-                                  width: isSmallScreen ? 120 : 160,
+                                  TeachersScreenConstants.nameHeader,
+                                  width: isSmallScreen
+                                      ? TeachersScreenConstants
+                                            .nameColumnWidthMobile
+                                      : TeachersScreenConstants
+                                            .nameColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'MAPEL',
-                                  width: isSmallScreen ? 120 : 150,
+                                  TeachersScreenConstants.nipHeader,
+                                  width: isSmallScreen
+                                      ? TeachersScreenConstants
+                                            .nipColumnWidthMobile
+                                      : TeachersScreenConstants
+                                            .nipColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'STATUS',
-                                  width: isSmallScreen ? 100 : 120,
+                                  TeachersScreenConstants.subjectHeader,
+                                  width: isSmallScreen
+                                      ? TeachersScreenConstants
+                                            .subjectColumnWidthMobile
+                                      : TeachersScreenConstants
+                                            .subjectColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ACTIONS',
-                                  width: isSmallScreen ? 132 : 150,
+                                  TeachersScreenConstants.statusHeader,
+                                  width: isSmallScreen
+                                      ? TeachersScreenConstants
+                                            .statusColumnWidthMobile
+                                      : TeachersScreenConstants
+                                            .statusColumnWidthDesktop,
+                                ),
+                              ),
+                              DataColumn(
+                                label: _tableHeader(
+                                  TeachersScreenConstants.actionsHeader,
+                                  width: isSmallScreen
+                                      ? TeachersScreenConstants
+                                            .actionsColumnWidthMobile
+                                      : TeachersScreenConstants
+                                            .actionsColumnWidthDesktop,
                                 ),
                               ),
                             ],
@@ -223,7 +232,8 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                 cells: [
                                   DataCell(
                                     SizedBox(
-                                      width: 44,
+                                      width:
+                                          TeachersScreenConstants.noColumnWidth,
                                       child: Text(
                                         '${startIndex + index + 1}',
                                         style: AppTextStyles.bodyMdSemiBold
@@ -235,16 +245,23 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 180 : 280,
+                                      width: isSmallScreen
+                                          ? TeachersScreenConstants
+                                                .nameColumnWidthMobile
+                                          : TeachersScreenConstants
+                                                .nameColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           const CircleAvatar(
-                                            radius: 16,
+                                            radius: TeachersScreenConstants
+                                                .rowAvatarRadius,
                                             backgroundColor:
                                                 AppColors.primary100,
                                             child: Icon(
-                                              Icons.person,
-                                              size: 16,
+                                              TeachersScreenConstants
+                                                  .rowAvatarIcon,
+                                              size: TeachersScreenConstants
+                                                  .rowAvatarIconSize,
                                               color: AppColors.primary700,
                                             ),
                                           ),
@@ -261,24 +278,39 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 120 : 160,
+                                      width: isSmallScreen
+                                          ? TeachersScreenConstants
+                                                .nipColumnWidthMobile
+                                          : TeachersScreenConstants
+                                                .nipColumnWidthDesktop,
                                       child: Text(row.nip),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 120 : 150,
+                                      width: isSmallScreen
+                                          ? TeachersScreenConstants
+                                                .subjectColumnWidthMobile
+                                          : TeachersScreenConstants
+                                                .subjectColumnWidthDesktop,
                                       child: Text(row.subject),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 100 : 120,
+                                      width: isSmallScreen
+                                          ? TeachersScreenConstants
+                                                .statusColumnWidthMobile
+                                          : TeachersScreenConstants
+                                                .statusColumnWidthDesktop,
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: AppBadge(
                                           label: row.status.toUpperCase(),
-                                          status: row.status == 'Aktif'
+                                          status:
+                                              row.status ==
+                                                  TeachersScreenConstants
+                                                      .activeStatus
                                               ? BadgeStatus.info
                                               : BadgeStatus.muted,
                                         ),
@@ -287,25 +319,35 @@ class _TeachersScreenState extends State<TeachersScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 132 : 150,
+                                      width: isSmallScreen
+                                          ? TeachersScreenConstants
+                                                .actionsColumnWidthMobile
+                                          : TeachersScreenConstants
+                                                .actionsColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           _actionIconButton(
-                                            icon: Icons.visibility_outlined,
+                                            icon: TeachersScreenConstants
+                                                .viewIcon,
                                             backgroundColor: AppColors.info,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openTeacherDetailModal(row),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.edit_outlined,
+                                            icon: TeachersScreenConstants
+                                                .editIcon,
                                             backgroundColor: AppColors.warning,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openTeacherEditModal(row),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.delete_outline,
+                                            icon: TeachersScreenConstants
+                                                .deleteIcon,
                                             backgroundColor: AppColors.error,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openTeacherDeleteModal(row),
                                           ),
                                         ],
                                       ),
@@ -333,26 +375,12 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label: 'Sebelumnya',
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: 'Berikutnya',
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -360,13 +388,6 @@ class _TeachersScreenState extends State<TeachersScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: 'Sebelumnya',
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -374,11 +395,10 @@ class _TeachersScreenState extends State<TeachersScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: 'Berikutnya',
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),
@@ -402,31 +422,37 @@ class _TeachersScreenState extends State<TeachersScreen> {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: 34,
-      height: 34,
+      width: TeachersScreenConstants.actionButtonSize,
+      height: TeachersScreenConstants.actionButtonSize,
       child: Material(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.mdAll,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.mdAll,
           onTap: onTap,
-          child: Icon(icon, color: AppColors.white, size: 18),
+          child: Icon(
+            icon,
+            color: AppColors.white,
+            size: TeachersScreenConstants.actionIconSize,
+          ),
         ),
       ),
     );
   }
-}
 
-class _TeacherRow {
-  final String name;
-  final String nip;
-  final String subject;
-  final String status;
+  void _openTeacherDetailModal(TeacherRowData row) {
+    showTeacherDetailModal(context, data: row);
+  }
 
-  const _TeacherRow({
-    required this.name,
-    required this.nip,
-    required this.subject,
-    required this.status,
-  });
+  void _openTeacherEditModal(TeacherRowData row) {
+    showTeacherEditModal(context, data: row);
+  }
+
+  void _openTeacherDeleteModal(TeacherRowData row) {
+    showTeacherDeleteModal(context, data: row);
+  }
+
+  void _openTeacherCreateModal() {
+    showTeacherCreateModal(context);
+  }
 }
