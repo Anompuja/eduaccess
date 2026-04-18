@@ -50,14 +50,14 @@ class _StudentTrackingScreenState extends State<StudentTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
     final rows = _filteredRows;
     final selected = _selectedRow;
     final semesters = studentTrackingDummyRows.map((e) => e.semester).toSet().toList()..sort();
     final years = studentTrackingDummyRows.map((e) => e.academicYear).toSet().toList()..sort();
 
     return SingleChildScrollView(
-      padding: isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -71,7 +71,7 @@ class _StudentTrackingScreenState extends State<StudentTrackingScreen> {
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildFilters(isMobile, semesters, years),
+          _buildFilters(isCompact, semesters, years),
           const SizedBox(height: AppSpacing.lg),
           _buildTableCard(rows),
           const SizedBox(height: AppSpacing.lg),
@@ -186,6 +186,7 @@ class _StudentTrackingScreenState extends State<StudentTrackingScreen> {
             )
           : LayoutBuilder(
               builder: (context, constraints) {
+                final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: ConstrainedBox(
@@ -193,11 +194,11 @@ class _StudentTrackingScreenState extends State<StudentTrackingScreen> {
                     child: Theme(
                       data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
                       child: DataTable(
-                        columnSpacing: Responsive.isMobile(context) ? 12 : 24,
+                        columnSpacing: isCompact ? 12 : 24,
                         horizontalMargin: AppSpacing.md,
-                        headingRowHeight: Responsive.isMobile(context) ? 42 : 48,
-                        dataRowMinHeight: Responsive.isMobile(context) ? 50 : 54,
-                        dataRowMaxHeight: Responsive.isMobile(context) ? 50 : 54,
+                        headingRowHeight: isCompact ? 42 : 48,
+                        dataRowMinHeight: isCompact ? 50 : 54,
+                        dataRowMaxHeight: isCompact ? 50 : 54,
                         dividerThickness: 1,
                         headingTextStyle: AppTextStyles.label.copyWith(
                           color: AppColors.neutral700,

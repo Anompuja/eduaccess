@@ -56,10 +56,10 @@ class _ClassPromotionScreenState extends State<ClassPromotionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
 
     return SingleChildScrollView(
-      padding: isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -73,11 +73,11 @@ class _ClassPromotionScreenState extends State<ClassPromotionScreen> {
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildFilterCard(isMobile),
+          _buildFilterCard(isCompact),
           const SizedBox(height: AppSpacing.lg),
           _buildSummaryCard(),
           const SizedBox(height: AppSpacing.lg),
-          _buildStudentsCard(isMobile),
+          _buildStudentsCard(isCompact),
         ],
       ),
     );

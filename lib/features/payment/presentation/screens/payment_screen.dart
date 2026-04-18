@@ -30,11 +30,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
     final rows = _rows;
 
     return SingleChildScrollView(
-      padding: isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -47,7 +47,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: AppSpacing.lg),
           _buildSummary(),
           const SizedBox(height: AppSpacing.lg),
-          _buildFilters(isMobile),
+          _buildFilters(isCompact),
           const SizedBox(height: AppSpacing.md),
           _buildTable(rows),
         ],
@@ -159,6 +159,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             )
           : LayoutBuilder(
               builder: (context, constraints) {
+                final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
                 return SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: ConstrainedBox(
@@ -166,11 +167,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     child: Theme(
                       data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
                       child: DataTable(
-                        columnSpacing: Responsive.isMobile(context) ? 12 : 24,
+                        columnSpacing: isCompact ? 12 : 24,
                         horizontalMargin: AppSpacing.md,
-                        headingRowHeight: Responsive.isMobile(context) ? 42 : 48,
-                        dataRowMinHeight: Responsive.isMobile(context) ? 50 : 54,
-                        dataRowMaxHeight: Responsive.isMobile(context) ? 50 : 54,
+                        headingRowHeight: isCompact ? 42 : 48,
+                        dataRowMinHeight: isCompact ? 50 : 54,
+                        dataRowMaxHeight: isCompact ? 50 : 54,
                         dividerThickness: 1,
                         headingTextStyle: AppTextStyles.label.copyWith(
                           color: AppColors.neutral700,

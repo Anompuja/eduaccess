@@ -130,6 +130,7 @@ class AppTopbar extends ConsumerWidget {
                 info.title,
                 style: (isMobile ? AppTextStyles.h4 : AppTextStyles.h3)
                     .copyWith(color: AppColors.neutral900),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               if (!isMobile && info.subtitle.isNotEmpty)
@@ -138,6 +139,8 @@ class AppTopbar extends ConsumerWidget {
                   style: AppTextStyles.bodySm.copyWith(
                     color: AppColors.neutral500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
             ],
           ),

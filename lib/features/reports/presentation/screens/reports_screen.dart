@@ -15,10 +15,10 @@ class ReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
 
     return SingleChildScrollView(
-      padding: isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -35,7 +35,7 @@ class ReportsScreen extends StatelessWidget {
             children: reportsDummyKpis.map(_kpiCard).toList(),
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (isMobile)
+          if (isCompact)
             Column(
               children: [
                 _chartCard(
@@ -74,26 +74,48 @@ class ReportsScreen extends StatelessWidget {
             ),
           const SizedBox(height: AppSpacing.lg),
           AppCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Export laporan belum terhubung backend. Gunakan simulasi tombol untuk demo UTS.',
-                    style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
+            child: isCompact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Export laporan belum terhubung backend. Gunakan simulasi tombol untuk demo UTS.',
+                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AppButton.primary(
+                        label: 'Export PDF',
+                        isFullWidth: true,
+                        onPressed: () => _showExportInfo(context, 'PDF'),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AppButton.secondary(
+                        label: 'Export Excel',
+                        isFullWidth: true,
+                        onPressed: () => _showExportInfo(context, 'Excel'),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Export laporan belum terhubung backend. Gunakan simulasi tombol untuk demo UTS.',
+                          style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      AppButton.primary(
+                        label: 'Export PDF',
+                        onPressed: () => _showExportInfo(context, 'PDF'),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      AppButton.secondary(
+                        label: 'Export Excel',
+                        onPressed: () => _showExportInfo(context, 'Excel'),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                AppButton.primary(
-                  label: 'Export PDF',
-                  onPressed: () => _showExportInfo(context, 'PDF'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                AppButton.secondary(
-                  label: 'Export Excel',
-                  onPressed: () => _showExportInfo(context, 'Excel'),
-                ),
-              ],
-            ),
           ),
         ],
       ),

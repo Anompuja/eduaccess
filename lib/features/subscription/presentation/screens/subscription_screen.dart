@@ -29,10 +29,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
 
     return SingleChildScrollView(
-      padding: isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -46,9 +46,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildPlanOverview(isMobile),
+          _buildPlanOverview(isCompact),
           const SizedBox(height: AppSpacing.lg),
-          if (isMobile)
+          if (isCompact)
             Column(
               children: [
                 _buildFeaturesCard(),

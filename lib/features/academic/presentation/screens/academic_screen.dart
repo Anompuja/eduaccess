@@ -49,11 +49,11 @@ class _AcademicScreenState extends State<AcademicScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
 
     return Padding(
       padding:
-          isMobile ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+          isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -74,7 +74,12 @@ class _AcademicScreenState extends State<AcademicScreen>
                 children: [
                   TabBar(
                     controller: _tabController,
-                    isScrollable: isMobile,
+                    isScrollable: isCompact,
+                    tabAlignment:
+                        isCompact ? TabAlignment.center : TabAlignment.fill,
+                    labelPadding: isCompact
+                        ? const EdgeInsets.symmetric(horizontal: AppSpacing.lg)
+                        : null,
                     labelColor: AppColors.primary700,
                     unselectedLabelColor: AppColors.neutral500,
                     indicatorColor: AppColors.primary700,
@@ -91,8 +96,8 @@ class _AcademicScreenState extends State<AcademicScreen>
                       controller: _tabController,
                       children: [
                         _buildLevelTab(),
-                        _buildClassTab(isMobile),
-                        _buildSubClassTab(isMobile),
+                        _buildClassTab(isCompact),
+                        _buildSubClassTab(isCompact),
                       ],
                     ),
                   ),
@@ -322,6 +327,7 @@ class _AcademicScreenState extends State<AcademicScreen>
       padding: const EdgeInsets.all(AppSpacing.md),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
@@ -329,11 +335,11 @@ class _AcademicScreenState extends State<AcademicScreen>
               child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
                 child: DataTable(
-                  columnSpacing: Responsive.isMobile(context) ? 12 : 24,
+                  columnSpacing: isCompact ? 12 : 24,
                   horizontalMargin: AppSpacing.md,
-                  headingRowHeight: Responsive.isMobile(context) ? 42 : 48,
-                  dataRowMinHeight: Responsive.isMobile(context) ? 50 : 54,
-                  dataRowMaxHeight: Responsive.isMobile(context) ? 50 : 54,
+                  headingRowHeight: isCompact ? 42 : 48,
+                  dataRowMinHeight: isCompact ? 50 : 54,
+                  dataRowMaxHeight: isCompact ? 50 : 54,
                   dividerThickness: 1,
                   headingTextStyle: AppTextStyles.label.copyWith(
                     color: AppColors.neutral700,
