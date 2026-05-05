@@ -1,6 +1,6 @@
 import '../models/parent_row_data.dart';
 
-  const List<ParentRowData> parentsDummyRows = const [
+  const List<ParentRowData> parentsDummyRows = [
     ParentRowData(
       parentId: 'PRN001',
       name: 'Iwan Kurniawan',

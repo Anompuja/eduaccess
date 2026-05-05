@@ -1,6 +1,6 @@
 import '../models/staff_row_data.dart';
 
-  const List<StaffRowData> staffDummyRows = const [
+  const List<StaffRowData> staffDummyRows = [
     StaffRowData(
       staffId: 'STF001',
       name: 'Taufik Hidayat',
