@@ -8,108 +8,21 @@ import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
+import '../../providers/notifications_provider.dart';
 
-// ── Notification model ────────────────────────────────────────────────────────
-class _AppNotification {
-  final String id;
-  final String title;
-  final String body;
-  final String time;
-  final bool isRead;
-  final NotifCategory category;
-
-  const _AppNotification({
-    required this.id,
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.isRead,
-    required this.category,
-  });
-
-  _AppNotification copyWith({bool? isRead}) => _AppNotification(
-        id: id,
-        title: title,
-        body: body,
-        time: time,
-        isRead: isRead ?? this.isRead,
-        category: category,
-      );
-}
-
-enum NotifCategory { exam, attendance, student, system }
-
-// ── Provider ──────────────────────────────────────────────────────────────────
-final _notificationsProvider =
-    StateNotifierProvider<_NotificationsNotifier, List<_AppNotification>>((ref) {
-  return _NotificationsNotifier();
-});
-
-class _NotificationsNotifier
-    extends StateNotifier<List<_AppNotification>> {
-  _NotificationsNotifier()
-      : super([
-          const _AppNotification(
-            id: '1',
-            title: 'Ujian Matematika Dimulai',
-            body: 'UTS Matematika Kelas 10A akan dimulai dalam 15 menit.',
-            time: '5 menit lalu',
-            isRead: false,
-            category: NotifCategory.exam,
-          ),
-          const _AppNotification(
-            id: '2',
-            title: 'Absensi Belum Dikonfirmasi',
-            body: 'Kelas 11B belum mengisi absensi hari ini.',
-            time: '30 menit lalu',
-            isRead: false,
-            category: NotifCategory.attendance,
-          ),
-          const _AppNotification(
-            id: '3',
-            title: 'Siswa Baru Terdaftar',
-            body: 'Ahmad Fauzi telah berhasil didaftarkan ke Kelas 10A.',
-            time: '1 jam lalu',
-            isRead: true,
-            category: NotifCategory.student,
-          ),
-          const _AppNotification(
-            id: '4',
-            title: 'Pembaruan Sistem',
-            body: 'EduAccess diperbarui ke versi 1.0.1. Lihat perubahan terbaru.',
-            time: '2 jam lalu',
-            isRead: true,
-            category: NotifCategory.system,
-          ),
-        ]);
-
-  void markRead(String id) {
-    state = [
-      for (final n in state)
-        if (n.id == id) n.copyWith(isRead: true) else n,
-    ];
-  }
-
-  void markAllRead() {
-    state = [for (final n in state) n.copyWith(isRead: true)];
-  }
-}
-
-// ── Screen ────────────────────────────────────────────────────────────────────
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifs = ref.watch(_notificationsProvider);
-    final unreadCount = notifs.where((n) => !n.isRead).length;
+    final notifs = ref.watch(notificationsProvider);
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               if (unreadCount > 0) ...[
@@ -121,15 +34,13 @@ class NotificationsScreen extends ConsumerWidget {
                 AppButton.ghost(
                   label: 'Tandai semua dibaca',
                   onPressed: () =>
-                      ref.read(_notificationsProvider.notifier).markAllRead(),
+                      ref.read(notificationsProvider.notifier).markAllRead(),
                 ),
               ] else
                 const Spacer(),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-
-          // List
           Expanded(
             child: notifs.isEmpty
                 ? const AppEmptyState(
@@ -144,7 +55,7 @@ class NotificationsScreen extends ConsumerWidget {
                     itemBuilder: (_, i) => _NotifCard(
                       notif: notifs[i],
                       onTap: () => ref
-                          .read(_notificationsProvider.notifier)
+                          .read(notificationsProvider.notifier)
                           .markRead(notifs[i].id),
                     ),
                   ),
@@ -156,7 +67,7 @@ class NotificationsScreen extends ConsumerWidget {
 }
 
 class _NotifCard extends StatelessWidget {
-  final _AppNotification notif;
+  final AppNotification notif;
   final VoidCallback onTap;
 
   const _NotifCard({required this.notif, required this.onTap});
@@ -186,7 +97,9 @@ class _NotifCard extends StatelessWidget {
       onTap: onTap,
       child: AppCard(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        color: notif.isRead ? AppColors.white : AppColors.primary100.withValues(alpha: 0.4),
+        color: notif.isRead
+            ? AppColors.white
+            : AppColors.primary100.withValues(alpha: 0.4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

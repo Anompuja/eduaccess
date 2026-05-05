@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/auth_notifier.dart';
 import '../router/route_names.dart';
+import '../../features/notifications/providers/notifications_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -192,7 +193,7 @@ class _NotificationBell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const int unreadCount = 0;
+    final unreadCount = ref.watch(unreadNotificationsCountProvider);
     final size = compact ? 32.0 : 36.0;
 
     return GestureDetector(
