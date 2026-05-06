@@ -8,6 +8,7 @@ import '../router/route_names.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import 'app_logo.dart';
 
 // ── Nav item model ─────────────────────────────────────────────────────────────
 class _NavItem {
@@ -101,6 +102,26 @@ const _menuItems = [
     },
   ),
   _NavItem(
+    label: 'Tracking Siswa',
+    route: RouteNames.studentTracking,
+    icon: Icons.timeline_outlined,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
+  ),
+  _NavItem(
+    label: 'Profil Sekolah',
+    route: RouteNames.school,
+    icon: Icons.apartment_outlined,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+    },
+  ),
+  _NavItem(
     label: 'CBT / Ujian',
     route: RouteNames.cbt,
     icon: Icons.quiz_outlined,
@@ -134,6 +155,18 @@ const _generalItems = [
     label: 'Subscription',
     route: RouteNames.subscription,
     icon: Icons.workspace_premium_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
+    label: 'Payment',
+    route: RouteNames.payment,
+    icon: Icons.receipt_long_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
+    label: 'Reports',
+    route: RouteNames.reports,
+    icon: Icons.bar_chart_outlined,
     allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
   ),
   _NavItem(
@@ -250,17 +283,13 @@ class _LogoArea extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         child: Row(
           children: [
-            Container(
+            const SizedBox(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary500,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.school_rounded,
-                color: AppColors.white,
-                size: 20,
+              child: AppLogo(
+                variant: AppLogoVariant.logoOnly,
+                height: 32,
+                alignment: Alignment.center,
               ),
             ),
             const SizedBox(width: AppSpacing.md),

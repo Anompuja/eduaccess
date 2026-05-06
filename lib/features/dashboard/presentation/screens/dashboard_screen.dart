@@ -66,6 +66,9 @@ class _DashboardContent extends StatelessWidget {
     final screen = Responsive.of(context);
     final pad = screen.isMobile ? AppSpacing.lg : AppSpacing.xl;
 
+    // Tablet gets side-by-side sections like desktop, but 2x2 stat grid
+    final useTwoColumn = screen.isDesktop || screen.isTablet;
+
     return RefreshIndicator(
       color: AppColors.primary500,
       onRefresh: () async {},
@@ -82,7 +85,7 @@ class _DashboardContent extends StatelessWidget {
             SizedBox(height: pad),
 
             // ── Chart + Quick actions ──────────────────────────────────────
-            if (screen.isDesktop)
+            if (useTwoColumn)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -104,7 +107,7 @@ class _DashboardContent extends StatelessWidget {
             SizedBox(height: pad),
 
             // ── Recent activity + Active exams ─────────────────────────────
-            if (screen.isDesktop)
+            if (useTwoColumn)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

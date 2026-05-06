@@ -3,10 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
+import '../../data/datasources/students_dummy_data.dart';
+import '../../data/models/student_row_data.dart';
+import '../constants/students_screen_constants.dart';
+import '../widgets/student_create_modal.dart';
+import '../widgets/student_delete_modal.dart';
+import '../widgets/student_detail_modal.dart';
+import '../widgets/student_edit_modal.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -16,92 +25,22 @@ class StudentsScreen extends StatefulWidget {
 }
 
 class _StudentsScreenState extends State<StudentsScreen> {
-  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
   String _levelFilter = 'Semua Level';
   String _classFilter = 'Semua Kelas';
   String _subClassFilter = 'Semua Sub-Kelas';
   int _page = 1;
 
-  final List<_StudentRow> _dummyRows = const [
-    _StudentRow(
-      name: 'Dina Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'Rizky Maulana',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'Fahri Akbar',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'Dina Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'vedo',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'rira',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'Dreaza Oktavia',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'dgas',
-      nis: '2024002',
-      studentClass: 'X IPA 2',
-      status: 'Aktif',
-    ),
-    _StudentRow(
-      name: 'made',
-      nis: '2024003',
-      studentClass: 'XI IPS 1',
-      status: 'Nonaktif',
-    ),
-    _StudentRow(
-      name: 'anom',
-      nis: '2024001',
-      studentClass: 'X IPA 1',
-      status: 'Aktif',
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.sizeOf(context).width < 700;
-    final query = _searchCtrl.text.toLowerCase().trim();
-    final filteredRows = _dummyRows.where((e) {
-      return query.isEmpty ||
-          e.name.toLowerCase().contains(query) ||
-          e.nis.contains(query);
+    final isSmallScreen = Responsive.isMobile(context);
+    final filteredRows = studentDummyRows.where((e) {
+      return _searchQuery.isEmpty ||
+          e.name.toLowerCase().contains(_searchQuery) ||
+          e.nis.contains(_searchQuery);
     }).toList();
 
-    const rowsPerPage = 5;
+    const rowsPerPage = StudentsScreenConstants.rowsPerPage;
     final totalPages = filteredRows.isEmpty
         ? 1
         : ((filteredRows.length + rowsPerPage - 1) / rowsPerPage).floor();
@@ -123,7 +62,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Manajemen Siswa',
+                      StudentsScreenConstants.title,
                       style: AppTextStyles.h2.copyWith(
                         color: AppColors.neutral900,
                       ),
@@ -145,16 +84,17 @@ class _StudentsScreenState extends State<StudentsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppTextField(
-                  label: 'Cari nama / email / NIS / NISN',
-                  hint: 'Contoh: dina atau 2024001',
-                  controller: _searchCtrl,
-                  prefixIcon: Icons.search,
-                  onChanged: (_) => setState(() => _page = 1),
+                AppSearchBar(
+                  hint: StudentsScreenConstants.searchHint,
+                  width: double.infinity,
+                  onSearch: (value) => setState(() {
+                    _searchQuery = value.toLowerCase().trim();
+                    _page = 1;
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _dropdown(
-                  'Education Level',
+                  StudentsScreenConstants.educationLevelLabel,
                   _levelFilter,
                   const ['Semua Level', 'SD', 'SMP', 'SMA'],
                   (v) => setState(() {
@@ -165,7 +105,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _dropdown(
-                  'Kelas',
+                  StudentsScreenConstants.classLabel,
                   _classFilter,
                   const ['Semua Kelas', 'X', 'XI', 'XII'],
                   (v) => setState(() {
@@ -176,7 +116,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _dropdown(
-                  'Sub-Kelas',
+                  StudentsScreenConstants.subClassLabel,
                   _subClassFilter,
                   const ['Semua Sub-Kelas', 'IPA 1', 'IPA 2', 'IPS 1'],
                   (v) => setState(() {
@@ -187,15 +127,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppButton.accent(
-                  height: 50,
+                  height: StudentsScreenConstants.addButtonHeight,
                   isFullWidth: true,
-                  label: 'Tambah Siswa',
+                  label: StudentsScreenConstants.addButtonLabel,
                   prefixIcon: const Icon(
-                    Icons.person_add_alt_1,
-                    size: 18,
+                    StudentsScreenConstants.addIcon,
+                    size: StudentsScreenConstants.actionIconSize,
                     color: AppColors.white,
                   ),
-                  onPressed: () {},
+                  onPressed: _openStudentCreateModal,
                 ),
               ],
             )
@@ -206,17 +146,18 @@ class _StudentsScreenState extends State<StudentsScreen> {
               crossAxisAlignment: WrapCrossAlignment.end,
               children: [
                 SizedBox(
-                  width: 320,
-                  child: AppTextField(
-                    label: 'Cari nama / email / NIS / NISN',
-                    hint: 'Contoh: dina atau 2024001',
-                    controller: _searchCtrl,
-                    prefixIcon: Icons.search,
-                    onChanged: (_) => setState(() => _page = 1),
+                  width: StudentsScreenConstants.desktopSearchWidth,
+                  child: AppSearchBar(
+                    hint: StudentsScreenConstants.searchHint,
+                    width: StudentsScreenConstants.desktopSearchWidth,
+                    onSearch: (value) => setState(() {
+                      _searchQuery = value.toLowerCase().trim();
+                      _page = 1;
+                    }),
                   ),
                 ),
                 _dropdown(
-                  'Education Level',
+                  StudentsScreenConstants.educationLevelLabel,
                   _levelFilter,
                   const ['Semua Level', 'SD', 'SMP', 'SMA'],
                   (v) => setState(() {
@@ -225,7 +166,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   }),
                 ),
                 _dropdown(
-                  'Kelas',
+                  StudentsScreenConstants.classLabel,
                   _classFilter,
                   const ['Semua Kelas', 'X', 'XI', 'XII'],
                   (v) => setState(() {
@@ -234,7 +175,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   }),
                 ),
                 _dropdown(
-                  'Sub-Kelas',
+                  StudentsScreenConstants.subClassLabel,
                   _subClassFilter,
                   const ['Semua Sub-Kelas', 'IPA 1', 'IPA 2', 'IPS 1'],
                   (v) => setState(() {
@@ -243,16 +184,20 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   }),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 4.0, left: 8.0),
+                  padding: const EdgeInsets.only(
+                    bottom:
+                        StudentsScreenConstants.desktopAddButtonBottomPadding,
+                    left: StudentsScreenConstants.desktopAddButtonLeftPadding,
+                  ),
                   child: AppButton.accent(
-                    height: 50,
-                    label: 'Tambah Siswa',
+                    height: StudentsScreenConstants.addButtonHeight,
+                    label: StudentsScreenConstants.addButtonLabel,
                     prefixIcon: const Icon(
-                      Icons.person_add_alt_1,
-                      size: 18,
+                      StudentsScreenConstants.addIcon,
+                      size: StudentsScreenConstants.actionIconSize,
                       color: AppColors.white,
                     ),
-                    onPressed: () {},
+                    onPressed: _openStudentCreateModal,
                   ),
                 ),
               ],
@@ -274,11 +219,22 @@ class _StudentsScreenState extends State<StudentsScreen> {
                             context,
                           ).copyWith(dividerColor: AppColors.neutral100),
                           child: DataTable(
-                            columnSpacing: isSmallScreen ? 24 : 36,
+                            columnSpacing: isSmallScreen
+                                ? StudentsScreenConstants
+                                      .tableColumnSpacingMobile
+                                : StudentsScreenConstants
+                                      .tableColumnSpacingDesktop,
                             horizontalMargin: AppSpacing.md,
-                            headingRowHeight: isSmallScreen ? 50 : 56,
-                            dataRowMinHeight: isSmallScreen ? 70 : 78,
-                            dataRowMaxHeight: isSmallScreen ? 70 : 78,
+                            headingRowHeight: isSmallScreen
+                                ? StudentsScreenConstants.headingRowHeightMobile
+                                : StudentsScreenConstants
+                                      .headingRowHeightDesktop,
+                            dataRowMinHeight: isSmallScreen
+                                ? StudentsScreenConstants.dataRowHeightMobile
+                                : StudentsScreenConstants.dataRowHeightDesktop,
+                            dataRowMaxHeight: isSmallScreen
+                                ? StudentsScreenConstants.dataRowHeightMobile
+                                : StudentsScreenConstants.dataRowHeightDesktop,
                             dividerThickness: 1,
                             headingTextStyle: AppTextStyles.label.copyWith(
                               color: AppColors.neutral700,
@@ -290,35 +246,60 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                             columns: [
-                              DataColumn(label: _tableHeader('NO', width: 44)),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NAMA',
-                                  width: isSmallScreen ? 180 : 280,
+                                  StudentsScreenConstants.noHeader,
+                                  width: StudentsScreenConstants.noColumnWidth,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'NIS',
-                                  width: isSmallScreen ? 90 : 110,
+                                  StudentsScreenConstants.nameHeader,
+                                  width: isSmallScreen
+                                      ? StudentsScreenConstants
+                                            .nameColumnWidthMobile
+                                      : StudentsScreenConstants
+                                            .nameColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'KELAS',
-                                  width: isSmallScreen ? 100 : 120,
+                                  StudentsScreenConstants.nisHeader,
+                                  width: isSmallScreen
+                                      ? StudentsScreenConstants
+                                            .nisColumnWidthMobile
+                                      : StudentsScreenConstants
+                                            .nisColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'STATUS',
-                                  width: isSmallScreen ? 100 : 120,
+                                  StudentsScreenConstants.classHeader,
+                                  width: isSmallScreen
+                                      ? StudentsScreenConstants
+                                            .classColumnWidthMobile
+                                      : StudentsScreenConstants
+                                            .classColumnWidthDesktop,
                                 ),
                               ),
                               DataColumn(
                                 label: _tableHeader(
-                                  'ACTIONS',
-                                  width: isSmallScreen ? 132 : 150,
+                                  StudentsScreenConstants.statusHeader,
+                                  width: isSmallScreen
+                                      ? StudentsScreenConstants
+                                            .statusColumnWidthMobile
+                                      : StudentsScreenConstants
+                                            .statusColumnWidthDesktop,
+                                ),
+                              ),
+                              DataColumn(
+                                label: _tableHeader(
+                                  StudentsScreenConstants.actionsHeader,
+                                  width: isSmallScreen
+                                      ? StudentsScreenConstants
+                                            .actionsColumnWidthMobile
+                                      : StudentsScreenConstants
+                                            .actionsColumnWidthDesktop,
                                 ),
                               ),
                             ],
@@ -329,7 +310,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 cells: [
                                   DataCell(
                                     SizedBox(
-                                      width: 44,
+                                      width:
+                                          StudentsScreenConstants.noColumnWidth,
                                       child: Text(
                                         '${startIndex + index + 1}',
                                         style: AppTextStyles.bodyMdSemiBold
@@ -341,16 +323,23 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 180 : 280,
+                                      width: isSmallScreen
+                                          ? StudentsScreenConstants
+                                                .nameColumnWidthMobile
+                                          : StudentsScreenConstants
+                                                .nameColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           const CircleAvatar(
-                                            radius: 16,
+                                            radius: StudentsScreenConstants
+                                                .rowAvatarRadius,
                                             backgroundColor:
                                                 AppColors.primary100,
                                             child: Icon(
-                                              Icons.person,
-                                              size: 16,
+                                              StudentsScreenConstants
+                                                  .rowAvatarIcon,
+                                              size: StudentsScreenConstants
+                                                  .rowAvatarIconSize,
                                               color: AppColors.primary700,
                                             ),
                                           ),
@@ -367,24 +356,39 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 90 : 110,
+                                      width: isSmallScreen
+                                          ? StudentsScreenConstants
+                                                .nisColumnWidthMobile
+                                          : StudentsScreenConstants
+                                                .nisColumnWidthDesktop,
                                       child: Text(e.nis),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 100 : 120,
+                                      width: isSmallScreen
+                                          ? StudentsScreenConstants
+                                                .classColumnWidthMobile
+                                          : StudentsScreenConstants
+                                                .classColumnWidthDesktop,
                                       child: Text(e.studentClass),
                                     ),
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 100 : 120,
+                                      width: isSmallScreen
+                                          ? StudentsScreenConstants
+                                                .statusColumnWidthMobile
+                                          : StudentsScreenConstants
+                                                .statusColumnWidthDesktop,
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: AppBadge(
                                           label: e.status.toUpperCase(),
-                                          status: e.status == 'Aktif'
+                                          status:
+                                              e.status ==
+                                                  StudentsScreenConstants
+                                                      .activeStatus
                                               ? BadgeStatus.info
                                               : BadgeStatus.muted,
                                         ),
@@ -393,25 +397,35 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: isSmallScreen ? 132 : 150,
+                                      width: isSmallScreen
+                                          ? StudentsScreenConstants
+                                                .actionsColumnWidthMobile
+                                          : StudentsScreenConstants
+                                                .actionsColumnWidthDesktop,
                                       child: Row(
                                         children: [
                                           _actionIconButton(
-                                            icon: Icons.visibility_outlined,
+                                            icon: StudentsScreenConstants
+                                                .viewIcon,
                                             backgroundColor: AppColors.info,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentDetailModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.edit_outlined,
+                                            icon: StudentsScreenConstants
+                                                .editIcon,
                                             backgroundColor: AppColors.warning,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentEditModal(e),
                                           ),
                                           const SizedBox(width: AppSpacing.sm),
                                           _actionIconButton(
-                                            icon: Icons.delete_outline,
+                                            icon: StudentsScreenConstants
+                                                .deleteIcon,
                                             backgroundColor: AppColors.error,
-                                            onTap: () {},
+                                            onTap: () =>
+                                                _openStudentDeleteModal(e),
                                           ),
                                         ],
                                       ),
@@ -439,26 +453,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              label: 'Sebelumnya',
-                              onPressed: safePage > 1
-                                  ? () => setState(() => _page = safePage - 1)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton.primary(
-                              label: 'Berikutnya',
-                              onPressed: safePage < totalPages
-                                  ? () => setState(() => _page = safePage + 1)
-                                  : null,
-                            ),
-                          ),
-                        ],
+                      Center(
+                        child: AppPagination(
+                          currentPage: safePage,
+                          totalPages: totalPages,
+                          onPageChanged: (page) => setState(() => _page = page),
+                        ),
                       ),
                     ],
                   )
@@ -466,13 +466,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      AppButton.secondary(
-                        label: 'Sebelumnya',
-                        onPressed: safePage > 1
-                            ? () => setState(() => _page = safePage - 1)
-                            : null,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         'Halaman $safePage dari $totalPages',
                         style: AppTextStyles.bodyMd.copyWith(
@@ -480,11 +473,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      AppButton.primary(
-                        label: 'Berikutnya',
-                        onPressed: safePage < totalPages
-                            ? () => setState(() => _page = safePage + 1)
-                            : null,
+                      AppPagination(
+                        currentPage: safePage,
+                        totalPages: totalPages,
+                        onPageChanged: (page) => setState(() => _page = page),
                       ),
                     ],
                   ),
@@ -532,31 +524,37 @@ class _StudentsScreenState extends State<StudentsScreen> {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      width: 34,
-      height: 34,
+      width: StudentsScreenConstants.actionButtonSize,
+      height: StudentsScreenConstants.actionButtonSize,
       child: Material(
         color: backgroundColor,
         borderRadius: AppRadius.mdAll,
         child: InkWell(
           borderRadius: AppRadius.mdAll,
           onTap: onTap,
-          child: Icon(icon, color: AppColors.white, size: 18),
+          child: Icon(
+            icon,
+            color: AppColors.white,
+            size: StudentsScreenConstants.actionIconSize,
+          ),
         ),
       ),
     );
   }
-}
 
-class _StudentRow {
-  final String name;
-  final String nis;
-  final String studentClass;
-  final String status;
+  void _openStudentDetailModal(StudentRowData row) {
+    showStudentDetailModal(context, data: row);
+  }
 
-  const _StudentRow({
-    required this.name,
-    required this.nis,
-    required this.studentClass,
-    required this.status,
-  });
+  void _openStudentDeleteModal(StudentRowData row) {
+    showStudentDeleteModal(context, data: row);
+  }
+
+  void _openStudentEditModal(StudentRowData row) {
+    showStudentEditModal(context, data: row);
+  }
+
+  void _openStudentCreateModal() {
+    showStudentCreateModal(context);
+  }
 }

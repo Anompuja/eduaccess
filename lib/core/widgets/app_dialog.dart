@@ -60,12 +60,16 @@ class AppDialog extends StatelessWidget {
                       children: [
                         Text(title,
                             style: AppTextStyles.h4
-                                .copyWith(color: AppColors.neutral900)),
+                                .copyWith(color: AppColors.neutral900),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
                         if (subtitle != null) ...[
                           const SizedBox(height: 4),
                           Text(subtitle!,
                               style: AppTextStyles.bodySm
-                                  .copyWith(color: AppColors.neutral500)),
+                                  .copyWith(color: AppColors.neutral500),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
                         ],
                       ],
                     ),
@@ -92,14 +96,28 @@ class AppDialog extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: actions
-                      .map((a) => Padding(
-                            padding: const EdgeInsets.only(left: AppSpacing.sm),
-                            child: a,
-                          ))
-                      .toList(),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 420;
+                    if (isCompact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var i = 0; i < actions.length; i++) ...[
+                            actions[i],
+                            if (i != actions.length - 1) const SizedBox(height: AppSpacing.sm),
+                          ],
+                        ],
+                      );
+                    }
+
+                    return Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: actions,
+                    );
+                  },
                 ),
               ),
             ] else

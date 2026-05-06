@@ -23,10 +23,14 @@ abstract final class RouteNames {
 
   // ── Protected — Dev 3 (academic & operations) ────────────────────────────
   static const String academic = '/academic';
-  static const String gradePromotion = '/promotion';
+  static const String gradePromotion = '/class-promotion';
+  static const String studentTracking = '/student-tracking';
+  static const String school = '/school';
   static const String cbt = '/cbt';
   static const String attendance = '/attendance';
   static const String subscription = '/subscription';
+  static const String payment = '/payment';
+  static const String reports = '/reports';
   static const String help = '/help';
 
   // ── Dynamic path helpers ──────────────────────────────────────────────────

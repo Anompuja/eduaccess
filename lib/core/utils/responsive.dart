@@ -21,8 +21,8 @@ class Responsive {
   // ── Breakpoints ─────────────────────────────────────────────────────────────
   static const double mobileMaxWidth  = 767;
   static const double tabletMinWidth  = 768;
-  static const double tabletMaxWidth  = 1023;
-  static const double desktopMinWidth = 1024;
+  static const double tabletMaxWidth  = 1279;
+  static const double desktopMinWidth = 1280;
 
   // ── Static helpers ───────────────────────────────────────────────────────────
   static bool isMobile(BuildContext context) =>
