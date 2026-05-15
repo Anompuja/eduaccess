@@ -154,6 +154,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const StaffScreen(),
           ),
           GoRoute(
+            path: RouteNames.admins,
+            builder: (_, _) => const AdminsScreen(),
+          ),
+          GoRoute(path: RouteNames.users, 
+          builder: (_, _) => const UsersScreen()),
+          GoRoute(
             path: '/teachers/:id',
             builder: (_, state) => PlaceholderScreen(
               title: 'Detail Guru (${state.pathParameters['id']})',
