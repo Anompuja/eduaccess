@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admins_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -68,6 +69,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/users/:id',
             builder: (_, state) => PlaceholderScreen(
               title: 'Detail User (${state.pathParameters['id']})',
+              assignedTo: 'Dev 2',
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.admins,
+            builder: (_, _) => const AdminsScreen(),
+          ),
+          GoRoute(
+            path: '/admins/:id',
+            builder: (_, state) => PlaceholderScreen(
+              title: 'Detail Admin (${state.pathParameters['id']})',
               assignedTo: 'Dev 2',
             ),
           ),
