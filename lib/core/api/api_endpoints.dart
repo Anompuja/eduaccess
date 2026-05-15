@@ -11,6 +11,7 @@ abstract final class ApiEndpoints {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   static const String dashboardStats = '/dashboard/stats';
+  static const String schools = '/schools';
 
   // ── Students ──────────────────────────────────────────────────────────────
   static const String students = '/students';

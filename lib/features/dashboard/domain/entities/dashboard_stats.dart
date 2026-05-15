@@ -1,7 +1,26 @@
 import 'package:equatable/equatable.dart';
 
+import 'dashboard_school.dart';
+
 /// Aggregate stats shown on the dashboard.
 class DashboardStats extends Equatable {
+  final DashboardSchool? school;
+  final int schoolUsersCount;
+  final int studentsCount;
+  final int activeStudentsCount;
+  final int enrollmentsCount;
+  final int attendancePresent;
+  final int attendanceLate;
+  final int attendanceAbsent;
+  final int attendanceExcused;
+  final int attendanceTotal;
+  final double attendanceRate;
+  final String subscriptionPlanName;
+  final String subscriptionStatus;
+  final String subscriptionCycle;
+  final double? subscriptionPrice;
+  final String? subscriptionEndsAt;
+
   final int totalStudents;
   final int totalTeachers;
   final int activeClasses;
@@ -11,6 +30,22 @@ class DashboardStats extends Equatable {
   final List<ActiveExam> activeExams;
 
   const DashboardStats({
+    this.school,
+    this.schoolUsersCount = 0,
+    this.studentsCount = 0,
+    this.activeStudentsCount = 0,
+    this.enrollmentsCount = 0,
+    this.attendancePresent = 0,
+    this.attendanceLate = 0,
+    this.attendanceAbsent = 0,
+    this.attendanceExcused = 0,
+    this.attendanceTotal = 0,
+    this.attendanceRate = 0,
+    this.subscriptionPlanName = '',
+    this.subscriptionStatus = '',
+    this.subscriptionCycle = '',
+    this.subscriptionPrice,
+    this.subscriptionEndsAt,
     required this.totalStudents,
     required this.totalTeachers,
     required this.activeClasses,
@@ -22,16 +57,32 @@ class DashboardStats extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalStudents,
-        totalTeachers,
-        activeClasses,
-        subscriptionPlan,
-      ];
+    school,
+    schoolUsersCount,
+    studentsCount,
+    activeStudentsCount,
+    enrollmentsCount,
+    attendancePresent,
+    attendanceLate,
+    attendanceAbsent,
+    attendanceExcused,
+    attendanceTotal,
+    attendanceRate,
+    subscriptionPlanName,
+    subscriptionStatus,
+    subscriptionCycle,
+    subscriptionPrice,
+    subscriptionEndsAt,
+    totalStudents,
+    totalTeachers,
+    activeClasses,
+    subscriptionPlan,
+  ];
 }
 
 /// Attendance data for one day — used in the bar chart.
 class DailyAttendance extends Equatable {
-  final String day;   // e.g. 'Sen', 'Sel'
+  final String day; // e.g. 'Sen', 'Sel'
   final int present;
   final int absent;
   final int late;

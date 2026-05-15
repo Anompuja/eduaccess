@@ -13,7 +13,10 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
+import '../../domain/entities/dashboard_school.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../providers/dashboard_provider.dart';
 
@@ -24,60 +27,65 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final role = user?.role ?? UserRole.staff;
-
-    // Siswa and orangtua see a personal dashboard — no school-wide stats
-    if (role == UserRole.siswa || role == UserRole.orangtua) {
-      final statsAsync = ref.watch(dashboardStatsProvider);
-      return statsAsync.when(
-        loading: () => const AppLoadingIndicator(message: 'Memuat dashboard...'),
-        error: (e, _) => AppErrorState(
-          message: e.toString(),
-          onRetry: () => ref.read(dashboardStatsProvider.notifier).refresh(),
-        ),
-        data: (stats) => _PersonalDashboard(
-          userName: user?.name ?? '',
-          role: role,
-          stats: stats,
-        ),
-      );
-    }
-
-    // All other roles see the full stats dashboard (content filtered by role)
     final statsAsync = ref.watch(dashboardStatsProvider);
+
     return statsAsync.when(
       loading: () => const AppLoadingIndicator(message: 'Memuat dashboard...'),
       error: (e, _) => AppErrorState(
         message: e.toString(),
         onRetry: () => ref.read(dashboardStatsProvider.notifier).refresh(),
       ),
-      data: (stats) => _DashboardContent(stats: stats, role: role),
+      data: (stats) => role == UserRole.siswa || role == UserRole.orangtua
+          ? _PersonalDashboard(
+              userName: user?.name ?? '',
+              role: role,
+              stats: stats,
+            )
+          : _DashboardContent(stats: stats, role: role),
     );
   }
 }
 
 // ── Main content (admin / kepala / guru) ──────────────────────────────────────
-class _DashboardContent extends StatelessWidget {
+class _DashboardContent extends ConsumerWidget {
   final DashboardStats stats;
   final UserRole role;
   const _DashboardContent({required this.stats, required this.role});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final screen = Responsive.of(context);
     final pad = screen.isMobile ? AppSpacing.lg : AppSpacing.xl;
 
     // Tablet gets side-by-side sections like desktop, but 2x2 stat grid
     final useTwoColumn = screen.isDesktop || screen.isTablet;
+    final isSuperadmin = role == UserRole.superadmin;
+    final schoolsAsync = ref.watch(dashboardSchoolsProvider);
+    final selectedSchoolId = ref.watch(selectedDashboardSchoolIdProvider);
 
     return RefreshIndicator(
       color: AppColors.primary500,
-      onRefresh: () async {},
+      onRefresh: () => ref.read(dashboardStatsProvider.notifier).refresh(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(pad),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (isSuperadmin) ...[
+              _SchoolSwitcherCard(
+                schoolsAsync: schoolsAsync,
+                selectedSchoolId: selectedSchoolId,
+                onChanged: (value) =>
+                    ref.read(selectedDashboardSchoolIdProvider.notifier).state =
+                        value,
+                onRetry: () => ref.invalidate(dashboardSchoolsProvider),
+              ),
+              SizedBox(height: pad),
+              _SchoolContextBanner(stats: stats),
+              SizedBox(height: pad),
+            ],
+
             // ── Stat cards ─────────────────────────────────────────────────
             screen.isDesktop
                 ? _StatCardRow(stats: stats)
@@ -91,16 +99,24 @@ class _DashboardContent extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 3,
-                    child: _AttendanceChart(
-                        data: stats.weeklyAttendance, compact: false),
+                    child: stats.weeklyAttendance.isNotEmpty
+                        ? _AttendanceChart(
+                            data: stats.weeklyAttendance,
+                            compact: false,
+                          )
+                        : _AttendanceSummary(stats: stats, compact: false),
                   ),
                   const SizedBox(width: AppSpacing.xl),
                   Expanded(flex: 2, child: _QuickActions(role: role)),
                 ],
               )
             else ...[
-              _AttendanceChart(
-                  data: stats.weeklyAttendance, compact: screen.isMobile),
+              stats.weeklyAttendance.isNotEmpty
+                  ? _AttendanceChart(
+                      data: stats.weeklyAttendance,
+                      compact: screen.isMobile,
+                    )
+                  : _AttendanceSummary(stats: stats, compact: screen.isMobile),
               SizedBox(height: pad),
               _QuickActions(role: role),
             ],
@@ -113,8 +129,7 @@ class _DashboardContent extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 3,
-                    child:
-                        _RecentActivity(activities: stats.recentActivities),
+                    child: _RecentActivity(activities: stats.recentActivities),
                   ),
                   const SizedBox(width: AppSpacing.xl),
                   Expanded(
@@ -150,9 +165,13 @@ class _StatCardRow extends StatelessWidget {
         children: [
           Expanded(
             child: _StatCard(
-              label: 'Total Siswa',
-              value: _fmt(stats.totalStudents),
-              subtitle: '+12 bulan ini',
+              label: 'Siswa',
+              value: _fmt(
+                stats.studentsCount > 0
+                    ? stats.studentsCount
+                    : stats.totalStudents,
+              ),
+              subtitle: 'Aktif: ${_fmt(stats.activeStudentsCount)}',
               icon: Icons.school_outlined,
               isPrimary: true,
             ),
@@ -160,18 +179,26 @@ class _StatCardRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: _StatCard(
-              label: 'Total Guru',
-              value: _fmt(stats.totalTeachers),
-              subtitle: '+2 bulan ini',
+              label: 'Pengguna Sekolah',
+              value: _fmt(
+                stats.schoolUsersCount > 0
+                    ? stats.schoolUsersCount
+                    : stats.totalTeachers,
+              ),
+              subtitle: 'Semua akun sekolah',
               icon: Icons.badge_outlined,
             ),
           ),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: _StatCard(
-              label: 'Kelas Aktif',
-              value: _fmt(stats.activeClasses),
-              subtitle: 'Semester ini',
+              label: 'Enrollment',
+              value: _fmt(
+                stats.enrollmentsCount > 0
+                    ? stats.enrollmentsCount
+                    : stats.activeClasses,
+              ),
+              subtitle: 'Pendaftaran aktif',
               icon: Icons.class_outlined,
             ),
           ),
@@ -179,8 +206,13 @@ class _StatCardRow extends StatelessWidget {
           Expanded(
             child: _StatCard(
               label: 'Langganan',
-              value: stats.subscriptionPlan,
-              subtitle: 'Aktif hingga Des 2024',
+              value: stats.subscriptionPlanName.isNotEmpty
+                  ? stats.subscriptionPlanName
+                  : stats.subscriptionPlan,
+              subtitle: stats.subscriptionStatus.isNotEmpty
+                  ? '${stats.subscriptionStatus} ${stats.subscriptionCycle}'
+                        .trim()
+                  : 'Aktif',
               icon: Icons.workspace_premium_outlined,
             ),
           ),
@@ -189,8 +221,7 @@ class _StatCardRow extends StatelessWidget {
     );
   }
 
-  String _fmt(int n) =>
-      n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+  String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
 }
 
 class _StatCardGrid extends StatelessWidget {
@@ -211,35 +242,304 @@ class _StatCardGrid extends StatelessWidget {
       childAspectRatio: compact ? 1.4 : 1.65,
       children: [
         _StatCard(
-          label: 'Total Siswa',
-          value: '${stats.totalStudents}',
-          subtitle: '+12 bulan ini',
+          label: 'Siswa',
+          value:
+              '${stats.studentsCount > 0 ? stats.studentsCount : stats.totalStudents}',
+          subtitle:
+              'Aktif: ${stats.activeStudentsCount > 0 ? stats.activeStudentsCount : stats.totalStudents}',
           icon: Icons.school_outlined,
           isPrimary: true,
           compact: compact,
         ),
         _StatCard(
-          label: 'Total Guru',
-          value: '${stats.totalTeachers}',
-          subtitle: '+2 bulan ini',
+          label: 'Pengguna Sekolah',
+          value:
+              '${stats.schoolUsersCount > 0 ? stats.schoolUsersCount : stats.totalTeachers}',
+          subtitle: 'Semua akun sekolah',
           icon: Icons.badge_outlined,
           compact: compact,
         ),
         _StatCard(
-          label: 'Kelas Aktif',
-          value: '${stats.activeClasses}',
-          subtitle: 'Semester ini',
+          label: 'Enrollment',
+          value:
+              '${stats.enrollmentsCount > 0 ? stats.enrollmentsCount : stats.activeClasses}',
+          subtitle: 'Pendaftaran aktif',
           icon: Icons.class_outlined,
           compact: compact,
         ),
         _StatCard(
           label: 'Langganan',
-          value: stats.subscriptionPlan,
-          subtitle: 'Aktif',
+          value: stats.subscriptionPlanName.isNotEmpty
+              ? stats.subscriptionPlanName
+              : stats.subscriptionPlan,
+          subtitle: stats.subscriptionStatus.isNotEmpty
+              ? '${stats.subscriptionStatus} ${stats.subscriptionCycle}'.trim()
+              : 'Aktif',
           icon: Icons.workspace_premium_outlined,
           compact: compact,
         ),
       ],
+    );
+  }
+}
+
+class _SchoolSwitcherCard extends ConsumerWidget {
+  final AsyncValue<List<DashboardSchool>> schoolsAsync;
+  final String? selectedSchoolId;
+  final ValueChanged<String?> onChanged;
+  final VoidCallback onRetry;
+
+  const _SchoolSwitcherCard({
+    required this.schoolsAsync,
+    required this.selectedSchoolId,
+    required this.onChanged,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pilih Sekolah',
+            style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Superadmin dapat berpindah konteks sekolah tanpa keluar dari dashboard.',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          schoolsAsync.when(
+            loading: () =>
+                const AppLoadingIndicator(message: 'Memuat daftar sekolah...'),
+            error: (error, _) =>
+                AppErrorState(message: error.toString(), onRetry: onRetry),
+            data: (schools) {
+              if (schools.isEmpty) {
+                return const AppEmptyState(
+                  message: 'Belum ada sekolah',
+                  subtitle: 'Tidak ada sekolah yang bisa dipilih.',
+                );
+              }
+
+              return AppDropdown<String>(
+                label: 'Sekolah',
+                value: selectedSchoolId,
+                hint: 'Pilih sekolah',
+                items: schools
+                    .map(
+                      (school) => AppDropdownItem<String>(
+                        value: school.id,
+                        label: school.name,
+                        leading: Icon(
+                          school.status == 'active'
+                              ? Icons.apartment_rounded
+                              : Icons.apartment_outlined,
+                          size: 18,
+                          color: AppColors.primary700,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: onChanged,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SchoolContextBanner extends StatelessWidget {
+  final DashboardStats stats;
+
+  const _SchoolContextBanner({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final school = stats.school;
+    if (school == null) return const SizedBox.shrink();
+
+    final isActive = school.status.toLowerCase() == 'active';
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primary100,
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: const Icon(
+              Icons.apartment_rounded,
+              color: AppColors.primary700,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        school.name,
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.neutral900,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    AppBadge(
+                      label: isActive ? 'ACTIVE' : school.status.toUpperCase(),
+                      status: isActive
+                          ? BadgeStatus.success
+                          : BadgeStatus.muted,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  school.timeZone != null && school.timeZone!.isNotEmpty
+                      ? 'Timezone: ${school.timeZone}'
+                      : 'Context sekolah aktif dari backend.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttendanceSummary extends StatelessWidget {
+  final DashboardStats stats;
+  final bool compact;
+
+  const _AttendanceSummary({required this.stats, required this.compact});
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = compact ? AppSpacing.lg : AppSpacing.xl;
+
+    return AppCard(
+      padding: EdgeInsets.all(pad),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ringkasan Absensi',
+            style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Data ringkas dari backend untuk sekolah aktif.',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          GridView.count(
+            crossAxisCount: compact ? 2 : 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: AppSpacing.md,
+            mainAxisSpacing: AppSpacing.md,
+            childAspectRatio: compact ? 1.5 : 1.7,
+            children: [
+              _summaryItem(
+                'Hadir',
+                stats.attendancePresent,
+                AppColors.primary500,
+              ),
+              _summaryItem(
+                'Terlambat',
+                stats.attendanceLate,
+                AppColors.warning,
+              ),
+              _summaryItem('Absen', stats.attendanceAbsent, AppColors.error),
+              _summaryItem('Izin', stats.attendanceExcused, AppColors.info),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _SummaryRow(
+            label: 'Total Kehadiran',
+            value: '${stats.attendanceTotal}',
+          ),
+          _SummaryRow(
+            label: 'Rate Kehadiran',
+            value: '${stats.attendanceRate.toStringAsFixed(1)}%',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryItem(String label, int value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: AppRadius.lgAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '$value',
+            style: AppTextStyles.h3.copyWith(color: AppColors.neutral900),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SummaryRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTextStyles.bodyMdSemiBold.copyWith(
+              color: AppColors.neutral900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -263,15 +563,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg          = isPrimary ? AppColors.primary900 : AppColors.white;
-    final labelColor  = isPrimary ? AppColors.primary300 : AppColors.neutral500;
-    final valueColor  = isPrimary ? AppColors.white       : AppColors.neutral900;
-    final subColor    = isPrimary ? AppColors.primary300  : AppColors.success;
-    final iconBg      = isPrimary ? AppColors.primary700  : AppColors.primary100;
-    final iconColor   = isPrimary ? AppColors.white       : AppColors.primary700;
-    final pad         = compact ? AppSpacing.md : AppSpacing.xl;
-    final iconSize    = compact ? 28.0 : 36.0;
-    final valueStyle  = compact ? AppTextStyles.h3 : AppTextStyles.h2;
+    final bg = isPrimary ? AppColors.primary900 : AppColors.white;
+    final labelColor = isPrimary ? AppColors.primary300 : AppColors.neutral500;
+    final valueColor = isPrimary ? AppColors.white : AppColors.neutral900;
+    final subColor = isPrimary ? AppColors.primary300 : AppColors.success;
+    final iconBg = isPrimary ? AppColors.primary700 : AppColors.primary100;
+    final iconColor = isPrimary ? AppColors.white : AppColors.primary700;
+    final pad = compact ? AppSpacing.md : AppSpacing.xl;
+    final iconSize = compact ? 28.0 : 36.0;
+    final valueStyle = compact ? AppTextStyles.h3 : AppTextStyles.h2;
 
     return Container(
       padding: EdgeInsets.all(pad),
@@ -301,8 +601,7 @@ class _StatCard extends StatelessWidget {
                   color: iconBg,
                   borderRadius: AppRadius.mdAll,
                 ),
-                child: Icon(icon, color: iconColor,
-                    size: compact ? 15 : 18),
+                child: Icon(icon, color: iconColor, size: compact ? 15 : 18),
               ),
             ],
           ),
@@ -342,12 +641,14 @@ class _AttendanceChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (compact) ...[
-            Text('Statistik Absensi',
-                style: AppTextStyles.h4
-                    .copyWith(color: AppColors.neutral900)),
-            Text('Per hari — minggu ini',
-                style: AppTextStyles.bodySm
-                    .copyWith(color: AppColors.neutral500)),
+            Text(
+              'Statistik Absensi',
+              style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+            ),
+            Text(
+              'Per hari — minggu ini',
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+            ),
             const SizedBox(height: AppSpacing.sm),
             _Legend(compact: compact),
           ] else
@@ -358,12 +659,18 @@ class _AttendanceChart extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Statistik Absensi',
-                          style: AppTextStyles.h4
-                              .copyWith(color: AppColors.neutral900)),
-                      Text('Per hari — minggu ini',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.neutral500)),
+                      Text(
+                        'Statistik Absensi',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.neutral900,
+                        ),
+                      ),
+                      Text(
+                        'Per hari — minggu ini',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.neutral500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -402,7 +709,7 @@ class _BarChartWidget extends StatelessWidget {
     final maxY = data.isEmpty
         ? 200.0
         : (data.map((d) => d.present).reduce((a, b) => a > b ? a : b) * 1.2)
-            .ceilToDouble();
+              .ceilToDouble();
 
     return BarChart(
       BarChartData(
@@ -429,9 +736,12 @@ class _BarChartWidget extends StatelessWidget {
                 if (i < 0 || i >= data.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(data[i].day,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.neutral500)),
+                  child: Text(
+                    data[i].day,
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.neutral500,
+                    ),
+                  ),
                 );
               },
             ),
@@ -442,23 +752,24 @@ class _BarChartWidget extends StatelessWidget {
               reservedSize: 32,
               getTitlesWidget: (v, _) => Text(
                 v.toInt().toString(),
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.neutral500),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.neutral500,
+                ),
               ),
             ),
           ),
           topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
           rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false)),
+            sideTitles: SideTitles(showTitles: false),
+          ),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) => const FlLine(
-            color: AppColors.neutral100,
-            strokeWidth: 1,
-          ),
+          getDrawingHorizontalLine: (_) =>
+              const FlLine(color: AppColors.neutral100, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         barGroups: data.asMap().entries.map((e) {
@@ -470,22 +781,25 @@ class _BarChartWidget extends StatelessWidget {
                 toY: d.present.toDouble(),
                 color: AppColors.primary500,
                 width: 7,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
               BarChartRodData(
                 toY: d.absent.toDouble(),
                 color: AppColors.error,
                 width: 7,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
               BarChartRodData(
                 toY: d.late.toDouble(),
                 color: AppColors.warning,
                 width: 7,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(4)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
             ],
           );
@@ -524,13 +838,15 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-            width: 7,
-            height: 7,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 4),
-        Text(label,
-            style:
-                AppTextStyles.caption.copyWith(color: AppColors.neutral500)),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(color: AppColors.neutral500),
+        ),
       ],
     );
   }
@@ -593,8 +909,9 @@ class _PersonalDashboard extends StatelessWidget {
                     isOrangtua
                         ? 'Pantau perkembangan anak Anda di sini.'
                         : 'Semangat belajar hari ini!',
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.primary300),
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.primary300,
+                    ),
                   ),
                 ],
               ),
@@ -649,10 +966,7 @@ class _PersonalDashboard extends StatelessWidget {
             SizedBox(height: pad),
 
             // ── Weekly attendance chart ─────────────────────────────────
-            _AttendanceChart(
-              data: stats.weeklyAttendance,
-              compact: compact,
-            ),
+            _AttendanceChart(data: stats.weeklyAttendance, compact: compact),
             SizedBox(height: pad),
 
             // ── Active exams ────────────────────────────────────────────
@@ -684,8 +998,10 @@ class _QuickActions extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Aksi Cepat',
-              style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
+          Text(
+            'Aksi Cepat',
+            style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+          ),
           SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
           if (!isGuru && !isReadOnly) ...[
             _ActionBtn(
@@ -760,20 +1076,27 @@ class _ActionBtn extends StatelessWidget {
         child: Container(
           height: compact ? 44 : 52,
           padding: EdgeInsets.symmetric(
-              horizontal: compact ? AppSpacing.md : AppSpacing.lg),
+            horizontal: compact ? AppSpacing.md : AppSpacing.lg,
+          ),
           child: Row(
             children: [
               Icon(icon, color: fgColor, size: compact ? 18 : 20),
               SizedBox(width: compact ? AppSpacing.sm : AppSpacing.md),
               Expanded(
-                child: Text(label,
-                    style: AppTextStyles.bodyMdSemiBold
-                        .copyWith(color: fgColor, fontSize: compact ? 13 : 14),
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  label,
+                  style: AppTextStyles.bodyMdSemiBold.copyWith(
+                    color: fgColor,
+                    fontSize: compact ? 13 : 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  color: fgColor.withValues(alpha: 0.5),
-                  size: compact ? 12 : 14),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: fgColor.withValues(alpha: 0.5),
+                size: compact ? 12 : 14,
+              ),
             ],
           ),
         ),
@@ -795,10 +1118,20 @@ class _RecentActivity extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Aktivitas Terbaru',
-              style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
+          Text(
+            'Aktivitas Terbaru',
+            style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+          ),
           SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
-          ...activities.map((a) => _ActivityItem(activity: a, compact: compact)),
+          if (activities.isEmpty)
+            const AppEmptyState(
+              message: 'Belum ada aktivitas',
+              subtitle: 'Backend belum mengirim data aktivitas terbaru.',
+            )
+          else
+            ...activities.map(
+              (a) => _ActivityItem(activity: a, compact: compact),
+            ),
         ],
       ),
     );
@@ -824,62 +1157,70 @@ class _ActivityItem extends StatelessWidget {
               color: _iconBg(activity.type),
               shape: BoxShape.circle,
             ),
-            child: Icon(_icon(activity.type),
-                color: _iconColor(activity.type),
-                size: compact ? 15 : 18),
+            child: Icon(
+              _icon(activity.type),
+              color: _iconColor(activity.type),
+              size: compact ? 15 : 18,
+            ),
           ),
           SizedBox(width: compact ? AppSpacing.sm : AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(activity.title,
-                    style: AppTextStyles.bodyMd
-                        .copyWith(
-                            color: AppColors.neutral900,
-                            fontSize: compact ? 13 : 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text(activity.subtitle,
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.neutral500),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  activity.title,
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.neutral900,
+                    fontSize: compact ? 13 : 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  activity.subtitle,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Text(activity.time,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.neutral500)),
+          Text(
+            activity.time,
+            style: AppTextStyles.caption.copyWith(color: AppColors.neutral500),
+          ),
         ],
       ),
     );
   }
 
   IconData _icon(ActivityType t) => switch (t) {
-        ActivityType.student    => Icons.school_outlined,
-        ActivityType.attendance => Icons.fact_check_outlined,
-        ActivityType.exam       => Icons.quiz_outlined,
-        ActivityType.staff      => Icons.badge_outlined,
-        ActivityType.general    => Icons.notifications_outlined,
-      };
+    ActivityType.student => Icons.school_outlined,
+    ActivityType.attendance => Icons.fact_check_outlined,
+    ActivityType.exam => Icons.quiz_outlined,
+    ActivityType.staff => Icons.badge_outlined,
+    ActivityType.general => Icons.notifications_outlined,
+  };
 
   Color _iconBg(ActivityType t) => switch (t) {
-        ActivityType.student    => AppColors.primary100,
-        ActivityType.attendance => AppColors.success.withValues(alpha: 0.1),
-        ActivityType.exam       => AppColors.accent100,
-        ActivityType.staff      => AppColors.info.withValues(alpha: 0.1),
-        ActivityType.general    => AppColors.neutral100,
-      };
+    ActivityType.student => AppColors.primary100,
+    ActivityType.attendance => AppColors.success.withValues(alpha: 0.1),
+    ActivityType.exam => AppColors.accent100,
+    ActivityType.staff => AppColors.info.withValues(alpha: 0.1),
+    ActivityType.general => AppColors.neutral100,
+  };
 
   Color _iconColor(ActivityType t) => switch (t) {
-        ActivityType.student    => AppColors.primary700,
-        ActivityType.attendance => AppColors.success,
-        ActivityType.exam       => AppColors.accent700,
-        ActivityType.staff      => AppColors.info,
-        ActivityType.general    => AppColors.neutral500,
-      };
+    ActivityType.student => AppColors.primary700,
+    ActivityType.attendance => AppColors.success,
+    ActivityType.exam => AppColors.accent700,
+    ActivityType.staff => AppColors.info,
+    ActivityType.general => AppColors.neutral500,
+  };
 }
 
 // ── Active exams ──────────────────────────────────────────────────────────────
@@ -898,21 +1239,31 @@ class _ActiveExams extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('CBT Aktif',
-                    style: AppTextStyles.h4
-                        .copyWith(color: AppColors.neutral900)),
+                child: Text(
+                  'CBT Aktif',
+                  style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+                ),
               ),
               GestureDetector(
                 onTap: () => context.push(RouteNames.cbt),
-                child: Text('Lihat semua',
-                    style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.primary700,
-                        fontWeight: FontWeight.w500)),
+                child: Text(
+                  'Lihat semua',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.primary700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
           ),
           SizedBox(height: compact ? AppSpacing.md : AppSpacing.lg),
-          ...exams.map((e) => _ExamItem(exam: e, compact: compact)),
+          if (exams.isEmpty)
+            const AppEmptyState(
+              message: 'Belum ada CBT aktif',
+              subtitle: 'Tidak ada ujian aktif untuk sekolah ini.',
+            )
+          else
+            ...exams.map((e) => _ExamItem(exam: e, compact: compact)),
         ],
       ),
     );
@@ -927,9 +1278,9 @@ class _ExamItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (statusLabel, badgeStatus) = switch (exam.status) {
-      ExamStatus.ongoing   => ('Berlangsung', BadgeStatus.active),
-      ExamStatus.scheduled => ('Terjadwal',   BadgeStatus.warning),
-      ExamStatus.finished  => ('Selesai',     BadgeStatus.muted),
+      ExamStatus.ongoing => ('Berlangsung', BadgeStatus.active),
+      ExamStatus.scheduled => ('Terjadwal', BadgeStatus.warning),
+      ExamStatus.finished => ('Selesai', BadgeStatus.muted),
     };
 
     return Padding(
@@ -943,22 +1294,31 @@ class _ExamItem extends StatelessWidget {
               color: AppColors.accent100,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.quiz_outlined,
-                color: AppColors.accent700, size: compact ? 15 : 18),
+            child: Icon(
+              Icons.quiz_outlined,
+              color: AppColors.accent700,
+              size: compact ? 15 : 18,
+            ),
           ),
           SizedBox(width: compact ? AppSpacing.sm : AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(exam.title,
-                    style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.neutral900,
-                        fontSize: compact ? 13 : 14),
-                    overflow: TextOverflow.ellipsis),
-                Text('${exam.className} · ${exam.duration}',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.neutral500)),
+                Text(
+                  exam.title,
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.neutral900,
+                    fontSize: compact ? 13 : 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${exam.className} · ${exam.duration}',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.neutral500,
+                  ),
+                ),
               ],
             ),
           ),
