@@ -52,6 +52,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     ref.listen(authNotifierProvider, (_, next) {
       if (next is AuthStateAuthenticated) context.go(RouteNames.dashboard);
+      if (next is AuthStateError) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.message)));
+      }
     });
 
     final isMobile = Responsive.isMobile(context);

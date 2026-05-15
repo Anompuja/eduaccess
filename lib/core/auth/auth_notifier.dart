@@ -77,9 +77,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
         data: {'email': email, 'password': password},
       );
 
-      final data = resp.data['data'] as Map<String, dynamic>;
-      final accessToken = data['access_token'] as String;
-      final refreshToken = data['refresh_token'] as String;
+      final body = resp.data;
+      final bodyMap = body is Map ? body.cast<String, dynamic>() : null;
+      if (bodyMap == null) {
+        state = const AuthStateError('Format respons login tidak valid.');
+        return;
+      }
+
+      final success = bodyMap['success'] as bool? ?? false;
+      if (!success) {
+        await _setLoginFailure(
+          _serverMessageFromBody(bodyMap) ?? 'Login gagal. Coba lagi.',
+        );
+        return;
+      }
+
+      final data = bodyMap['data'];
+      if (data is! Map) {
+        await _setLoginFailure('Data login tidak valid.');
+        return;
+      }
+
+      final dataMap = data.cast<String, dynamic>();
+      final accessToken = dataMap['access_token'] as String?;
+      final refreshToken = dataMap['refresh_token'] as String?;
+      if (accessToken == null || refreshToken == null) {
+        await _setLoginFailure('Token login tidak ditemukan.');
+        return;
+      }
 
       await _storage.saveTokens(
         accessToken: accessToken,
@@ -89,16 +114,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final profileResp = await _dio.get(ApiEndpoints.me);
       final userData = profileResp.data['data'] as Map<String, dynamic>?;
       if (userData == null) {
-        state = const AuthStateError('Profil pengguna tidak ditemukan.');
+        await _setLoginFailure('Profil pengguna tidak ditemukan.');
         return;
       }
 
       state = AuthStateAuthenticated(AuthUser.fromJson(userData));
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      state = AuthStateError(_loginErrorMessage(status));
+      await _setLoginFailure(_serverMessage(e) ?? _loginErrorMessage(status));
     } catch (_) {
-      state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
+      await _setLoginFailure('Terjadi kesalahan. Coba lagi.');
     }
   }
 
@@ -177,9 +202,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   String? _serverMessage(DioException e) {
     try {
-      return e.response?.data['message'] as String?;
+      final data = e.response?.data;
+      if (data is Map) {
+        final body = data.cast<String, dynamic>();
+        return _serverMessageFromBody(body);
+      }
+      return null;
     } catch (_) {
       return null;
     }
+  }
+
+  String? _serverMessageFromBody(Map<String, dynamic> body) {
+    // Prefer top-level `message` string
+    final message = body['message'];
+    if (message is String && message.isNotEmpty) {
+      return _userFriendlyMessageFromServer(message);
+    }
+
+    // Fall back to first error in `errors` array if present
+    final errors = body['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      return _userFriendlyMessageFromServer(errors.first.toString());
+    }
+
+    return null;
+  }
+
+  String _userFriendlyMessageFromServer(String raw) {
+    final lower = raw.toLowerCase();
+
+    // Common validation pattern from backend: "Key: 'LoginRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+    if (lower.contains("failed on the 'email'") ||
+        lower.contains("validation for 'email'") ||
+        RegExp(r"\bemail\b").hasMatch(lower)) {
+      return 'Format email tidak valid. Silakan periksa kembali.';
+    }
+
+    if (lower.contains('password') && lower.contains('required')) {
+      return 'Password tidak boleh kosong.';
+    }
+
+    if (lower.contains('validation') ||
+        lower.contains('invalid') ||
+        lower.contains('failed')) {
+      return 'Data tidak valid. Periksa input Anda.';
+    }
+
+    // Default: return raw but keep it concise for users
+    return raw;
+  }
+
+  Future<void> _setLoginFailure(String message) async {
+    await _storage.clearAll();
+    state = AuthStateError(message);
   }
 }

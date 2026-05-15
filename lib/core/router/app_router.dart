@@ -55,30 +55,20 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.help,
   };
 
-  const guruRoutes = {
-    RouteNames.attendance,
-    RouteNames.cbt,
-  };
+  const guruRoutes = {RouteNames.attendance, RouteNames.cbt};
 
-  const studentRoutes = {
-    RouteNames.attendance,
-    RouteNames.cbt,
-  };
-  const staffRoutes = {
-    RouteNames.attendance,
-  };
+  const studentRoutes = {RouteNames.attendance, RouteNames.cbt};
+  const staffRoutes = {RouteNames.attendance};
 
   if (can(universalRoutes)) return null;
 
   return switch (role) {
     UserRole.superadmin ||
     UserRole.adminSekolah ||
-    UserRole.kepalaSekolah =>
-      null,
+    UserRole.kepalaSekolah => null,
     UserRole.guru => can(guruRoutes) ? null : RouteNames.dashboard,
     UserRole.siswa ||
-    UserRole.orangtua =>
-      can(studentRoutes) ? null : RouteNames.dashboard,
+    UserRole.orangtua => can(studentRoutes) ? null : RouteNames.dashboard,
     UserRole.staff => can(staffRoutes) ? null : RouteNames.dashboard,
   };
 }
@@ -92,12 +82,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authState = ref.read(authNotifierProvider);
       final location = state.matchedLocation;
-      final isPublic = location == RouteNames.login || location == RouteNames.register;
+      final isPublic =
+          location == RouteNames.login || location == RouteNames.register;
       final isDev3Open = _startsWithAny(location, _dev3OpenRoutes);
 
       if (authState is AuthStateLoading) return null;
 
+      if (authState is AuthStateAuthenticating) {
+        return isPublic ? null : RouteNames.login;
+      }
+
       if (authState is AuthStateUnauthenticated) {
+        return (isPublic || isDev3Open) ? null : RouteNames.login;
+      }
+
+      if (authState is AuthStateError) {
         return (isPublic || isDev3Open) ? null : RouteNames.login;
       }
 
@@ -111,14 +110,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: RouteNames.login, builder: (_, _) => const LoginScreen()),
-      GoRoute(path: RouteNames.register, builder: (_, _) => const RegisterScreen()),
+      GoRoute(
+        path: RouteNames.register,
+        builder: (_, _) => const RegisterScreen(),
+      ),
       ShellRoute(
         builder: (_, _, child) => AppLayout(child: child),
         routes: [
-          GoRoute(path: RouteNames.dashboard, builder: (_, _) => const DashboardScreen()),
-          GoRoute(path: RouteNames.profile, builder: (_, _) => const ProfileScreen()),
-          GoRoute(path: RouteNames.settings, builder: (_, _) => const SettingsScreen()),
-          GoRoute(path: RouteNames.notifications, builder: (_, _) => const NotificationsScreen()),
+          GoRoute(
+            path: RouteNames.dashboard,
+            builder: (_, _) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.profile,
+            builder: (_, _) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.settings,
+            builder: (_, _) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.notifications,
+            builder: (_, _) => const NotificationsScreen(),
+          ),
           GoRoute(
             path: '/users/:id',
             builder: (_, state) => PlaceholderScreen(
@@ -126,10 +140,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               assignedTo: 'Dev 2',
             ),
           ),
-          GoRoute(path: RouteNames.users, builder: (_, _) => const UsersScreen()),
-          GoRoute(path: RouteNames.students, builder: (_, _) => const StudentsScreen()),
-          GoRoute(path: RouteNames.teachers, builder: (_, _) => const TeachersScreen()),
-          GoRoute(path: RouteNames.staff, builder: (_, _) => const StaffScreen()),
+          GoRoute(
+            path: RouteNames.users,
+            builder: (_, _) => const UsersScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.students,
+            builder: (_, _) => const StudentsScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.teachers,
+            builder: (_, _) => const TeachersScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.staff,
+            builder: (_, _) => const StaffScreen(),
+          ),
           GoRoute(
             path: '/teachers/:id',
             builder: (_, state) => PlaceholderScreen(
@@ -144,7 +170,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               assignedTo: 'Dev 2',
             ),
           ),
-          GoRoute(path: RouteNames.parents, builder: (_, _) => const ParentsScreen()),
+          GoRoute(
+            path: RouteNames.parents,
+            builder: (_, _) => const ParentsScreen(),
+          ),
           GoRoute(
             path: '/parents/:id',
             builder: (_, state) => PlaceholderScreen(
@@ -152,7 +181,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               assignedTo: 'Dev 2',
             ),
           ),
-          GoRoute(path: RouteNames.academic, builder: (_, _) => const AcademicScreen()),
+          GoRoute(
+            path: RouteNames.academic,
+            builder: (_, _) => const AcademicScreen(),
+          ),
           GoRoute(
             path: RouteNames.gradePromotion,
             builder: (_, _) => const ClassPromotionScreen(),
@@ -167,7 +199,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.cbt,
-            builder: (_, _) => const PlaceholderScreen(title: 'CBT / Ujian', assignedTo: 'Dev 3'),
+            builder: (_, _) => const PlaceholderScreen(
+              title: 'CBT / Ujian',
+              assignedTo: 'Dev 3',
+            ),
           ),
           GoRoute(
             path: '/cbt/:id',
@@ -178,7 +213,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.attendance,
-            builder: (_, _) => const PlaceholderScreen(title: 'Absensi', assignedTo: 'Dev 3'),
+            builder: (_, _) =>
+                const PlaceholderScreen(title: 'Absensi', assignedTo: 'Dev 3'),
           ),
           GoRoute(
             path: RouteNames.subscription,
@@ -194,12 +230,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.help,
-            builder: (_, _) => const PlaceholderScreen(title: 'Bantuan', assignedTo: 'Dev 3'),
+            builder: (_, _) =>
+                const PlaceholderScreen(title: 'Bantuan', assignedTo: 'Dev 3'),
           ),
         ],
       ),
     ],
-    errorBuilder: (context, state) => NotFoundScreen(message: state.error?.message),
+    errorBuilder: (context, state) =>
+        NotFoundScreen(message: state.error?.message),
   );
 });
 
