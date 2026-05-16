@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../auth/auth_notifier.dart';
+import '../auth/auth_state.dart';
+import '../providers/active_school_provider.dart';
 import '../router/route_names.dart';
 import '../../features/notifications/providers/notifications_provider.dart';
 import '../theme/app_colors.dart';
@@ -146,6 +148,7 @@ class AppTopbar extends ConsumerWidget {
             ],
           ),
         ),
+        if (!isMobile) const _SchoolContextChip(),
         _NotificationBell(compact: isMobile),
         SizedBox(width: isMobile ? AppSpacing.sm : AppSpacing.md),
         GestureDetector(
@@ -241,3 +244,57 @@ class _NotificationBell extends ConsumerWidget {
     );
   }
 }
+
+class _SchoolContextChip extends ConsumerWidget {
+  const _SchoolContextChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final activeSchool = ref.watch(activeSchoolProvider);
+
+    if (user?.role != UserRole.superadmin) {
+      return const SizedBox.shrink();
+    }
+
+    final isMissing = activeSchool == null;
+    final backgroundColor = isMissing ? AppColors.accent100 : AppColors.primary100;
+    final textColor = isMissing ? AppColors.accent700 : AppColors.primary700;
+    final label = isMissing ? 'Pilih Sekolah' : activeSchool.name;
+
+    return GestureDetector(
+      onTap: isMissing ? () => context.push(RouteNames.dashboard) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.school_outlined,
+              size: 16,
+              color: textColor,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              label,
+              style: AppTextStyles.bodySm.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
+import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -61,7 +62,7 @@ class _DashboardContent extends ConsumerWidget {
     final useTwoColumn = screen.isDesktop || screen.isTablet;
     final isSuperadmin = role == UserRole.superadmin;
     final schoolsAsync = ref.watch(dashboardSchoolsProvider);
-    final selectedSchoolId = ref.watch(selectedDashboardSchoolIdProvider);
+    final activeSchool = ref.watch(activeSchoolProvider);
 
     return RefreshIndicator(
       color: AppColors.primary500,
@@ -75,10 +76,9 @@ class _DashboardContent extends ConsumerWidget {
             if (isSuperadmin) ...[
               _SchoolSwitcherCard(
                 schoolsAsync: schoolsAsync,
-                selectedSchoolId: selectedSchoolId,
-                onChanged: (value) =>
-                    ref.read(selectedDashboardSchoolIdProvider.notifier).state =
-                        value,
+                selectedSchool: activeSchool,
+                onChanged: (school) =>
+                    ref.read(activeSchoolProvider.notifier).state = school,
                 onRetry: () => ref.invalidate(dashboardSchoolsProvider),
               ),
               SizedBox(height: pad),
@@ -285,13 +285,13 @@ class _StatCardGrid extends StatelessWidget {
 
 class _SchoolSwitcherCard extends ConsumerWidget {
   final AsyncValue<List<DashboardSchool>> schoolsAsync;
-  final String? selectedSchoolId;
-  final ValueChanged<String?> onChanged;
+  final DashboardSchool? selectedSchool;
+  final ValueChanged<DashboardSchool?> onChanged;
   final VoidCallback onRetry;
 
   const _SchoolSwitcherCard({
     required this.schoolsAsync,
-    required this.selectedSchoolId,
+    required this.selectedSchool,
     required this.onChanged,
     required this.onRetry,
   });
@@ -326,14 +326,14 @@ class _SchoolSwitcherCard extends ConsumerWidget {
                 );
               }
 
-              return AppDropdown<String>(
+              return AppDropdown<DashboardSchool>(
                 label: 'Sekolah',
-                value: selectedSchoolId,
+                value: selectedSchool,
                 hint: 'Pilih sekolah',
                 items: schools
                     .map(
-                      (school) => AppDropdownItem<String>(
-                        value: school.id,
+                      (school) => AppDropdownItem<DashboardSchool>(
+                        value: school,
                         label: school.name,
                         leading: Icon(
                           school.status == 'active'

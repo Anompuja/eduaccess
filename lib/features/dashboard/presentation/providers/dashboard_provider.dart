@@ -5,12 +5,11 @@ import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
+import '../../../../core/providers/active_school_provider.dart';
 import '../../data/models/dashboard_school_model.dart';
 import '../../data/models/dashboard_stats_model.dart';
 import '../../domain/entities/dashboard_school.dart';
 import '../../domain/entities/dashboard_stats.dart';
-
-final selectedDashboardSchoolIdProvider = StateProvider<String?>((ref) => null);
 
 final dashboardSchoolsProvider = FutureProvider<List<DashboardSchool>>((
   ref,
@@ -36,13 +35,13 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
   @override
   Future<DashboardStats> build() {
     final user = ref.watch(currentUserProvider);
-    final selectedSchoolId = ref.watch(selectedDashboardSchoolIdProvider);
-    return _fetch(user: user, selectedSchoolId: selectedSchoolId);
+    final activeSchool = ref.watch(activeSchoolProvider);
+    return _fetch(user: user, activeSchool: activeSchool);
   }
 
   Future<DashboardStats> _fetch({
     required AuthUser? user,
-    required String? selectedSchoolId,
+    required DashboardSchool? activeSchool,
   }) async {
     try {
       final dio = ref.read(dioProvider);
@@ -58,12 +57,12 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
           );
         }
 
-        schoolId = selectedSchoolId;
+        schoolId = activeSchool?.id;
         if (schoolId == null ||
             schoolId.isEmpty ||
             !schools.any((school) => school.id == schoolId)) {
           schoolId = schools.first.id;
-          ref.read(selectedDashboardSchoolIdProvider.notifier).state = schoolId;
+          ref.read(activeSchoolProvider.notifier).state = schools.first;
         }
       }
 
@@ -82,10 +81,10 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
 
   Future<void> refresh() async {
     final user = ref.read(currentUserProvider);
-    final selectedSchoolId = ref.read(selectedDashboardSchoolIdProvider);
+    final activeSchool = ref.read(activeSchoolProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _fetch(user: user, selectedSchoolId: selectedSchoolId),
+      () => _fetch(user: user, activeSchool: activeSchool),
     );
   }
 }
