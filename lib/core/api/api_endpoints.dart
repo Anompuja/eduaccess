@@ -9,6 +9,10 @@ abstract final class ApiEndpoints {
   static const String logout = '/auth/logout';
   static const String me = '/profile';
 
+  // ── Admins ───────────────────────────────────────────────────────────────
+  static const String admins = '/admins';
+  static String adminById(String id) => '/admins/$id';
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
   static const String dashboardStats = '/dashboard/stats';
   static const String schools = '/schools';

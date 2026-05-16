@@ -7,6 +7,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/admin/presentation/screens/admins_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -141,10 +142,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: RouteNames.users,
-            builder: (_, _) => const UsersScreen(),
-          ),
-          GoRoute(
             path: RouteNames.students,
             builder: (_, _) => const StudentsScreen(),
           ),
@@ -156,6 +153,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteNames.staff,
             builder: (_, _) => const StaffScreen(),
           ),
+          GoRoute(
+            path: RouteNames.admins,
+            builder: (_, _) => const AdminsScreen(),
+          ),
+          GoRoute(path: RouteNames.users, 
+          builder: (_, _) => const UsersScreen()),
           GoRoute(
             path: '/teachers/:id',
             builder: (_, state) => PlaceholderScreen(
