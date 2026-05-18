@@ -2,8 +2,10 @@ class ParentEntity {
   final String parentId;
   final String name;
   final String email;
-  final String phone;
-  final int childrenCount;
+  final String phoneNumber;
+  final String religion;
+  final String address;
+  final String schoolId;
   final String createdAt;
   final String updatedAt;
 
@@ -11,8 +13,10 @@ class ParentEntity {
     required this.parentId,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.childrenCount,
+    required this.phoneNumber,
+    required this.religion,
+    required this.address,
+    required this.schoolId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -25,8 +29,10 @@ class ParentEntity {
           parentId == other.parentId &&
           name == other.name &&
           email == other.email &&
-          phone == other.phone &&
-          childrenCount == other.childrenCount &&
+          phoneNumber == other.phoneNumber &&
+          religion == other.religion &&
+          address == other.address &&
+          schoolId == other.schoolId &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
 

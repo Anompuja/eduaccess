@@ -120,7 +120,9 @@ class _ParentDeleteModalState extends ConsumerState<ParentDeleteModal> {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'No. HP: ${widget.data.phone} • Anak: ${widget.data.childrenCount} siswa',
+                      widget.data.phoneNumber.isEmpty
+                          ? widget.data.email
+                          : 'No. HP: ${widget.data.phoneNumber}',
                       style: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.neutral700,
                       ),

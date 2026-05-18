@@ -75,10 +75,17 @@ class ParentDetailModal extends StatelessWidget {
                   _DetailItem(label: 'Parent ID', value: data.parentId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'Email', value: data.email),
-                  _DetailItem(label: 'No. Telepon', value: data.phone),
                   _DetailItem(
-                    label: 'Jumlah Anak',
-                    value: '${data.childrenCount} siswa',
+                    label: 'No. Telepon',
+                    value: data.phoneNumber.isEmpty ? '-' : data.phoneNumber,
+                  ),
+                  _DetailItem(
+                    label: 'Agama',
+                    value: data.religion.isEmpty ? '-' : data.religion,
+                  ),
+                  _DetailItem(
+                    label: 'Alamat',
+                    value: data.address.isEmpty ? '-' : data.address,
                   ),
                 ],
               ),

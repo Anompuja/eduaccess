@@ -78,7 +78,7 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
       final data = {
         'name': _nameCtrl.text,
         'email': _emailCtrl.text,
-        'phone': _phoneCtrl.text,
+        'phone_number': _phoneCtrl.text,
       };
 
       if (user?.role == UserRole.superadmin && activeSchool != null) {

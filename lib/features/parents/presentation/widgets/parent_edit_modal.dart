@@ -39,7 +39,7 @@ class _ParentEditModalState extends ConsumerState<ParentEditModal> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.data.name);
     _emailCtrl = TextEditingController(text: widget.data.email);
-    _phoneCtrl = TextEditingController(text: widget.data.phone);
+    _phoneCtrl = TextEditingController(text: widget.data.phoneNumber);
   }
 
   @override
@@ -67,7 +67,7 @@ class _ParentEditModalState extends ConsumerState<ParentEditModal> {
       final data = {
         'name': _nameCtrl.text,
         'email': _emailCtrl.text,
-        'phone': _phoneCtrl.text,
+        'phone_number': _phoneCtrl.text,
       };
 
       await ref.read(

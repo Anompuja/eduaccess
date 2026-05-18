@@ -15,12 +15,11 @@ abstract final class ParentsScreenConstants {
   static const String nameHeader = 'NAMA';
   static const String emailHeader = 'EMAIL';
   static const String phoneHeader = 'NO. HP';
-  static const String childrenHeader = 'ANAK';
+  static const String religionHeader = 'AGAMA';
   static const String actionsHeader = 'ACTIONS';
 
   // Data conventions
   static const int rowsPerPage = 5;
-  static const String childrenSuffix = 'siswa';
 
   // Layout dimensions
   static const double desktopSearchWidth = 320;
@@ -34,8 +33,8 @@ abstract final class ParentsScreenConstants {
   static const double emailColumnWidthDesktop = 250;
   static const double phoneColumnWidthMobile = 120;
   static const double phoneColumnWidthDesktop = 130;
-  static const double childrenColumnWidthMobile = 90;
-  static const double childrenColumnWidthDesktop = 120;
+  static const double religionColumnWidthMobile = 100;
+  static const double religionColumnWidthDesktop = 130;
   static const double actionsColumnWidthMobile = 132;
   static const double actionsColumnWidthDesktop = 150;
 
@@ -46,8 +45,6 @@ abstract final class ParentsScreenConstants {
   static const double dataRowHeightMobile = 70;
   static const double dataRowHeightDesktop = 78;
 
-  static const double childrenPillHorizontalPadding = 8;
-  static const double childrenPillVerticalPadding = 4;
   static const double actionButtonSize = 34;
   static const double actionIconSize = 18;
   static const double addButtonHeight = 50;

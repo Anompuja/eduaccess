@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/auth/auth_notifier.dart';
-import '../../../../core/auth/auth_state.dart';
-import '../../../../core/providers/active_school_provider.dart';
-import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_search_bar.dart';
 import '../../domain/entities/parent_entity.dart';
 import '../widgets/parent_create_modal.dart';
@@ -35,11 +29,6 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
     final isSmallScreen = Responsive.isMobile(context);
     final currentPage = ref.watch(parentsCurrentPageProvider);
     final parentsAsync = ref.watch(parentsProvider);
-    final user = ref.watch(currentUserProvider);
-    final activeSchool = ref.watch(activeSchoolProvider);
-
-    final isSuperadminWithoutSchool =
-        user?.role == UserRole.superadmin && activeSchool == null;
 
     return SingleChildScrollView(
       padding: isSmallScreen
@@ -51,26 +40,11 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ParentsScreenConstants.title,
-                      style: AppTextStyles.h2.copyWith(
-                        color: AppColors.neutral900,
-                      ),
-                    ),
-                    if (user?.role == UserRole.superadmin &&
-                        activeSchool != null) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'Data untuk: ${activeSchool.name}',
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.neutral500,
-                        ),
-                      ),
-                    ],
-                  ],
+                child: Text(
+                  ParentsScreenConstants.title,
+                  style: AppTextStyles.h2.copyWith(
+                    color: AppColors.neutral900,
+                  ),
                 ),
               ),
             ],
@@ -146,46 +120,37 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
               ],
             ),
           const SizedBox(height: AppSpacing.lg),
-          if (isSuperadminWithoutSchool)
-            AppEmptyState(
-              icon: Icons.school_outlined,
-              message: 'Pilih sekolah aktif terlebih dahulu',
-              subtitle: 'Superadmin harus memilih sekolah dari dashboard untuk melihat data orang tua.',
-              ctaLabel: 'Ke Dashboard',
-              onCta: () => context.push(RouteNames.dashboard),
-            )
-          else
-            parentsAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.lg),
-                  child: CircularProgressIndicator(),
-                ),
+          parentsAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.lg),
+                child: CircularProgressIndicator(),
               ),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Error: ${error.toString()}',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.error,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppButton.secondary(
-                      label: 'Retry',
-                      onPressed: () {
-                        final _ = ref.refresh(parentsProvider);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              data: (parents) =>
-                  _buildParentsTable(parents, isSmallScreen, currentPage),
             ),
+            error: (error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error: ${error.toString()}',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton.secondary(
+                    label: 'Retry',
+                    onPressed: () {
+                      final _ = ref.refresh(parentsProvider);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            data: (parents) =>
+                _buildParentsTable(parents, isSmallScreen, currentPage),
+          ),
         ],
       ),
     );
@@ -271,12 +236,12 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
                         ),
                         DataColumn(
                           label: _tableHeader(
-                            ParentsScreenConstants.childrenHeader,
+                            ParentsScreenConstants.religionHeader,
                             width: isSmallScreen
                                 ? ParentsScreenConstants
-                                      .childrenColumnWidthMobile
+                                      .religionColumnWidthMobile
                                 : ParentsScreenConstants
-                                      .childrenColumnWidthDesktop,
+                                      .religionColumnWidthDesktop,
                           ),
                         ),
                         DataColumn(
@@ -339,17 +304,21 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
                                           .phoneColumnWidthMobile
                                     : ParentsScreenConstants
                                           .phoneColumnWidthDesktop,
-                                child: Text(e.phone),
+                                child: Text(
+                                  e.phoneNumber.isEmpty ? '-' : e.phoneNumber,
+                                ),
                               ),
                             ),
                             DataCell(
                               SizedBox(
                                 width: isSmallScreen
                                     ? ParentsScreenConstants
-                                          .childrenColumnWidthMobile
+                                          .religionColumnWidthMobile
                                     : ParentsScreenConstants
-                                          .childrenColumnWidthDesktop,
-                                child: _childrenCountPill(e.childrenCount),
+                                          .religionColumnWidthDesktop,
+                                child: Text(
+                                  e.religion.isEmpty ? '-' : e.religion,
+                                ),
                               ),
                             ),
                             DataCell(
@@ -475,29 +444,6 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
     final header = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
     if (width == null) return header;
     return SizedBox(width: width, child: header);
-  }
-
-  Widget _childrenCountPill(int count) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: ParentsScreenConstants.childrenPillHorizontalPadding,
-          vertical: ParentsScreenConstants.childrenPillVerticalPadding,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.primary100,
-          borderRadius: AppRadius.pillAll,
-        ),
-        child: Text(
-          '$count ${ParentsScreenConstants.childrenSuffix}',
-          style: AppTextStyles.caption.copyWith(
-            color: AppColors.primary700,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _actionIconButton({
