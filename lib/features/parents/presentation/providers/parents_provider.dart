@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/auth/auth_notifier.dart';
+import '../../../../core/auth/auth_state.dart';
+import '../../../../core/providers/active_school_provider.dart';
 import '../../data/datasources/parents_remote_data_source.dart';
 import '../../data/repositories/parents_repository_impl.dart';
 import '../../domain/entities/parent_entity.dart';
@@ -17,20 +20,28 @@ final parentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 final parentsSearchQueryProvider = StateProvider<String>((ref) => '');
 
 // ── Fetch Parents ────────────────────────────────────────────────────────────
-// Backend scopes by JWT role:
-//   - admin_sekolah & scoped roles: backend filters by JWT school_id
-//   - superadmin: backend returns parents across all schools
-// Frontend does not send school_id; backend ignores the query param anyway.
+// Backend scoping rules:
+//   - admin_sekolah & scoped roles: backend filters by JWT school_id (sending school_id is ignored)
+//   - superadmin: backend filters by ?school_id if provided, else returns all schools (aggregate view)
+// Frontend reads activeSchoolProvider for superadmin's chosen filter.
 final parentsProvider = FutureProvider.autoDispose<List<ParentEntity>>((
   ref,
 ) async {
   final repository = ref.watch(parentsRepositoryProvider);
   final page = ref.watch(parentsCurrentPageProvider);
   final query = ref.watch(parentsSearchQueryProvider);
+  final user = ref.watch(currentUserProvider);
+  final activeSchool = ref.watch(activeSchoolProvider);
+
+  String? schoolId;
+  if (user?.role == UserRole.superadmin) {
+    schoolId = activeSchool?.id; // null = Semua Sekolah
+  }
 
   return await repository.getParents(
     page: page,
     query: query.isNotEmpty ? query : null,
+    schoolId: schoolId,
   );
 });
 

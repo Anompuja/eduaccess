@@ -214,43 +214,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   String? _serverMessageFromBody(Map<String, dynamic> body) {
-    // Prefer top-level `message` string
-    final message = body['message'];
-    if (message is String && message.isNotEmpty) {
-      return _userFriendlyMessageFromServer(message);
-    }
-
-    // Fall back to first error in `errors` array if present
+    // Prefer field-specific backend errors first so the UI can render the
+    // exact server source of truth.
     final errors = body['errors'];
     if (errors is List && errors.isNotEmpty) {
-      return _userFriendlyMessageFromServer(errors.first.toString());
+      final messages = errors
+          .where((error) => error != null)
+          .map((error) => error.toString())
+          .where((text) => text.trim().isNotEmpty)
+          .toList();
+      if (messages.isNotEmpty) {
+        return messages.join('\n');
+      }
+    }
+
+    if (errors is Map) {
+      final errorMap = errors.cast<String, dynamic>();
+      final messages = <String>[];
+      for (final entry in errorMap.entries) {
+        final value = entry.value;
+        if (value is List && value.isNotEmpty) {
+          messages.addAll(
+            value
+                .where((item) => item != null)
+                .map((item) => item.toString())
+                .where((text) => text.trim().isNotEmpty)
+                .map((text) => '${entry.key}: $text'),
+          );
+        } else if (value != null) {
+          final text = value.toString().trim();
+          if (text.isNotEmpty) {
+            messages.add('${entry.key}: $text');
+          }
+        }
+      }
+      if (messages.isNotEmpty) {
+        return messages.join('\n');
+      }
+    }
+
+    final message = body['message'];
+    if (message is String && message.isNotEmpty) {
+      return message;
     }
 
     return null;
-  }
-
-  String _userFriendlyMessageFromServer(String raw) {
-    final lower = raw.toLowerCase();
-
-    // Common validation pattern from backend: "Key: 'LoginRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
-    if (lower.contains("failed on the 'email'") ||
-        lower.contains("validation for 'email'") ||
-        RegExp(r"\bemail\b").hasMatch(lower)) {
-      return 'Format email tidak valid. Silakan periksa kembali.';
-    }
-
-    if (lower.contains('password') && lower.contains('required')) {
-      return 'Password tidak boleh kosong.';
-    }
-
-    if (lower.contains('validation') ||
-        lower.contains('invalid') ||
-        lower.contains('failed')) {
-      return 'Data tidak valid. Periksa input Anda.';
-    }
-
-    // Default: return raw but keep it concise for users
-    return raw;
   }
 
   Future<void> _setLoginFailure(String message) async {

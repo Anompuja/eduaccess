@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_search_bar.dart';
+import '../../../../core/widgets/school_filter.dart';
 import '../../domain/entities/parent_entity.dart';
 import '../widgets/parent_create_modal.dart';
 import '../widgets/parent_delete_modal.dart';
@@ -29,6 +31,13 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
     final isSmallScreen = Responsive.isMobile(context);
     final currentPage = ref.watch(parentsCurrentPageProvider);
     final parentsAsync = ref.watch(parentsProvider);
+    final activeSchool = ref.watch(activeSchoolProvider);
+
+    // Reset to page 1 whenever the school filter changes so pagination
+    // stays consistent with what the user is looking at.
+    ref.listen(activeSchoolProvider, (_, _) {
+      ref.read(parentsCurrentPageProvider.notifier).state = 1;
+    });
 
     return SingleChildScrollView(
       padding: isSmallScreen
@@ -40,15 +49,31 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  ParentsScreenConstants.title,
-                  style: AppTextStyles.h2.copyWith(
-                    color: AppColors.neutral900,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ParentsScreenConstants.title,
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.neutral900,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      activeSchool == null
+                          ? 'Menampilkan data dari semua sekolah'
+                          : 'Data untuk: ${activeSchool.name}',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.neutral500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          const SchoolFilter(),
           const SizedBox(height: AppSpacing.sm),
           if (isSmallScreen)
             Column(

@@ -2,10 +2,13 @@ import '../entities/parent_entity.dart';
 
 abstract interface class ParentsRepository {
   /// Fetch paginated list of parents.
-  /// Backend scopes by JWT: admin_sekolah → own school; superadmin → all schools.
+  /// Backend scopes by JWT role:
+  ///   - admin_sekolah & scoped: filtered by JWT school_id (schoolId param ignored)
+  ///   - superadmin: filtered by [schoolId] if provided, else all schools
   Future<List<ParentEntity>> getParents({
     required int page,
     String? query,
+    String? schoolId,
   });
 
   /// Create a new parent

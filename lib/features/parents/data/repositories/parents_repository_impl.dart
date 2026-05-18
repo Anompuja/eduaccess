@@ -11,10 +11,12 @@ class ParentsRepositoryImpl implements ParentsRepository {
   Future<List<ParentEntity>> getParents({
     required int page,
     String? query,
+    String? schoolId,
   }) async {
     final models = await _remoteDataSource.getParents(
       page: page,
       query: query,
+      schoolId: schoolId,
     );
     return models.cast<ParentEntity>();
   }

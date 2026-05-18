@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
-import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -14,10 +13,9 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_state.dart';
-import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
-import '../../domain/entities/dashboard_school.dart';
+import '../../../../core/widgets/school_filter.dart';
 import '../../domain/entities/dashboard_stats.dart';
 import '../providers/dashboard_provider.dart';
 
@@ -61,8 +59,6 @@ class _DashboardContent extends ConsumerWidget {
     // Tablet gets side-by-side sections like desktop, but 2x2 stat grid
     final useTwoColumn = screen.isDesktop || screen.isTablet;
     final isSuperadmin = role == UserRole.superadmin;
-    final schoolsAsync = ref.watch(dashboardSchoolsProvider);
-    final activeSchool = ref.watch(activeSchoolProvider);
 
     return RefreshIndicator(
       color: AppColors.primary500,
@@ -74,13 +70,7 @@ class _DashboardContent extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (isSuperadmin) ...[
-              _SchoolSwitcherCard(
-                schoolsAsync: schoolsAsync,
-                selectedSchool: activeSchool,
-                onChanged: (school) =>
-                    ref.read(activeSchoolProvider.notifier).state = school,
-                onRetry: () => ref.invalidate(dashboardSchoolsProvider),
-              ),
+              const _SchoolSwitcherCard(),
               SizedBox(height: pad),
               _SchoolContextBanner(stats: stats),
               SizedBox(height: pad),
@@ -283,21 +273,11 @@ class _StatCardGrid extends StatelessWidget {
   }
 }
 
-class _SchoolSwitcherCard extends ConsumerWidget {
-  final AsyncValue<List<DashboardSchool>> schoolsAsync;
-  final DashboardSchool? selectedSchool;
-  final ValueChanged<DashboardSchool?> onChanged;
-  final VoidCallback onRetry;
-
-  const _SchoolSwitcherCard({
-    required this.schoolsAsync,
-    required this.selectedSchool,
-    required this.onChanged,
-    required this.onRetry,
-  });
+class _SchoolSwitcherCard extends StatelessWidget {
+  const _SchoolSwitcherCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -309,46 +289,11 @@ class _SchoolSwitcherCard extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Superadmin dapat berpindah konteks sekolah tanpa keluar dari dashboard.',
+            'Superadmin dapat berpindah konteks sekolah tanpa keluar dari dashboard. Pilih "Semua Sekolah" untuk melihat data agregat.',
             style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.md),
-          schoolsAsync.when(
-            loading: () =>
-                const AppLoadingIndicator(message: 'Memuat daftar sekolah...'),
-            error: (error, _) =>
-                AppErrorState(message: error.toString(), onRetry: onRetry),
-            data: (schools) {
-              if (schools.isEmpty) {
-                return const AppEmptyState(
-                  message: 'Belum ada sekolah',
-                  subtitle: 'Tidak ada sekolah yang bisa dipilih.',
-                );
-              }
-
-              return AppDropdown<DashboardSchool>(
-                label: 'Sekolah',
-                value: selectedSchool,
-                hint: 'Pilih sekolah',
-                items: schools
-                    .map(
-                      (school) => AppDropdownItem<DashboardSchool>(
-                        value: school,
-                        label: school.name,
-                        leading: Icon(
-                          school.status == 'active'
-                              ? Icons.apartment_rounded
-                              : Icons.apartment_outlined,
-                          size: 18,
-                          color: AppColors.primary700,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onChanged,
-              );
-            },
-          ),
+          const SchoolFilter(),
         ],
       ),
     );

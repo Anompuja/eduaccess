@@ -47,23 +47,12 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
       final dio = ref.read(dioProvider);
       final role = user?.role ?? UserRole.staff;
 
+      // Superadmin: optionally scope by activeSchool. Null = aggregate
+      // ("Semua Sekolah") — backend returns combined stats across all schools.
+      // Scoped roles: backend uses JWT school_id; we don't send a query param.
       String? schoolId;
       if (role == UserRole.superadmin) {
-        final schools = await ref.read(dashboardSchoolsProvider.future);
-
-        if (schools.isEmpty) {
-          throw const DashboardRequestException(
-            'Tidak ada sekolah yang tersedia.',
-          );
-        }
-
         schoolId = activeSchool?.id;
-        if (schoolId == null ||
-            schoolId.isEmpty ||
-            !schools.any((school) => school.id == schoolId)) {
-          schoolId = schools.first.id;
-          ref.read(activeSchoolProvider.notifier).state = schools.first;
-        }
       }
 
       final resp = await dio.get(

@@ -8,15 +8,20 @@ class ParentsRemoteDataSource {
   ParentsRemoteDataSource(this._dio);
 
   /// Fetch paginated list of parents from backend.
-  /// Backend scopes by JWT role; frontend does not send school_id.
+  /// [schoolId] is honored by backend only for superadmin (filter by school).
+  /// For other roles, backend uses JWT school and ignores this param.
   Future<List<ParentModel>> getParents({
     required int page,
     String? query,
+    String? schoolId,
   }) async {
     try {
       final params = <String, dynamic>{'page': page};
       if (query != null && query.isNotEmpty) {
         params['search'] = query;
+      }
+      if (schoolId != null && schoolId.isNotEmpty) {
+        params['school_id'] = schoolId;
       }
 
       final response = await _dio.get(
