@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/api/paginated.dart';
 import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_search_bar.dart';
 import '../../../../core/widgets/school_filter.dart';
 import '../../domain/entities/parent_entity.dart';
@@ -173,8 +175,8 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
                 ],
               ),
             ),
-            data: (parents) =>
-                _buildParentsTable(parents, isSmallScreen, currentPage),
+            data: (page) =>
+                _buildParentsTable(page, isSmallScreen, currentPage),
           ),
         ],
       ),
@@ -182,12 +184,44 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
   }
 
   Widget _buildParentsTable(
-    List<ParentEntity> parents,
+    Paginated<ParentEntity> page,
     bool isSmallScreen,
     int currentPage,
   ) {
-    const rowsPerPage = ParentsScreenConstants.rowsPerPage;
-    final startIndex = (currentPage - 1) * rowsPerPage;
+    final parents = page.items;
+    final startIndex = (page.page - 1) * page.perPage;
+
+    if (parents.isEmpty) {
+      final activeSchool = ref.read(activeSchoolProvider);
+      final searchQuery = ref.read(parentsSearchQueryProvider);
+      final hasSearch = searchQuery.isNotEmpty;
+
+      final String message;
+      final String? subtitle;
+      if (hasSearch) {
+        message = 'Tidak ada hasil pencarian';
+        subtitle =
+            'Tidak ditemukan orang tua dengan kata kunci "$searchQuery". Coba ubah pencarian.';
+      } else if (activeSchool != null) {
+        message = 'Tidak ada data orang tua yang tersedia di sekolah ini';
+        subtitle =
+            'Belum ada orang tua terdaftar untuk ${activeSchool.name}. Tambahkan orang tua baru.';
+      } else {
+        message = 'Tidak ada data orang tua yang tersedia';
+        subtitle = 'Belum ada orang tua terdaftar di sistem.';
+      }
+
+      return AppCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+          child: AppEmptyState(
+            icon: Icons.family_restroom_outlined,
+            message: message,
+            subtitle: subtitle,
+          ),
+        ),
+      );
+    }
 
     return AppCard(
       child: Column(
@@ -415,8 +449,7 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
                       const SizedBox(width: AppSpacing.md),
                       AppButton.secondary(
                         label: 'Next',
-                        onPressed:
-                            parents.length >= ParentsScreenConstants.rowsPerPage
+                        onPressed: page.hasNext
                             ? () {
                                 ref
                                     .read(parentsCurrentPageProvider.notifier)
@@ -451,8 +484,7 @@ class _ParentsScreenState extends ConsumerState<ParentsScreen> {
                 const SizedBox(width: AppSpacing.sm),
                 AppButton.secondary(
                   label: 'Next',
-                  onPressed:
-                      parents.length >= ParentsScreenConstants.rowsPerPage
+                  onPressed: page.hasNext
                       ? () {
                           ref.read(parentsCurrentPageProvider.notifier).state++;
                         }

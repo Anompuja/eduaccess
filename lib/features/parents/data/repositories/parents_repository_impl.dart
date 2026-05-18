@@ -1,3 +1,4 @@
+import '../../../../core/api/paginated.dart';
 import '../../domain/entities/parent_entity.dart';
 import '../../domain/repositories/parents_repository.dart';
 import '../datasources/parents_remote_data_source.dart';
@@ -8,17 +9,25 @@ class ParentsRepositoryImpl implements ParentsRepository {
   ParentsRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<List<ParentEntity>> getParents({
+  Future<Paginated<ParentEntity>> getParents({
     required int page,
+    int perPage = 20,
     String? query,
     String? schoolId,
   }) async {
-    final models = await _remoteDataSource.getParents(
+    final page$ = await _remoteDataSource.getParents(
       page: page,
+      perPage: perPage,
       query: query,
       schoolId: schoolId,
     );
-    return models.cast<ParentEntity>();
+    return Paginated<ParentEntity>(
+      items: page$.items.cast<ParentEntity>(),
+      page: page$.page,
+      perPage: page$.perPage,
+      total: page$.total,
+      totalPages: page$.totalPages,
+    );
   }
 
   @override

@@ -19,7 +19,9 @@ abstract final class ParentsScreenConstants {
   static const String actionsHeader = 'ACTIONS';
 
   // Data conventions
-  static const int rowsPerPage = 5;
+  // Matches backend default per_page; also sent explicitly via the API call
+  // so numbering & Next-button logic stay consistent if backend default changes.
+  static const int rowsPerPage = 20;
 
   // Layout dimensions
   static const double desktopSearchWidth = 320;

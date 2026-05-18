@@ -1,3 +1,4 @@
+import '../../../../core/api/paginated.dart';
 import '../entities/parent_entity.dart';
 
 abstract interface class ParentsRepository {
@@ -5,8 +6,9 @@ abstract interface class ParentsRepository {
   /// Backend scopes by JWT role:
   ///   - admin_sekolah & scoped: filtered by JWT school_id (schoolId param ignored)
   ///   - superadmin: filtered by [schoolId] if provided, else all schools
-  Future<List<ParentEntity>> getParents({
+  Future<Paginated<ParentEntity>> getParents({
     required int page,
+    int perPage,
     String? query,
     String? schoolId,
   });

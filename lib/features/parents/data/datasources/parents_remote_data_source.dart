@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/api/api_endpoints.dart';
+import '../../../../core/api/paginated.dart';
 import '../models/parent_model.dart';
 
 class ParentsRemoteDataSource {
@@ -10,13 +11,15 @@ class ParentsRemoteDataSource {
   /// Fetch paginated list of parents from backend.
   /// [schoolId] is honored by backend only for superadmin (filter by school).
   /// For other roles, backend uses JWT school and ignores this param.
-  Future<List<ParentModel>> getParents({
+  /// [perPage] controls page size; defaults to 20 to match backend default.
+  Future<Paginated<ParentModel>> getParents({
     required int page,
+    int perPage = 20,
     String? query,
     String? schoolId,
   }) async {
     try {
-      final params = <String, dynamic>{'page': page};
+      final params = <String, dynamic>{'page': page, 'per_page': perPage};
       if (query != null && query.isNotEmpty) {
         params['search'] = query;
       }
@@ -30,19 +33,14 @@ class ParentsRemoteDataSource {
       );
 
       final data = response.data;
-      if (data == null) {
-        return [];
+      if (data is! Map) {
+        return Paginated.empty();
       }
 
-      // Handle response structure: data.data or data['data'] contains list
-      final parentsList = data['data'] as List? ?? data as List?;
-      if (parentsList == null) {
-        return [];
-      }
-
-      return parentsList
-          .map((p) => ParentModel.fromJson(p as Map<String, dynamic>))
-          .toList();
+      return Paginated<ParentModel>.fromResponseBody(
+        data.cast<String, dynamic>(),
+        ParentModel.fromJson,
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
