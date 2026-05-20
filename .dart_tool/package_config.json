@@ -101,7 +101,7 @@
       "name": "flutter",
       "rootUri": "file:///C:/develop/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "flutter_lints",
@@ -155,13 +155,13 @@
       "name": "flutter_test",
       "rootUri": "file:///C:/develop/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "flutter_web_plugins",
       "rootUri": "file:///C:/develop/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "fpdart",
@@ -255,7 +255,7 @@
     },
     {
       "name": "matcher",
-      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/matcher-0.12.18",
+      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/matcher-0.12.19",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -267,7 +267,7 @@
     },
     {
       "name": "meta",
-      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/meta-1.17.0",
+      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/meta-1.18.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -407,7 +407,7 @@
       "name": "sky_engine",
       "rootUri": "file:///C:/develop/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "source_span",
@@ -447,7 +447,7 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.9",
+      "rootUri": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.11",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -501,8 +501,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.11.0",
+  "generatorVersion": "3.12.0",
   "flutterRoot": "file:///C:/develop/flutter",
-  "flutterVersion": "3.41.2",
+  "flutterVersion": "3.44.0",
   "pubCache": "file:///C:/Users/Gus%20Anom/AppData/Local/Pub/Cache"
 }

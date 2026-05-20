@@ -8,7 +8,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../features/dashboard/domain/entities/dashboard_school.dart';
+import '../../../../features/dashboard/presentation/providers/dashboard_provider.dart';
 import '../providers/parents_provider.dart';
 
 Future<void> showParentCreateModal(BuildContext context) {
@@ -30,6 +33,7 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
   bool _isLoading = false;
+  String? _selectedSchoolId;
 
   @override
   void initState() {
@@ -50,6 +54,8 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
   Future<void> _saveParent() async {
     final user = ref.read(currentUserProvider);
     final activeSchool = ref.read(activeSchoolProvider);
+    final isSuperadmin = user?.role == UserRole.superadmin;
+    final effectiveSchoolId = activeSchool?.id ?? _selectedSchoolId;
 
     if (_nameCtrl.text.isEmpty ||
         _emailCtrl.text.isEmpty ||
@@ -62,12 +68,10 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
       return;
     }
 
-    if (user?.role == UserRole.superadmin && activeSchool == null) {
+    if (isSuperadmin && effectiveSchoolId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silakan pilih sekolah aktif terlebih dahulu'),
-          ),
+          const SnackBar(content: Text('Silakan pilih sekolah terlebih dahulu')),
         );
       }
       return;
@@ -81,19 +85,15 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
         'phone_number': _phoneCtrl.text,
       };
 
-      if (user?.role == UserRole.superadmin && activeSchool != null) {
-        data['school_id'] = activeSchool.id;
+      if (isSuperadmin && effectiveSchoolId != null) {
+        data['school_id'] = effectiveSchoolId;
       }
 
       await ref.read(createParentProvider(data).future);
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Orang tua berhasil ditambahkan${user?.role == UserRole.superadmin && activeSchool != null ? ' untuk ${activeSchool.name}' : ''}',
-            ),
-          ),
+          const SnackBar(content: Text('Orang tua berhasil ditambahkan')),
         );
       }
     } catch (e) {
@@ -113,6 +113,12 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final activeSchool = ref.watch(activeSchoolProvider);
+    final isSuperadmin = user?.role == UserRole.superadmin;
+    final needsSchoolPicker = isSuperadmin && activeSchool == null;
+    final schools = needsSchoolPicker
+        ? (ref.watch(dashboardSchoolsProvider).valueOrNull ?? <DashboardSchool>[])
+        : <DashboardSchool>[];
+    final effectiveSchoolId = activeSchool?.id ?? _selectedSchoolId;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
@@ -144,7 +150,7 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          user?.role == UserRole.superadmin && activeSchool != null
+                          isSuperadmin && activeSchool != null
                               ? 'Tambahkan orang tua untuk ${activeSchool.name}'
                               : 'Isi form berikut untuk menambah orang tua baru ke dalam sistem.',
                           style: AppTextStyles.bodySm.copyWith(
@@ -177,35 +183,55 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
                         ? constraints.maxWidth
                         : (constraints.maxWidth - AppSpacing.md) / 2;
 
-                    return Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'Nama Orang Tua',
-                            hint: 'Masukkan nama orang tua',
-                            controller: _nameCtrl,
+                        if (needsSchoolPicker) ...[
+                          AppDropdown<String?>(
+                            label: 'Sekolah',
+                            hint: 'Pilih sekolah untuk orang tua ini',
+                            value: _selectedSchoolId,
+                            items: schools
+                                .map((s) => AppDropdownItem<String?>(
+                                    value: s.id, label: s.name))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _selectedSchoolId = v),
                           ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'Email',
-                            hint: 'Masukkan email',
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'No. Telepon',
-                            hint: 'Masukkan nomor telepon',
-                            controller: _phoneCtrl,
-                            keyboardType: TextInputType.phone,
-                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        Wrap(
+                          spacing: AppSpacing.md,
+                          runSpacing: AppSpacing.md,
+                          children: [
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Nama Orang Tua',
+                                hint: 'Masukkan nama orang tua',
+                                controller: _nameCtrl,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Email',
+                                hint: 'Masukkan email',
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'No. Telepon',
+                                hint: 'Masukkan nomor telepon',
+                                controller: _phoneCtrl,
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     );
@@ -218,18 +244,16 @@ class _ParentCreateModalState extends ConsumerState<ParentCreateModal> {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: _isLoading
-                        ? null
-                        : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _isLoading ? null : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.accent(
                     label: _isLoading ? 'Menyimpan...' : 'Simpan Orang Tua',
-                    onPressed: _isLoading ||
-                            (user?.role == UserRole.superadmin &&
-                                activeSchool == null)
-                        ? null
-                        : _saveParent,
+                    onPressed:
+                        _isLoading || (isSuperadmin && effectiveSchoolId == null)
+                            ? null
+                            : _saveParent,
                   ),
                 ],
               ),
