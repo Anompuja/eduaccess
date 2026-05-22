@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/academic/presentation/screens/academic_screen.dart';
+import '../../features/class_schedule/presentation/screens/class_schedule_screen.dart';
+import '../../features/class_schedule/presentation/screens/class_schedule_detail_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
@@ -30,6 +32,7 @@ import 'route_names.dart';
 
 const _dev3OpenRoutes = {
   RouteNames.academic,
+  RouteNames.classSchedule,
   RouteNames.gradePromotion,
   RouteNames.studentTracking,
   RouteNames.school,
@@ -187,6 +190,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.academic,
             builder: (_, _) => const AcademicScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.classSchedule,
+            builder: (_, _) => const ClassScheduleScreen(),
+          ),
+          GoRoute(
+            path: '/class-schedule/:id',
+            builder: (_, state) => ClassScheduleDetailScreen(scheduleId: state.pathParameters['id']!),
           ),
           GoRoute(
             path: RouteNames.gradePromotion,

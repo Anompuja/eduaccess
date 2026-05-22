@@ -40,9 +40,9 @@ abstract class AcademicRemoteDataSource {
   Future<ClassroomModel> updateClassroom(String id, String name, int capacity, int floor, String building, String roomType, String facilities, {String? schoolId});
   Future<void> deleteClassroom(String id, {String? schoolId});
 
-  Future<List<ScheduleModel>> getSchedules({String? schoolId});
-  Future<ScheduleModel> createSchedule(String shiftType, String startTime, String endTime, {String? schoolId});
-  Future<ScheduleModel> updateSchedule(String id, String shiftType, String startTime, String endTime, {String? schoolId});
+  Future<List<ScheduleModel>> getSchedules({String? schoolId, String? dayOfWeek});
+  Future<ScheduleModel> createSchedule({required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId});
+  Future<ScheduleModel> updateSchedule(String id, {required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId});
   Future<void> deleteSchedule(String id, {String? schoolId});
 }
 
@@ -364,9 +364,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   // ── Schedules ─────────────────────────────────────────────────────────────
 
   @override
-  Future<List<ScheduleModel>> getSchedules({String? schoolId}) async {
+  Future<List<ScheduleModel>> getSchedules({String? schoolId, String? dayOfWeek}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
+      if (dayOfWeek != null) params['day_of_week'] = dayOfWeek;
       final response = await dio.get(ApiEndpoints.schedulesList, queryParameters: params.isNotEmpty ? params : null);
       return _parseList(response.data['data'], ScheduleModel.fromJson);
     } on DioException catch (e) {
@@ -375,13 +376,16 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }
 
   @override
-  Future<ScheduleModel> createSchedule(String shiftType, String startTime, String endTime, {String? schoolId}) async {
+  Future<ScheduleModel> createSchedule({required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
       final response = await dio.post(ApiEndpoints.schedulesList, data: {
-        'shift_type': shiftType,
+        'day_of_week': dayOfWeek,
+        'period_number': periodNumber,
+        'label': label,
         'start_time': startTime,
         'end_time': endTime,
+        'is_break': isBreak,
       }, queryParameters: qp.isNotEmpty ? qp : null);
       return ScheduleModel.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -390,12 +394,15 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }
 
   @override
-  Future<ScheduleModel> updateSchedule(String id, String shiftType, String startTime, String endTime, {String? schoolId}) async {
+  Future<ScheduleModel> updateSchedule(String id, {required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) async {
     try {
       final response = await dio.put(ApiEndpoints.scheduleById(id), data: {
-        'shift_type': shiftType,
+        'day_of_week': dayOfWeek,
+        'period_number': periodNumber,
+        'label': label,
         'start_time': startTime,
         'end_time': endTime,
+        'is_break': isBreak,
       });
       return ScheduleModel.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {

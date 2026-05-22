@@ -98,6 +98,17 @@ const _menuItems = [
     },
   ),
   _NavItem(
+    label: 'Jadwal Kelas',
+    route: RouteNames.classSchedule,
+    icon: Icons.calendar_month_outlined,
+    allowedRoles: {
+      UserRole.superadmin,
+      UserRole.adminSekolah,
+      UserRole.kepalaSekolah,
+      UserRole.guru,
+    },
+  ),
+  _NavItem(
     label: 'Naik Kelas',
     route: RouteNames.gradePromotion,
     icon: Icons.trending_up_rounded,

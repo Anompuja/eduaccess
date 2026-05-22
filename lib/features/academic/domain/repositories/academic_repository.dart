@@ -44,9 +44,9 @@ abstract class AcademicRepository {
   Future<ClassroomEntity> updateClassroom(String id, String name, int capacity, int floor, String building, String roomType, String facilities, {String? schoolId});
   Future<void> deleteClassroom(String id, {String? schoolId});
 
-  // Schedules
-  Future<List<ScheduleEntity>> getSchedules({String? schoolId});
-  Future<ScheduleEntity> createSchedule(String shiftType, String startTime, String endTime, {String? schoolId});
-  Future<ScheduleEntity> updateSchedule(String id, String shiftType, String startTime, String endTime, {String? schoolId});
+  // Schedules (lesson periods)
+  Future<List<ScheduleEntity>> getSchedules({String? schoolId, String? dayOfWeek});
+  Future<ScheduleEntity> createSchedule({required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId});
+  Future<ScheduleEntity> updateSchedule(String id, {required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId});
   Future<void> deleteSchedule(String id, {String? schoolId});
 }

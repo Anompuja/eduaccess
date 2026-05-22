@@ -52,6 +52,16 @@ abstract final class ApiEndpoints {
   static const String schedulesList = '/academic/schedules';
   static String scheduleById(String id) => '/academic/schedules/$id';
 
+  // ── Class Schedules ───────────────────────────────────────────────────────
+  static const String classSchedules = '/class-schedules';
+  static String classScheduleById(String id) => '/class-schedules/$id';
+  static String classScheduleStart(String id) => '/class-schedules/$id/start';
+  static String classScheduleComplete(String id) => '/class-schedules/$id/complete';
+  static String classScheduleCancel(String id) => '/class-schedules/$id/cancel';
+  static String classScheduleSyncStudents(String id) => '/class-schedules/$id/sync-students';
+  static String classScheduleAttendances(String id) => '/class-schedules/$id/attendances';
+  static String classScheduleAttendance(String scheduleId, String studentId) => '/class-schedules/$scheduleId/attendances/$studentId';
+
   // ── CBT / Exams ───────────────────────────────────────────────────────────
   static const String exams = '/exams';
   static String examById(String id) => '/exams/$id';
