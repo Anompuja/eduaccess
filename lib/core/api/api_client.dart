@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,14 +24,21 @@ String _resolveBaseUrl() {
   };
 }
 
-// ── Provider ──────────────────────────────────────────────────────────────────
+// ── Providers ─────────────────────────────────────────────────────────────────
+/// In-memory HTTP cache store. Honors the backend's Cache-Control/ETag so native
+/// platforms (Android/iOS) get the same revalidation the browser does for free.
+/// Kept as a singleton provider so the auth layer can clear it on login/logout,
+/// preventing one user's cached data from leaking to the next on a shared device.
+final cacheStoreProvider = Provider<CacheStore>((ref) => MemCacheStore());
+
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.read(tokenStorageProvider);
-  return _buildDio(tokenStorage);
+  final cacheStore = ref.read(cacheStoreProvider);
+  return _buildDio(tokenStorage, cacheStore);
 });
 
 // ── Factory ───────────────────────────────────────────────────────────────────
-Dio _buildDio(TokenStorage tokenStorage) {
+Dio _buildDio(TokenStorage tokenStorage, CacheStore cacheStore) {
   final dio = Dio(
     BaseOptions(
       baseUrl: _resolveBaseUrl(),
@@ -43,8 +51,21 @@ Dio _buildDio(TokenStorage tokenStorage) {
     ),
   );
 
+  // CachePolicy.request defers entirely to the server's HTTP cache directives:
+  // it reuses fresh responses within max-age, and revalidates with If-None-Match
+  // (turning 304s into cache hits) for no-cache/expired entries.
+  final cacheOptions = CacheOptions(
+    store: cacheStore,
+    policy: CachePolicy.request,
+    priority: CachePriority.normal,
+    allowPostMethod: false,
+  );
+
   dio.interceptors.addAll([
+    // Auth runs first so the Authorization header is attached before the cache
+    // interceptor issues its (possibly conditional) request.
     _AuthInterceptor(dio, tokenStorage),
+    DioCacheInterceptor(options: cacheOptions),
     _LogInterceptor(),
   ]);
 

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
@@ -10,7 +11,11 @@ import 'token_storage.dart';
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
 ) {
-  return AuthNotifier(ref.read(tokenStorageProvider), ref.read(dioProvider));
+  return AuthNotifier(
+    ref.read(tokenStorageProvider),
+    ref.read(dioProvider),
+    ref.read(cacheStoreProvider),
+  );
 });
 
 // ── Convenience selectors ─────────────────────────────────────────────────────
@@ -38,8 +43,10 @@ final currentUserProvider = Provider<AuthUser?>((ref) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final TokenStorage _storage;
   final Dio _dio;
+  final CacheStore _cacheStore;
 
-  AuthNotifier(this._storage, this._dio) : super(const AuthStateLoading()) {
+  AuthNotifier(this._storage, this._dio, this._cacheStore)
+    : super(const AuthStateLoading()) {
     loadFromStorage();
   }
 
@@ -71,6 +78,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Login ─────────────────────────────────────────────────────────────────
   Future<void> login(String email, String password) async {
     state = const AuthStateAuthenticating();
+    // Drop any cached responses from a previous session before authenticating.
+    await _cacheStore.clean();
     try {
       final resp = await _dio.post(
         ApiEndpoints.login,
@@ -182,6 +191,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Ignore errors — always clear local state
     } finally {
       await _storage.clearAll();
+      // Purge cached tenant/user data so it can't be served to the next login.
+      await _cacheStore.clean();
       state = const AuthStateUnauthenticated();
     }
   }
