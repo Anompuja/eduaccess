@@ -62,6 +62,12 @@ abstract final class ApiEndpoints {
   static String classScheduleAttendances(String id) => '/class-schedules/$id/attendances';
   static String classScheduleAttendance(String scheduleId, String studentId) => '/class-schedules/$scheduleId/attendances/$studentId';
 
+  // ── Student Tracking & Promotion ──────────────────────────────────────────
+  static const String studentStudies = '/student-studies';
+  static String studentStudyDetail(String studentId) => '/student-studies/$studentId';
+  static const String studentPromotions = '/student-promotions';
+  static const String studentPromotionPromote = '/student-promotions/promote';
+
   // ── CBT / Exams ───────────────────────────────────────────────────────────
   static const String exams = '/exams';
   static String examById(String id) => '/exams/$id';
