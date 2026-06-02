@@ -14,13 +14,14 @@ abstract final class StaffScreenConstants {
   static const String noHeader = 'NO';
   static const String nameHeader = 'NAMA';
   static const String emailHeader = 'EMAIL';
-  static const String roleHeader = 'ROLE';
+  static const String usernameHeader = 'USERNAME';
+  static const String phoneHeader = 'PHONE';
   static const String statusHeader = 'STATUS';
   static const String actionsHeader = 'ACTIONS';
 
   // Data conventions
   static const String activeStatus = 'Aktif';
-  static const int rowsPerPage = 5;
+  static int get rowsPerPage => 10;
 
   // Layout dimensions
   static const double desktopSearchWidth = 320;
@@ -32,8 +33,10 @@ abstract final class StaffScreenConstants {
   static const double nameColumnWidthDesktop = 280;
   static const double emailColumnWidthMobile = 180;
   static const double emailColumnWidthDesktop = 260;
-  static const double roleColumnWidthMobile = 120;
-  static const double roleColumnWidthDesktop = 150;
+  static const double usernameColumnWidthMobile = 140;
+  static const double usernameColumnWidthDesktop = 180;
+  static const double phoneColumnWidthMobile = 140;
+  static const double phoneColumnWidthDesktop = 180;
   static const double statusColumnWidthMobile = 100;
   static const double statusColumnWidthDesktop = 120;
   static const double actionsColumnWidthMobile = 132;

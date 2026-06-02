@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 abstract final class TeachersScreenConstants {
   // Texts
   static const String title = 'Manajemen Guru';
-  static const String searchLabel = 'Cari nama / NIP / mapel';
-  static const String searchHint = 'Contoh: budi atau 198704122010011002';
+  static const String searchLabel = 'Cari nama / NIP / username';
+  static const String searchHint = 'Contoh: budi, 198704122010011002, atau budi.santoso';
   static const String addButtonLabel = 'Tambah Guru';
   static const String previousButtonLabel = 'Sebelumnya';
   static const String nextButtonLabel = 'Berikutnya';
@@ -14,7 +14,7 @@ abstract final class TeachersScreenConstants {
   static const String noHeader = 'NO';
   static const String nameHeader = 'NAMA';
   static const String nipHeader = 'NIP';
-  static const String subjectHeader = 'MAPEL';
+  static const String subjectHeader = 'USERNAME';
   static const String statusHeader = 'STATUS';
   static const String actionsHeader = 'ACTIONS';
 

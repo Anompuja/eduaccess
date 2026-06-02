@@ -1,59 +1,170 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/models/staff_row_data.dart';
+import '../providers/staff_provider.dart';
 
 Future<void> showStaffEditModal(
   BuildContext context, {
+  required WidgetRef ref,
   required StaffRowData data,
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) => StaffEditModal(data: data),
+    builder: (_) => StaffEditModal(ref: ref, data: data),
   );
 }
 
-class StaffEditModal extends StatefulWidget {
+class StaffEditModal extends ConsumerStatefulWidget {
+  final WidgetRef ref;
   final StaffRowData data;
 
-  const StaffEditModal({super.key, required this.data});
+  const StaffEditModal({super.key, required this.ref, required this.data});
 
   @override
-  State<StaffEditModal> createState() => _StaffEditModalState();
+  ConsumerState<StaffEditModal> createState() => _StaffEditModalState();
 }
 
-class _StaffEditModalState extends State<StaffEditModal> {
+class _StaffEditModalState extends ConsumerState<StaffEditModal> {
   late final TextEditingController _nameCtrl;
-  late final TextEditingController _roleCtrl;
   late final TextEditingController _emailCtrl;
+  late final TextEditingController _usernameCtrl;
   late final TextEditingController _phoneCtrl;
-  late String _statusValue;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _birthDateCtrl;
+  late final TextEditingController _nikCtrl;
+  late final TextEditingController _birthPlaceCtrl;
+  late final TextEditingController _ktpImagePathCtrl;
+  late final TextEditingController _religionCtrl;
+  String? _selectedGender;
 
-  static const List<String> _statusOptions = ['Aktif', 'Nonaktif'];
+  static const List<({String label, String value})> _genderOptions = [
+    (label: 'Laki-laki', value: 'male'),
+    (label: 'Perempuan', value: 'female'),
+    (label: 'Lainnya', value: 'other'),
+  ];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.data.name);
-    _roleCtrl = TextEditingController(text: widget.data.role);
     _emailCtrl = TextEditingController(text: widget.data.email);
-    _phoneCtrl = TextEditingController(text: widget.data.phone);
-    _statusValue = _statusOptions.contains(widget.data.status)
-        ? widget.data.status
-        : _statusOptions.first;
+    _usernameCtrl = TextEditingController(text: widget.data.username);
+    _phoneCtrl = TextEditingController(text: widget.data.phoneNumber);
+    _addressCtrl = TextEditingController(text: widget.data.address);
+    _birthDateCtrl = TextEditingController(text: widget.data.birthDate);
+    _nikCtrl = TextEditingController(text: widget.data.nik);
+    _birthPlaceCtrl = TextEditingController(text: widget.data.birthPlace);
+    _ktpImagePathCtrl = TextEditingController(text: widget.data.ktpImagePath);
+    _religionCtrl = TextEditingController(text: widget.data.religion);
+    _selectedGender = widget.data.gender.isEmpty ? null : widget.data.gender;
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _roleCtrl.dispose();
     _emailCtrl.dispose();
+    _usernameCtrl.dispose();
     _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _birthDateCtrl.dispose();
+    _nikCtrl.dispose();
+    _birthPlaceCtrl.dispose();
+    _ktpImagePathCtrl.dispose();
+    _religionCtrl.dispose();
     super.dispose();
+  }
+
+  String _requiredLabel(String label) => '$label *';
+
+  Future<void> _pickBirthDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (selected == null) return;
+
+    setState(() {
+      _birthDateCtrl.text =
+          '${selected.year.toString().padLeft(4, '0')}-'
+          '${selected.month.toString().padLeft(2, '0')}-'
+          '${selected.day.toString().padLeft(2, '0')}';
+    });
+  }
+
+  Future<void> _saveStaff() async {
+    if (_nameCtrl.text.trim().isEmpty ||
+        _emailCtrl.text.trim().isEmpty ||
+        _usernameCtrl.text.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nama, email, dan username wajib diisi'),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final staff = await ref.read(
+        updateStaffProvider((
+          id: widget.data.staffId,
+          data: {
+            'name': _nameCtrl.text.trim(),
+            'email': _emailCtrl.text.trim(),
+            'username': _usernameCtrl.text.trim(),
+            'phone_number': _phoneCtrl.text.trim().isEmpty
+                ? null
+                : _phoneCtrl.text.trim(),
+            'address': _addressCtrl.text.trim().isEmpty
+                ? null
+                : _addressCtrl.text.trim(),
+            'gender': _selectedGender,
+            'religion': _religionCtrl.text.trim().isEmpty
+                ? null
+                : _religionCtrl.text.trim(),
+            'birth_place': _birthPlaceCtrl.text.trim().isEmpty
+                ? null
+                : _birthPlaceCtrl.text.trim(),
+            'birth_date': _birthDateCtrl.text.trim().isEmpty
+                ? null
+                : _birthDateCtrl.text.trim(),
+            'nik': _nikCtrl.text.trim().isEmpty ? null : _nikCtrl.text.trim(),
+            'ktp_image_path': _ktpImagePathCtrl.text.trim().isEmpty
+                ? null
+                : _ktpImagePathCtrl.text.trim(),
+          },
+        )).future,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${staff.name} berhasil diperbarui')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -88,7 +199,7 @@ class _StaffEditModalState extends State<StaffEditModal> {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'UI form edit saja, belum ada logic simpan perubahan.',
+                          'Perubahan akan dikirim langsung ke backend Staff.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -97,7 +208,9 @@ class _StaffEditModalState extends State<StaffEditModal> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     color: AppColors.neutral700,
                   ),
@@ -126,7 +239,7 @@ class _StaffEditModalState extends State<StaffEditModal> {
                         SizedBox(
                           width: fieldWidth,
                           child: AppTextField(
-                            label: 'Nama Staff',
+                            label: _requiredLabel('Nama Staff'),
                             hint: 'Masukkan nama staff',
                             controller: _nameCtrl,
                           ),
@@ -134,7 +247,7 @@ class _StaffEditModalState extends State<StaffEditModal> {
                         SizedBox(
                           width: fieldWidth,
                           child: AppTextField(
-                            label: 'Email',
+                            label: _requiredLabel('Email'),
                             hint: 'Masukkan email',
                             controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
@@ -143,9 +256,9 @@ class _StaffEditModalState extends State<StaffEditModal> {
                         SizedBox(
                           width: fieldWidth,
                           child: AppTextField(
-                            label: 'Role',
-                            hint: 'Masukkan role staff',
-                            controller: _roleCtrl,
+                            label: _requiredLabel('Username'),
+                            hint: 'Masukkan username',
+                            controller: _usernameCtrl,
                           ),
                         ),
                         SizedBox(
@@ -159,11 +272,77 @@ class _StaffEditModalState extends State<StaffEditModal> {
                         ),
                         SizedBox(
                           width: fieldWidth,
-                          child: _dropdownField(
-                            label: 'Status',
-                            value: _statusValue,
-                            items: _statusOptions,
-                            onChanged: (v) => setState(() => _statusValue = v),
+                          child: AppTextField(
+                            label: 'Tanggal Lahir',
+                            hint: 'YYYY-MM-DD',
+                            controller: _birthDateCtrl,
+                            readOnly: true,
+                            onTap: _pickBirthDate,
+                            suffix: IconButton(
+                              onPressed: _pickBirthDate,
+                              icon: const Icon(Icons.calendar_month_outlined),
+                              color: AppColors.neutral500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Tempat Lahir',
+                            hint: 'Masukkan tempat lahir',
+                            controller: _birthPlaceCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Agama',
+                            hint: 'Masukkan agama',
+                            controller: _religionCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppDropdown<String?>(
+                            label: 'Jenis Kelamin',
+                            hint: 'Pilih jenis kelamin',
+                            value: _selectedGender,
+                            items: _genderOptions
+                                .map(
+                                  (option) => AppDropdownItem<String?>(
+                                    value: option.value,
+                                    label: option.label,
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedGender = value);
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Path Foto KTP',
+                            hint: 'Masukkan path gambar KTP',
+                            controller: _ktpImagePathCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'NIK',
+                            hint: 'Masukkan NIK',
+                            controller: _nikCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: constraints.maxWidth,
+                          child: AppTextField(
+                            label: 'Alamat',
+                            hint: 'Masukkan alamat',
+                            controller: _addressCtrl,
+                            maxLines: 3,
                           ),
                         ),
                       ],
@@ -177,12 +356,14 @@ class _StaffEditModalState extends State<StaffEditModal> {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.primary(
-                    label: 'Simpan Perubahan',
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menyimpan...' : 'Simpan Perubahan',
+                    onPressed: _isLoading ? null : _saveStaff,
                   ),
                 ],
               ),
@@ -190,36 +371,6 @@ class _StaffEditModalState extends State<StaffEditModal> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _dropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.label.copyWith(color: AppColors.neutral700),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          initialValue: value,
-          decoration: const InputDecoration(),
-          items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-              .toList(),
-          onChanged: (v) {
-            if (v == null) return;
-            onChanged(v);
-          },
-        ),
-      ],
     );
   }
 }

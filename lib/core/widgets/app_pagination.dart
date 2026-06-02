@@ -27,7 +27,7 @@ class AppPagination extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (totalPages <= 1) return const SizedBox.shrink();
+    if (totalPages < 1) return const SizedBox.shrink();
 
     final pages = _visiblePages();
 
@@ -47,14 +47,12 @@ class AppPagination extends StatelessWidget {
           if (p == -1) {
             return const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: Text('…',
-                  style: TextStyle(color: AppColors.neutral500)),
+              child: Text('…', style: TextStyle(color: AppColors.neutral500)),
             );
           }
           final isActive = p == currentPage;
           return Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             child: _PageBtn(
               page: p,
               isActive: isActive,
@@ -76,13 +74,16 @@ class AppPagination extends StatelessWidget {
 
   /// Returns page numbers to show, inserting -1 for ellipsis gaps.
   List<int> _visiblePages() {
+    if (totalPages <= 1) return const [1];
     if (totalPages <= 7) return List.generate(totalPages, (i) => i + 1);
     final pages = <int>[];
     pages.add(1);
     if (currentPage > 3) pages.add(-1);
-    for (var p = (currentPage - 1).clamp(2, totalPages - 1);
-        p <= (currentPage + 1).clamp(2, totalPages - 1);
-        p++) {
+    for (
+      var p = (currentPage - 1).clamp(2, totalPages - 1);
+      p <= (currentPage + 1).clamp(2, totalPages - 1);
+      p++
+    ) {
       pages.add(p);
     }
     if (currentPage < totalPages - 2) pages.add(-1);
@@ -96,8 +97,11 @@ class _NavBtn extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
-  const _NavBtn(
-      {required this.icon, required this.enabled, required this.onTap});
+  const _NavBtn({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -126,8 +130,11 @@ class _PageBtn extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  const _PageBtn(
-      {required this.page, required this.isActive, required this.onTap});
+  const _PageBtn({
+    required this.page,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

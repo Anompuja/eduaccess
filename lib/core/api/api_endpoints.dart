@@ -26,6 +26,10 @@ abstract final class ApiEndpoints {
   static const String staff = '/staff';
   static String staffById(String id) => '/staff/$id';
 
+  // ── Teachers ─────────────────────────────────────────────────────────────
+  static const String teachers = '/teachers';
+  static String teacherById(String id) => '/teachers/$id';
+
   // ── Parents (Orang Tua) ───────────────────────────────────────────────────
   static const String parents = '/parents';
   static String parentById(String id) => '/parents/$id';

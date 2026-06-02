@@ -235,13 +235,6 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
       width: 180,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: AppRadius.lgAll),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value, style: AppTextStyles.h4.copyWith(color: color)),
-          const SizedBox(height: AppSpacing.xs),
-          Text(label, style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral700)),
-        ],
       ),
     );
   }
@@ -251,62 +244,3 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
       context: context,
       builder: (dialogContext) => AppDialog(
         title: 'Konfirmasi Kenaikan',
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_selected.length} dari $total siswa akan ${_status == 'transferred' ? 'dipindahkan' : 'dinaikkan'} ke kelas tujuan.',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Siswa yang tidak dipilih tetap tinggal di kelas sumber.',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
-            ),
-          ],
-        ),
-        actions: [
-          AppButton.secondary(label: 'Batal', onPressed: () => Navigator.of(dialogContext).pop(false)),
-          AppButton.primary(label: 'Proses', onPressed: () => Navigator.of(dialogContext).pop(true)),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _submit();
-  }
-
-  Future<void> _submit() async {
-    setState(() => _isSubmitting = true);
-    final schoolId = ref.read(promotionSchoolIdProvider);
-    try {
-      final result = await ref.read(classPromotionRepositoryProvider).promote(
-            studentIds: _selected.toList(),
-            toClassroomId: _targetClassroomId!,
-            status: _status,
-            schoolId: schoolId,
-          );
-      if (!mounted) return;
-      // Refresh both source and target classroom student lists.
-      ref.invalidate(classroomStudentsProvider(_sourceClassroomId!));
-      if (_targetClassroomId != null) {
-        ref.invalidate(classroomStudentsProvider(_targetClassroomId!));
-      }
-      setState(() => _selected.clear());
-      AppToast.show(
-        context,
-        message: 'Berhasil: ${result.success} siswa diproses${result.failed > 0 ? ', ${result.failed} gagal' : ''}.',
-      );
-    } catch (e) {
-      if (mounted) {
-        AppToast.show(context, message: e.toString().replaceFirst('Exception: ', ''));
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-}
-
-/// Resolves the school_id to send for superadmin (null for school-scoped roles).
-final promotionSchoolIdProvider = Provider<String?>((ref) {
-  return schoolIdForRequest(ref);
-});
