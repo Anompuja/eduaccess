@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../data/models/parent_row_data.dart';
+import '../../domain/entities/parent_entity.dart';
+import '../providers/parents_provider.dart';
 
 Future<void> showParentDeleteModal(
   BuildContext context, {
-  required ParentRowData data,
+  required ParentEntity data,
 }) {
   return showDialog<void>(
     context: context,
@@ -16,10 +18,17 @@ Future<void> showParentDeleteModal(
   );
 }
 
-class ParentDeleteModal extends StatelessWidget {
-  final ParentRowData data;
+class ParentDeleteModal extends ConsumerStatefulWidget {
+  final ParentEntity data;
 
   const ParentDeleteModal({super.key, required this.data});
+
+  @override
+  ConsumerState<ParentDeleteModal> createState() => _ParentDeleteModalState();
+}
+
+class _ParentDeleteModalState extends ConsumerState<ParentDeleteModal> {
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +77,7 @@ class ParentDeleteModal extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Aksi ini hanya tampilan UI. Data belum benar-benar dihapus.',
+                          'Tindakan ini akan menghapus data orang tua secara permanen dan tidak dapat dibatalkan.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -104,14 +113,16 @@ class ParentDeleteModal extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      data.name,
+                      widget.data.name,
                       style: AppTextStyles.bodyLgSemiBold.copyWith(
                         color: AppColors.neutral900,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'No. HP: ${data.phone} • Anak: ${data.childrenCount} siswa',
+                      widget.data.phoneNumber.isEmpty
+                          ? widget.data.email
+                          : 'No. HP: ${widget.data.phoneNumber}',
                       style: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.neutral700,
                       ),
@@ -125,12 +136,14 @@ class ParentDeleteModal extends StatelessWidget {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.danger(
-                    label: 'Hapus',
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menghapus...' : 'Hapus',
+                    onPressed: _isLoading ? null : _deleteParent,
                   ),
                 ],
               ),
@@ -139,5 +152,28 @@ class ParentDeleteModal extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteParent() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(deleteParentProvider(widget.data.parentId).future);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data orang tua berhasil dihapus')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }

@@ -2,18 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/academic/presentation/screens/academic_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admins_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/reports/presentation/screens/reports_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
+import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
+import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
 import '../../features/users/presentation/screens/users_screen.dart';
+import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../widgets/app_layout.dart';
@@ -21,28 +28,96 @@ import '../widgets/not_found_screen.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_names.dart';
 
+const _dev3OpenRoutes = {
+  RouteNames.academic,
+  RouteNames.gradePromotion,
+  RouteNames.studentTracking,
+  RouteNames.school,
+  RouteNames.subscription,
+  RouteNames.payment,
+  RouteNames.reports,
+};
+
+bool _startsWithAny(String location, Set<String> routes) =>
+    routes.any(location.startsWith);
+
+/// Returns a redirect path if [role] is not allowed to access [location],
+/// otherwise null.
+String? _roleGuard(UserRole role, String location) {
+  bool can(Set<String> allowed) => _startsWithAny(location, allowed);
+
+  if (can(_dev3OpenRoutes)) return null;
+
+  const universalRoutes = {
+    RouteNames.dashboard,
+    RouteNames.profile,
+    RouteNames.settings,
+    RouteNames.notifications,
+    RouteNames.help,
+  };
+
+  const guruRoutes = {RouteNames.attendance, RouteNames.cbt};
+
+  const studentRoutes = {RouteNames.attendance, RouteNames.cbt};
+  const staffRoutes = {RouteNames.attendance};
+
+  if (can(universalRoutes)) return null;
+
+  return switch (role) {
+    UserRole.superadmin ||
+    UserRole.adminSekolah ||
+    UserRole.kepalaSekolah => null,
+    UserRole.guru => can(guruRoutes) ? null : RouteNames.dashboard,
+    UserRole.siswa ||
+    UserRole.orangtua => can(studentRoutes) ? null : RouteNames.dashboard,
+    UserRole.staff => can(staffRoutes) ? null : RouteNames.dashboard,
+  };
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Listen to auth state changes to refresh the router redirect
   final authListenable = _AuthStateListenable(ref);
 
   return GoRouter(
-    initialLocation: RouteNames.users,
+    initialLocation: RouteNames.dashboard,
     refreshListenable: authListenable,
-    // Temporary dev mode: disable auth guard so every page can be opened.
-    redirect: (_, __) => null,
+    redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
+      final location = state.matchedLocation;
+      final isPublic =
+          location == RouteNames.login || location == RouteNames.register;
+      final isDev3Open = _startsWithAny(location, _dev3OpenRoutes);
+
+      if (authState is AuthStateLoading) return null;
+
+      if (authState is AuthStateAuthenticating) {
+        return isPublic ? null : RouteNames.login;
+      }
+
+      if (authState is AuthStateUnauthenticated) {
+        return (isPublic || isDev3Open) ? null : RouteNames.login;
+      }
+
+      if (authState is AuthStateError) {
+        return (isPublic || isDev3Open) ? null : RouteNames.login;
+      }
+
+      if (isPublic) return RouteNames.dashboard;
+
+      if (authState is AuthStateAuthenticated) {
+        return _roleGuard(authState.user.role, location);
+      }
+
+      return null;
+    },
     routes: [
-      // ── Public routes ───────────────────────────────────────────────────
       GoRoute(path: RouteNames.login, builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: RouteNames.register,
         builder: (_, _) => const RegisterScreen(),
       ),
-
-      // ── Protected shell (AppLayout wraps all protected screens) ─────────
       ShellRoute(
         builder: (_, _, child) => AppLayout(child: child),
         routes: [
-          // Dev 1 — Dashboard & core screens
           GoRoute(
             path: RouteNames.dashboard,
             builder: (_, _) => const DashboardScreen(),
@@ -59,27 +134,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteNames.notifications,
             builder: (_, _) => const NotificationsScreen(),
           ),
-
-          // Dev 2 — People management (placeholder until Session Dev2)
-          GoRoute(
-            path: RouteNames.users,
-            builder: (_, _) => const UsersScreen(),
-          ),
           GoRoute(
             path: '/users/:id',
             builder: (_, state) => PlaceholderScreen(
               title: 'Detail User (${state.pathParameters['id']})',
-              assignedTo: 'Dev 2',
-            ),
-          ),
-          GoRoute(
-            path: RouteNames.admins,
-            builder: (_, _) => const AdminsScreen(),
-          ),
-          GoRoute(
-            path: '/admins/:id',
-            builder: (_, state) => PlaceholderScreen(
-              title: 'Detail Admin (${state.pathParameters['id']})',
               assignedTo: 'Dev 2',
             ),
           ),
@@ -95,6 +153,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteNames.staff,
             builder: (_, _) => const StaffScreen(),
           ),
+          GoRoute(
+            path: RouteNames.admins,
+            builder: (_, _) => const AdminsScreen(),
+          ),
+          GoRoute(path: RouteNames.users, 
+          builder: (_, _) => const UsersScreen()),
           GoRoute(
             path: '/teachers/:id',
             builder: (_, state) => PlaceholderScreen(
@@ -120,21 +184,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               assignedTo: 'Dev 2',
             ),
           ),
-
-          // Dev 3 — Academic & operations (placeholder)
           GoRoute(
             path: RouteNames.academic,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Struktur Akademik',
-              assignedTo: 'Dev 3',
-            ),
+            builder: (_, _) => const AcademicScreen(),
           ),
           GoRoute(
             path: RouteNames.gradePromotion,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Naik Kelas',
-              assignedTo: 'Dev 3',
-            ),
+            builder: (_, _) => const ClassPromotionScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.studentTracking,
+            builder: (_, _) => const StudentTrackingScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.school,
+            builder: (_, _) => const SchoolScreen(),
           ),
           GoRoute(
             path: RouteNames.cbt,
@@ -157,10 +221,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.subscription,
-            builder: (_, _) => const PlaceholderScreen(
-              title: 'Subscription',
-              assignedTo: 'Dev 3',
-            ),
+            builder: (_, _) => const SubscriptionScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.payment,
+            builder: (_, _) => const PaymentScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.reports,
+            builder: (_, _) => const ReportsScreen(),
           ),
           GoRoute(
             path: RouteNames.help,
@@ -170,15 +239,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
     ],
-
-    // ── 404 error page ───────────────────────────────────────────────────────
     errorBuilder: (context, state) =>
         NotFoundScreen(message: state.error?.message),
   );
 });
 
-// ── Auth state listenable for GoRouter refreshListenable ────────────────────
-/// Notifies GoRouter to re-evaluate the redirect whenever auth state changes.
+/// Notifies GoRouter to re-evaluate redirect whenever auth state changes.
 class _AuthStateListenable extends ChangeNotifier {
   _AuthStateListenable(Ref ref) {
     ref.listen(authNotifierProvider, (_, _) => notifyListeners());

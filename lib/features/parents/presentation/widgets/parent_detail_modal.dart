@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../data/models/parent_row_data.dart';
+import '../../domain/entities/parent_entity.dart';
 
 Future<void> showParentDetailModal(
   BuildContext context, {
-  required ParentRowData data,
+  required ParentEntity data,
 }) {
   return showDialog<void>(
     context: context,
@@ -16,7 +16,7 @@ Future<void> showParentDetailModal(
 }
 
 class ParentDetailModal extends StatelessWidget {
-  final ParentRowData data;
+  final ParentEntity data;
 
   const ParentDetailModal({super.key, required this.data});
 
@@ -75,10 +75,17 @@ class ParentDetailModal extends StatelessWidget {
                   _DetailItem(label: 'Parent ID', value: data.parentId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'Email', value: data.email),
-                  _DetailItem(label: 'No. Telepon', value: data.phone),
                   _DetailItem(
-                    label: 'Jumlah Anak',
-                    value: '${data.childrenCount} siswa',
+                    label: 'No. Telepon',
+                    value: data.phoneNumber.isEmpty ? '-' : data.phoneNumber,
+                  ),
+                  _DetailItem(
+                    label: 'Agama',
+                    value: data.religion.isEmpty ? '-' : data.religion,
+                  ),
+                  _DetailItem(
+                    label: 'Alamat',
+                    value: data.address.isEmpty ? '-' : data.address,
                   ),
                 ],
               ),

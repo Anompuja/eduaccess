@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -6,6 +7,7 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/models/student_row_data.dart';
+import '../providers/students_provider.dart';
 
 Future<void> showStudentEditModal(
   BuildContext context, {
@@ -17,61 +19,136 @@ Future<void> showStudentEditModal(
   );
 }
 
-class StudentEditModal extends StatefulWidget {
+class StudentEditModal extends ConsumerStatefulWidget {
   final StudentRowData data;
 
   const StudentEditModal({super.key, required this.data});
 
   @override
-  State<StudentEditModal> createState() => _StudentEditModalState();
+  ConsumerState<StudentEditModal> createState() => _StudentEditModalState();
 }
 
-class _StudentEditModalState extends State<StudentEditModal> {
+class _StudentEditModalState extends ConsumerState<StudentEditModal> {
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _emailCtrl;
   late final TextEditingController _nisCtrl;
   late final TextEditingController _nisnCtrl;
-  late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
-  late String _classValue;
-  late String _statusValue;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _birthPlaceCtrl;
+  late final TextEditingController _birthDateCtrl;
+  late final TextEditingController _genderCtrl;
+  late final TextEditingController _religionCtrl;
+  late final TextEditingController _tahunMasukCtrl;
+  late final TextEditingController _jalurMasukCtrl;
 
-  static const List<String> _classOptions = [
-    'X IPA 1',
-    'X IPA 2',
-    'X IPA 3',
-    'XI IPS 1',
-    'XI IPS 2',
-    'XII IPA 1',
-    'XII IPS 1',
-  ];
-
-  static const List<String> _statusOptions = ['Aktif', 'Nonaktif'];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.data.name);
-    _nisCtrl = TextEditingController(text: widget.data.nis);
-    _nisnCtrl = TextEditingController(text: widget.data.nisn);
-    _emailCtrl = TextEditingController(text: widget.data.email);
-    _phoneCtrl = TextEditingController(text: widget.data.phone);
-
-    _classValue = _classOptions.contains(widget.data.studentClass)
-        ? widget.data.studentClass
-        : _classOptions.first;
-    _statusValue = _statusOptions.contains(widget.data.status)
-        ? widget.data.status
-        : _statusOptions.first;
+    final d = widget.data;
+    _nameCtrl = TextEditingController(text: d.name);
+    _emailCtrl = TextEditingController(text: d.email);
+    _nisCtrl = TextEditingController(text: d.nis);
+    _nisnCtrl = TextEditingController(text: d.nisn);
+    _phoneCtrl = TextEditingController(text: d.phone);
+    _addressCtrl = TextEditingController(text: d.address);
+    _birthPlaceCtrl = TextEditingController(text: d.birthPlace);
+    // Remove formatting to get just YYYY-MM-DD if possible, or just let user re-pick
+    _birthDateCtrl = TextEditingController(text: ''); 
+    _genderCtrl = TextEditingController(text: d.gender);
+    _religionCtrl = TextEditingController(text: d.religion);
+    _tahunMasukCtrl = TextEditingController(text: d.tahunMasuk);
+    _jalurMasukCtrl = TextEditingController(text: d.jalurMasukSekolah);
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _emailCtrl.dispose();
     _nisCtrl.dispose();
     _nisnCtrl.dispose();
-    _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _birthPlaceCtrl.dispose();
+    _birthDateCtrl.dispose();
+    _genderCtrl.dispose();
+    _religionCtrl.dispose();
+    _tahunMasukCtrl.dispose();
+    _jalurMasukCtrl.dispose();
     super.dispose();
+  }
+
+  String _requiredLabel(String label) => '$label *';
+
+  Future<void> _pickBirthDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (selected == null) return;
+
+    setState(() {
+      _birthDateCtrl.text =
+          '${selected.year.toString().padLeft(4, '0')}-'
+          '${selected.month.toString().padLeft(2, '0')}-'
+          '${selected.day.toString().padLeft(2, '0')}';
+    });
+  }
+
+  Future<void> _updateStudent() async {
+    if (_nameCtrl.text.trim().isEmpty || _emailCtrl.text.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nama dan email wajib diisi')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final data = <String, dynamic>{
+        'name': _nameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'nis': _nisCtrl.text.trim().isEmpty ? null : _nisCtrl.text.trim(),
+        'nisn': _nisnCtrl.text.trim().isEmpty ? null : _nisnCtrl.text.trim(),
+        'phone_number': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        'address': _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+        'birth_place': _birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim(),
+        'birth_date': _birthDateCtrl.text.trim().isEmpty ? null : _birthDateCtrl.text.trim(),
+        'gender': _genderCtrl.text.trim().isEmpty ? null : _genderCtrl.text.trim(),
+        'religion': _religionCtrl.text.trim().isEmpty ? null : _religionCtrl.text.trim(),
+        'tahun_masuk': _tahunMasukCtrl.text.trim().isEmpty ? null : _tahunMasukCtrl.text.trim(),
+        'jalur_masuk_sekolah': _jalurMasukCtrl.text.trim().isEmpty ? null : _jalurMasukCtrl.text.trim(),
+      };
+
+      await ref.read(
+        updateStudentProvider(
+          (id: widget.data.studentId, data: data),
+        ).future,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${widget.data.name} berhasil diperbarui')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -100,22 +177,18 @@ class _StudentEditModalState extends State<StudentEditModal> {
                       children: [
                         Text(
                           'Edit Data Siswa',
-                          style: AppTextStyles.h3.copyWith(
-                            color: AppColors.neutral900,
-                          ),
+                          style: AppTextStyles.h3.copyWith(color: AppColors.neutral900),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'UI form edit saja, belum ada logic simpan perubahan.',
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.neutral500,
-                          ),
+                          'Memperbarui data ${widget.data.name}',
+                          style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     color: AppColors.neutral700,
                   ),
@@ -144,7 +217,7 @@ class _StudentEditModalState extends State<StudentEditModal> {
                         SizedBox(
                           width: fieldWidth,
                           child: AppTextField(
-                            label: 'Nama Siswa',
+                            label: _requiredLabel('Nama Siswa'),
                             hint: 'Masukkan nama siswa',
                             controller: _nameCtrl,
                           ),
@@ -152,7 +225,7 @@ class _StudentEditModalState extends State<StudentEditModal> {
                         SizedBox(
                           width: fieldWidth,
                           child: AppTextField(
-                            label: 'Email',
+                            label: _requiredLabel('Email'),
                             hint: 'Masukkan email',
                             controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
@@ -187,20 +260,67 @@ class _StudentEditModalState extends State<StudentEditModal> {
                         ),
                         SizedBox(
                           width: fieldWidth,
-                          child: _dropdownField(
-                            label: 'Kelas',
-                            value: _classValue,
-                            items: _classOptions,
-                            onChanged: (v) => setState(() => _classValue = v),
+                          child: AppTextField(
+                            label: 'Tempat Lahir',
+                            hint: 'Masukkan tempat lahir',
+                            controller: _birthPlaceCtrl,
                           ),
                         ),
                         SizedBox(
                           width: fieldWidth,
-                          child: _dropdownField(
-                            label: 'Status',
-                            value: _statusValue,
-                            items: _statusOptions,
-                            onChanged: (v) => setState(() => _statusValue = v),
+                          child: AppTextField(
+                            label: 'Tanggal Lahir',
+                            hint: 'YYYY-MM-DD',
+                            controller: _birthDateCtrl,
+                            readOnly: true,
+                            onTap: _pickBirthDate,
+                            suffix: IconButton(
+                              onPressed: _pickBirthDate,
+                              icon: const Icon(Icons.calendar_month_outlined),
+                              color: AppColors.neutral500,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Jenis Kelamin',
+                            hint: 'L / P',
+                            controller: _genderCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Agama',
+                            hint: 'Islam, Kristen, dll',
+                            controller: _religionCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Tahun Masuk',
+                            hint: 'Contoh: 2023',
+                            controller: _tahunMasukCtrl,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        SizedBox(
+                          width: fieldWidth,
+                          child: AppTextField(
+                            label: 'Jalur Masuk',
+                            hint: 'Contoh: Zonasi, Prestasi',
+                            controller: _jalurMasukCtrl,
+                          ),
+                        ),
+                        SizedBox(
+                          width: constraints.maxWidth,
+                          child: AppTextField(
+                            label: 'Alamat',
+                            hint: 'Masukkan alamat',
+                            controller: _addressCtrl,
+                            maxLines: 3,
                           ),
                         ),
                       ],
@@ -214,13 +334,12 @@ class _StudentEditModalState extends State<StudentEditModal> {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.primary(
-                    label: 'Simpan Perubahan',
-                    // UI-only: belum ada logic update data.
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menyimpan...' : 'Simpan Perubahan',
+                    onPressed: _isLoading ? null : _updateStudent,
                   ),
                 ],
               ),
@@ -228,36 +347,6 @@ class _StudentEditModalState extends State<StudentEditModal> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _dropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.label.copyWith(color: AppColors.neutral700),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          initialValue: value,
-          decoration: const InputDecoration(),
-          items: items
-              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-              .toList(),
-          onChanged: (v) {
-            if (v == null) return;
-            onChanged(v);
-          },
-        ),
-      ],
     );
   }
 }

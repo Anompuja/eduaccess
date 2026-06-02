@@ -16,4 +16,16 @@ class AdminRowData {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  factory AdminRowData.fromJson(Map<String, dynamic> json) {
+    return AdminRowData(
+      adminId: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      phoneNumber: json['phone_number'] as String? ?? '',
+      address: json['address'] as String? ?? '',
+      nik: json['nik'] as String? ?? '',
+      createdAt: json['created_at'] as String? ?? '',
+      updatedAt: json['updated_at'] as String? ?? '',
+    );
+  }
 }

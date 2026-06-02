@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../data/models/parent_row_data.dart';
+import '../../domain/entities/parent_entity.dart';
+import '../providers/parents_provider.dart';
 
 Future<void> showParentEditModal(
   BuildContext context, {
-  required ParentRowData data,
+  required ParentEntity data,
 }) {
   return showDialog<void>(
     context: context,
@@ -17,30 +19,27 @@ Future<void> showParentEditModal(
   );
 }
 
-class ParentEditModal extends StatefulWidget {
-  final ParentRowData data;
+class ParentEditModal extends ConsumerStatefulWidget {
+  final ParentEntity data;
 
   const ParentEditModal({super.key, required this.data});
 
   @override
-  State<ParentEditModal> createState() => _ParentEditModalState();
+  ConsumerState<ParentEditModal> createState() => _ParentEditModalState();
 }
 
-class _ParentEditModalState extends State<ParentEditModal> {
+class _ParentEditModalState extends ConsumerState<ParentEditModal> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _childrenCountCtrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.data.name);
     _emailCtrl = TextEditingController(text: widget.data.email);
-    _phoneCtrl = TextEditingController(text: widget.data.phone);
-    _childrenCountCtrl = TextEditingController(
-      text: widget.data.childrenCount.toString(),
-    );
+    _phoneCtrl = TextEditingController(text: widget.data.phoneNumber);
   }
 
   @override
@@ -48,8 +47,49 @@ class _ParentEditModalState extends State<ParentEditModal> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
-    _childrenCountCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveParent() async {
+    if (_nameCtrl.text.isEmpty ||
+        _emailCtrl.text.isEmpty ||
+        _phoneCtrl.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan isi semua field')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final data = {
+        'name': _nameCtrl.text,
+        'email': _emailCtrl.text,
+        'phone_number': _phoneCtrl.text,
+      };
+
+      await ref.read(
+        updateParentProvider((id: widget.data.parentId, data: data)).future,
+      );
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data orang tua berhasil diperbarui')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -84,7 +124,7 @@ class _ParentEditModalState extends State<ParentEditModal> {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'UI form edit saja, belum ada logic simpan perubahan.',
+                          'Ubah data orang tua di form berikut dan simpan perubahan.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -145,15 +185,6 @@ class _ParentEditModalState extends State<ParentEditModal> {
                             keyboardType: TextInputType.phone,
                           ),
                         ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'Jumlah Anak',
-                            hint: 'Contoh: 2',
-                            controller: _childrenCountCtrl,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
                       ],
                     );
                   },
@@ -165,12 +196,14 @@ class _ParentEditModalState extends State<ParentEditModal> {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.primary(
-                    label: 'Simpan Perubahan',
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menyimpan...' : 'Simpan Perubahan',
+                    onPressed: _isLoading ? null : _saveParent,
                   ),
                 ],
               ),

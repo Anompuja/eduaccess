@@ -3,11 +3,11 @@
 /// Usage: ApiEndpoints.login → '/auth/login'
 abstract final class ApiEndpoints {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  static const String login   = '/auth/login';
+  static const String login = '/auth/login';
   static const String register = '/auth/register';
   static const String refresh = '/auth/refresh';
-  static const String logout  = '/auth/logout';
-  static const String me      = '/auth/me';
+  static const String logout = '/auth/logout';
+  static const String me = '/profile';
 
   // ── Admins ───────────────────────────────────────────────────────────────
   static const String admins = '/admins';
@@ -15,6 +15,7 @@ abstract final class ApiEndpoints {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   static const String dashboardStats = '/dashboard/stats';
+  static const String schools = '/schools';
 
   // ── Students ──────────────────────────────────────────────────────────────
   static const String students = '/students';
@@ -25,6 +26,10 @@ abstract final class ApiEndpoints {
   static const String staff = '/staff';
   static String staffById(String id) => '/staff/$id';
 
+  // ── Teachers ─────────────────────────────────────────────────────────────
+  static const String teachers = '/teachers';
+  static String teacherById(String id) => '/teachers/$id';
+
   // ── Parents (Orang Tua) ───────────────────────────────────────────────────
   static const String parents = '/parents';
   static String parentById(String id) => '/parents/$id';
@@ -33,6 +38,23 @@ abstract final class ApiEndpoints {
   static const String classrooms = '/classrooms';
   static const String academicYears = '/academic-years';
   static const String gradePromotion = '/grade-promotion';
+
+  // ── Academic Structure ────────────────────────────────────────────────────────
+  static const String academicLevels = '/academic/levels';
+  static String academicLevelById(String id) => '/academic/levels/$id';
+  static const String academicClasses = '/academic/classes';
+  static String academicClassById(String id) => '/academic/classes/$id';
+  static const String academicSubClasses = '/academic/sub-classes';
+  static String academicSubClassById(String id) => '/academic/sub-classes/$id';
+  static const String academicYearsList = '/academic/academic-years';
+  static String academicYearById(String id) => '/academic/academic-years/$id';
+  static String academicYearActivate(String id) => '/academic/academic-years/$id/activate';
+  static const String subjectsList = '/academic/subjects';
+  static String subjectById(String id) => '/academic/subjects/$id';
+  static const String classroomsList = '/academic/classrooms';
+  static String classroomById(String id) => '/academic/classrooms/$id';
+  static const String schedulesList = '/academic/schedules';
+  static String scheduleById(String id) => '/academic/schedules/$id';
 
   // ── CBT / Exams ───────────────────────────────────────────────────────────
   static const String exams = '/exams';
