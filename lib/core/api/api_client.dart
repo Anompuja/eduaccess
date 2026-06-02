@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/token_storage.dart';
@@ -12,13 +11,11 @@ const _kBaseUrl = String.fromEnvironment(
   'EDUACCESS_BASE_URL',
   defaultValue: '',
 );
-const _kBaseUrl = 'http://localhost:8080/api/v1';
 
 String _resolveBaseUrl() {
-  if (kIsWeb) return 'http://localhost:8080/api/v1';
+  if (_kBaseUrl.isNotEmpty) return _kBaseUrl;
   return 'http://localhost:8080/api/v1';
 }
-
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 /// In-memory HTTP cache store. Honors the backend's Cache-Control/ETag so native

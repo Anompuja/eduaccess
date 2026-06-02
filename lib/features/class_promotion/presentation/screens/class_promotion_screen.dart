@@ -10,7 +10,6 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_empty_state.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../academic/presentation/providers/academic_providers.dart';
 import '../../../student_tracking/presentation/providers/student_tracking_providers.dart';
 import '../providers/class_promotion_providers.dart';
@@ -19,27 +18,34 @@ class ClassPromotionScreen extends ConsumerStatefulWidget {
   const ClassPromotionScreen({super.key});
 
   @override
-  ConsumerState<ClassPromotionScreen> createState() => _ClassPromotionScreenState();
+  ConsumerState<ClassPromotionScreen> createState() =>
+      _ClassPromotionScreenState();
 }
 
 class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
   String? _sourceClassroomId;
   String? _targetClassroomId;
   String _status = 'promoted';
-  final Set<String> _selected = {};
+  final Set<String> _selectedStudentIds = {};
   bool _isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
+    final isCompact =
+        Responsive.isMobile(context) || Responsive.isTablet(context);
     final classroomsAsync = ref.watch(classroomsProvider);
 
     return SingleChildScrollView(
-      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact
+          ? const EdgeInsets.all(AppSpacing.lg)
+          : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Naik Kelas', style: AppTextStyles.h2.copyWith(color: AppColors.neutral900)),
+          Text(
+            'Naik Kelas',
+            style: AppTextStyles.h2.copyWith(color: AppColors.neutral900),
+          ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Pindahkan siswa dari kelas sumber ke kelas tujuan. Siswa yang tidak dipilih tetap tinggal kelas.',
@@ -51,10 +57,12 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
               padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (e, _) => AppCard(
+            error: (error, _) => AppCard(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                child: AppEmptyState(message: e.toString().replaceFirst('Exception: ', '')),
+                child: AppEmptyState(
+                  message: error.toString().replaceFirst('Exception: ', ''),
+                ),
               ),
             ),
             data: (classrooms) {
@@ -62,13 +70,22 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
                 return const AppCard(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-                    child: AppEmptyState(message: 'Belum ada data ruang kelas.'),
+                    child: AppEmptyState(
+                      message: 'Belum ada data ruang kelas.',
+                    ),
                   ),
                 );
               }
+
               final classroomItems = classrooms
-                  .map((c) => AppDropdownItem<String>(value: c.id, label: c.name))
+                  .map(
+                    (classroom) => AppDropdownItem<String>(
+                      value: classroom.id,
+                      label: classroom.name,
+                    ),
+                  )
                   .toList();
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -84,7 +101,10 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
     );
   }
 
-  Widget _buildFilterCard(bool isMobile, List<AppDropdownItem<String>> classroomItems) {
+  Widget _buildFilterCard(
+    bool isMobile,
+    List<AppDropdownItem<String>> classroomItems,
+  ) {
     final sourceDropdown = AppDropdown<String>(
       label: 'Kelas Sumber',
       hint: 'Pilih kelas sumber',
@@ -92,16 +112,21 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
       items: classroomItems,
       onChanged: (value) => setState(() {
         _sourceClassroomId = value;
-        _selected.clear();
+        _targetClassroomId = null;
+        _selectedStudentIds.clear();
       }),
     );
+
     final targetDropdown = AppDropdown<String>(
       label: 'Kelas Tujuan',
       hint: 'Pilih kelas tujuan',
       value: _targetClassroomId,
-      items: classroomItems.where((i) => i.value != _sourceClassroomId).toList(),
+      items: classroomItems
+          .where((item) => item.value != _sourceClassroomId)
+          .toList(),
       onChanged: (value) => setState(() => _targetClassroomId = value),
     );
+
     final statusDropdown = AppDropdown<String>(
       label: 'Jenis',
       value: _status,
@@ -114,34 +139,44 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
 
     return AppCard(
       child: isMobile
-          ? Column(children: [
-              sourceDropdown,
-              const SizedBox(height: AppSpacing.md),
-              targetDropdown,
-              const SizedBox(height: AppSpacing.md),
-              statusDropdown,
-            ])
-          : Row(children: [
-              Expanded(child: sourceDropdown),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(child: targetDropdown),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(child: statusDropdown),
-            ]),
+          ? Column(
+              children: [
+                sourceDropdown,
+                const SizedBox(height: AppSpacing.md),
+                targetDropdown,
+                const SizedBox(height: AppSpacing.md),
+                statusDropdown,
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: sourceDropdown),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(child: targetDropdown),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(child: statusDropdown),
+              ],
+            ),
     );
   }
 
   Widget _buildStudentsSection() {
-    final asyncStudents = ref.watch(classroomStudentsProvider(_sourceClassroomId!));
+    final sourceClassroomId = _sourceClassroomId!;
+    final asyncStudents = ref.watch(
+      classroomStudentsProvider(sourceClassroomId),
+    );
+
     return asyncStudents.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => AppCard(
+      error: (error, _) => AppCard(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-          child: AppEmptyState(message: e.toString().replaceFirst('Exception: ', '')),
+          child: AppEmptyState(
+            message: error.toString().replaceFirst('Exception: ', ''),
+          ),
         ),
       ),
       data: (students) {
@@ -149,10 +184,13 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
           return const AppCard(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-              child: AppEmptyState(message: 'Tidak ada siswa aktif pada kelas sumber ini.'),
+              child: AppEmptyState(
+                message: 'Tidak ada siswa aktif pada kelas sumber ini.',
+              ),
             ),
           );
         }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -164,45 +202,70 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
                 children: [
                   Row(
                     children: [
-                      Text('Daftar Siswa', style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
+                      Text(
+                        'Daftar Siswa',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.neutral900,
+                        ),
+                      ),
                       const Spacer(),
                       AppButton.ghost(
-                        label: _selected.length == students.length ? 'Batal Semua' : 'Pilih Semua',
+                        label: _selectedStudentIds.length == students.length
+                            ? 'Batal Semua'
+                            : 'Pilih Semua',
                         onPressed: () => setState(() {
-                          if (_selected.length == students.length) {
-                            _selected.clear();
+                          if (_selectedStudentIds.length == students.length) {
+                            _selectedStudentIds.clear();
                           } else {
-                            _selected
+                            _selectedStudentIds
                               ..clear()
-                              ..addAll(students.map((s) => s.studentId));
+                              ..addAll(
+                                students.map((student) => student.studentId),
+                              );
                           }
                         }),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  ...students.map((s) => CheckboxListTile(
-                        value: _selected.contains(s.studentId),
-                        onChanged: (checked) => setState(() {
-                          if (checked == true) {
-                            _selected.add(s.studentId);
-                          } else {
-                            _selected.remove(s.studentId);
-                          }
-                        }),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                        activeColor: AppColors.primary700,
-                        title: Text(s.studentName, style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900, fontWeight: FontWeight.w500)),
-                        subtitle: Text('NIS: ${s.nis.isEmpty ? '-' : s.nis} · ${s.fullClassName}',
-                            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500)),
-                      )),
+                  ...students.map(
+                    (student) => CheckboxListTile(
+                      value: _selectedStudentIds.contains(student.studentId),
+                      onChanged: (checked) => setState(() {
+                        if (checked == true) {
+                          _selectedStudentIds.add(student.studentId);
+                        } else {
+                          _selectedStudentIds.remove(student.studentId);
+                        }
+                      }),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: AppColors.primary700,
+                      title: Text(
+                        student.studentName,
+                        style: AppTextStyles.bodyMd.copyWith(
+                          color: AppColors.neutral900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'NIS: ${student.nis.isEmpty ? '-' : student.nis} · ${student.fullClassName}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   Align(
                     alignment: Alignment.centerRight,
                     child: AppButton.primary(
                       label: 'Proses Kenaikan',
-                      onPressed: (_selected.isEmpty || _targetClassroomId == null || _isSubmitting)
+                      isLoading: _isSubmitting,
+                      onPressed:
+                          (_selectedStudentIds.isEmpty ||
+                              _targetClassroomId == null ||
+                              _isSubmitting)
                           ? null
                           : () => _openConfirmDialog(students.length),
                     ),
@@ -223,8 +286,16 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
         runSpacing: AppSpacing.sm,
         children: [
           _summaryItem('Total Siswa', '$total', AppColors.primary700),
-          _summaryItem(_status == 'transferred' ? 'Dipindah' : 'Naik Kelas', '${_selected.length}', AppColors.success),
-          _summaryItem('Tinggal Kelas', '${total - _selected.length}', AppColors.warning),
+          _summaryItem(
+            _status == 'transferred' ? 'Dipindah' : 'Naik Kelas',
+            '${_selectedStudentIds.length}',
+            AppColors.success,
+          ),
+          _summaryItem(
+            'Tinggal Kelas',
+            '${total - _selectedStudentIds.length}',
+            AppColors.warning,
+          ),
         ],
       ),
     );
@@ -234,7 +305,20 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
     return Container(
       width: 180,
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.10), borderRadius: AppRadius.lgAll),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: AppRadius.lgAll,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(value, style: AppTextStyles.h4.copyWith(color: color)),
+        ],
       ),
     );
   }
@@ -244,3 +328,80 @@ class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
       context: context,
       builder: (dialogContext) => AppDialog(
         title: 'Konfirmasi Kenaikan',
+        subtitle:
+            'Akan memproses ${_selectedStudentIds.length} dari $total siswa.',
+        maxWidth: 520,
+        content: Text(
+          _status == 'transferred'
+              ? 'Siswa yang dipilih akan dipindahkan ke kelas tujuan.'
+              : 'Siswa yang dipilih akan dinaikkan ke kelas tujuan.',
+          style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
+        ),
+        actions: [
+          AppButton.secondary(
+            label: 'Batal',
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          AppButton.primary(
+            label: 'Proses',
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true ||
+        _targetClassroomId == null ||
+        _selectedStudentIds.isEmpty) {
+      return;
+    }
+
+    await _processPromotion();
+  }
+
+  Future<void> _processPromotion() async {
+    final sourceClassroomId = _sourceClassroomId;
+    final targetClassroomId = _targetClassroomId;
+    if (sourceClassroomId == null ||
+        targetClassroomId == null ||
+        _selectedStudentIds.isEmpty) {
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final result = await ref
+          .read(classPromotionRepositoryProvider)
+          .promote(
+            studentIds: _selectedStudentIds.toList(),
+            toClassroomId: targetClassroomId,
+            status: _status,
+          );
+
+      if (!mounted) return;
+
+      ref.invalidate(classroomStudentsProvider(sourceClassroomId));
+      setState(() {
+        _selectedStudentIds.clear();
+        _isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Berhasil memproses ${result.success} siswa, ${result.failed} gagal.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+}
