@@ -12,17 +12,13 @@ const _kBaseUrl = String.fromEnvironment(
   'EDUACCESS_BASE_URL',
   defaultValue: '',
 );
+const _kBaseUrl = 'http://localhost:8080/api/v1';
 
 String _resolveBaseUrl() {
-  if (_kBaseUrl.isNotEmpty) return _kBaseUrl;
-
   if (kIsWeb) return 'http://localhost:8080/api/v1';
-
-  return switch (defaultTargetPlatform) {
-    TargetPlatform.android => 'http://10.0.2.2:8080/api/v1',
-    _ => 'http://localhost:8080/api/v1',
-  };
+  return 'http://localhost:8080/api/v1';
 }
+
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 /// In-memory HTTP cache store. Honors the backend's Cache-Control/ETag so native

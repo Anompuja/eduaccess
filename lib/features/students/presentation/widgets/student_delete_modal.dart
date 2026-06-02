@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../data/models/student_row_data.dart';
+import '../providers/students_provider.dart';
 
 Future<void> showStudentDeleteModal(
   BuildContext context, {
@@ -16,10 +18,40 @@ Future<void> showStudentDeleteModal(
   );
 }
 
-class StudentDeleteModal extends StatelessWidget {
+class StudentDeleteModal extends ConsumerStatefulWidget {
   final StudentRowData data;
 
   const StudentDeleteModal({super.key, required this.data});
+
+  @override
+  ConsumerState<StudentDeleteModal> createState() => _StudentDeleteModalState();
+}
+
+class _StudentDeleteModalState extends ConsumerState<StudentDeleteModal> {
+  bool _isLoading = false;
+
+  Future<void> _deleteStudent() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(deleteStudentProvider(widget.data.studentId).future);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${widget.data.name} berhasil dihapus')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +100,7 @@ class StudentDeleteModal extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Aksi ini hanya tampilan UI. Data belum benar-benar dihapus. dan belum ada logicnya',
+                          'Apakah Anda yakin ingin menghapus data siswa ini? Aksi ini mungkin tidak dapat dibatalkan.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -77,7 +109,7 @@ class StudentDeleteModal extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     color: AppColors.neutral700,
                   ),
@@ -104,14 +136,14 @@ class StudentDeleteModal extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      data.name,
+                      widget.data.name,
                       style: AppTextStyles.bodyLgSemiBold.copyWith(
                         color: AppColors.neutral900,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'NIS: ${data.nis} • Kelas: ${data.studentClass}',
+                      'NIS: ${widget.data.nis} • Kelas: ${widget.data.studentClass}',
                       style: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.neutral700,
                       ),
@@ -125,13 +157,12 @@ class StudentDeleteModal extends StatelessWidget {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.danger(
-                    label: 'Hapus',
-                    // UI-only: tombol belum memicu logic delete.
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menghapus...' : 'Hapus',
+                    onPressed: _isLoading ? null : _deleteStudent,
                   ),
                 ],
               ),

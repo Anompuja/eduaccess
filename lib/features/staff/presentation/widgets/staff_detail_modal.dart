@@ -73,10 +73,46 @@ class StaffDetailModal extends StatelessWidget {
                 icon: Icons.badge_outlined,
                 children: [
                   _DetailItem(label: 'Staff ID', value: data.staffId),
+                  _DetailItem(label: 'User ID', value: data.userId),
+                  _DetailItem(label: 'School ID', value: data.schoolId),
                   _DetailItem(label: 'Nama', value: data.name),
-                  _DetailItem(label: 'Role', value: data.role),
                   _DetailItem(label: 'Email', value: data.email),
-                  _DetailItem(label: 'Telepon', value: data.phone),
+                  _DetailItem(
+                    label: 'Username',
+                    value: data.username.isEmpty ? '-' : data.username,
+                  ),
+                  _DetailItem(
+                    label: 'Telepon',
+                    value: data.phoneNumber.isEmpty ? '-' : data.phoneNumber,
+                  ),
+                  _DetailItem(
+                    label: 'Alamat',
+                    value: data.address.isEmpty ? '-' : data.address,
+                  ),
+                  _DetailItem(
+                    label: 'Jenis Kelamin',
+                    value: data.gender.isEmpty ? '-' : data.gender,
+                  ),
+                  _DetailItem(
+                    label: 'Agama',
+                    value: data.religion.isEmpty ? '-' : data.religion,
+                  ),
+                  _DetailItem(
+                    label: 'Tempat Lahir',
+                    value: data.birthPlace.isEmpty ? '-' : data.birthPlace,
+                  ),
+                  _DetailItem(
+                    label: 'Tanggal Lahir',
+                    value: data.birthDate.isEmpty ? '-' : data.birthDate,
+                  ),
+                  _DetailItem(
+                    label: 'NIK',
+                    value: data.nik.isEmpty ? '-' : data.nik,
+                  ),
+                  _DetailItem(
+                    label: 'KTP Image Path',
+                    value: data.ktpImagePath.isEmpty ? '-' : data.ktpImagePath,
+                  ),
                   _DetailItem(label: 'Status', value: data.status),
                 ],
               ),
