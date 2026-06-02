@@ -17,10 +17,23 @@ import 'package:eduaccess/features/academic/presentation/providers/academic_prov
 import 'package:eduaccess/features/dashboard/domain/entities/dashboard_school.dart';
 import 'package:eduaccess/features/dashboard/presentation/providers/dashboard_provider.dart';
 
-const _shiftTypes = [
-  AppDropdownItem(value: 'morning', label: 'Pagi'),
-  AppDropdownItem(value: 'afternoon', label: 'Siang'),
-  AppDropdownItem(value: 'full_day', label: 'Seharian'),
+const _dayOptions = [
+  AppDropdownItem(value: 'monday', label: 'Senin'),
+  AppDropdownItem(value: 'tuesday', label: 'Selasa'),
+  AppDropdownItem(value: 'wednesday', label: 'Rabu'),
+  AppDropdownItem(value: 'thursday', label: 'Kamis'),
+  AppDropdownItem(value: 'friday', label: 'Jumat'),
+  AppDropdownItem(value: 'saturday', label: 'Sabtu'),
+];
+
+const _dayFilterOptions = [
+  ('all', 'Semua'),
+  ('monday', 'Senin'),
+  ('tuesday', 'Selasa'),
+  ('wednesday', 'Rabu'),
+  ('thursday', 'Kamis'),
+  ('friday', 'Jumat'),
+  ('saturday', 'Sabtu'),
 ];
 
 class JadwalTab extends ConsumerStatefulWidget {
@@ -32,12 +45,18 @@ class JadwalTab extends ConsumerStatefulWidget {
 
 class _JadwalTabState extends ConsumerState<JadwalTab> {
   bool _isSubmitting = false;
+  String _selectedDay = 'all';
 
-  Future<TimeOfDay?> _pickTime(BuildContext context, {TimeOfDay? initial}) async {
-    return showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
-  }
-
-  String _formatTime(TimeOfDay t) => '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  String _dayLabel(String day) => switch (day) {
+    'monday' => 'Senin',
+    'tuesday' => 'Selasa',
+    'wednesday' => 'Rabu',
+    'thursday' => 'Kamis',
+    'friday' => 'Jumat',
+    'saturday' => 'Sabtu',
+    'sunday' => 'Minggu',
+    _ => day,
+  };
 
   TimeOfDay? _parseTime(String s) {
     final parts = s.split(':');
@@ -48,6 +67,12 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     return TimeOfDay(hour: h, minute: m);
   }
 
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<TimeOfDay?> _pickTime(BuildContext context, {TimeOfDay? initial}) =>
+      showTimePicker(context: context, initialTime: initial ?? TimeOfDay.now());
+
   Future<void> _create() async {
     final user = ref.read(currentUserProvider);
     final activeSchool = ref.read(activeSchoolProvider);
@@ -56,49 +81,70 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     final allSchools = needsSchoolPicker
         ? (ref.read(dashboardSchoolsProvider).valueOrNull ?? [])
         : <DashboardSchool>[];
+
     String? dialogSchoolId = activeSchool?.id;
-    var selectedShift = 'morning';
+    String selectedDay = _selectedDay == 'all' ? 'monday' : _selectedDay;
+    final periodCtrl = TextEditingController();
+    final labelCtrl = TextEditingController();
     TimeOfDay? startTime;
     TimeOfDay? endTime;
+    bool isBreak = false;
     bool saved = false;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (_, setD) => AppDialog(
-          title: 'Tambah Jadwal',
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (needsSchoolPicker) ...[
-              AppDropdown<String?>(
-                label: 'Sekolah',
-                hint: 'Pilih sekolah',
-                value: dialogSchoolId,
-                items: allSchools.map((s) => AppDropdownItem<String?>(value: s.id, label: s.name)).toList(),
-                onChanged: (v) => setD(() => dialogSchoolId = v),
+          title: 'Tambah Jam Pelajaran',
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              if (needsSchoolPicker) ...[
+                AppDropdown<String?>(
+                  label: 'Sekolah',
+                  hint: 'Pilih sekolah',
+                  value: dialogSchoolId,
+                  items: allSchools.map((s) => AppDropdownItem<String?>(value: s.id, label: s.name)).toList(),
+                  onChanged: (v) => setD(() => dialogSchoolId = v),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              AppDropdown<String>(
+                label: 'Hari',
+                value: selectedDay,
+                items: _dayOptions,
+                onChanged: (v) { if (v != null) setD(() => selectedDay = v); },
               ),
               const SizedBox(height: AppSpacing.md),
-            ],
-            AppDropdown<String>(
-              label: 'Tipe Sesi',
-              value: selectedShift,
-              items: _shiftTypes,
-              onChanged: (v) { if (v != null) setD(() => selectedShift = v); },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _timePicker(label: 'Jam Mulai', value: startTime, onTap: () async {
-              final t = await _pickTime(ctx, initial: startTime);
-              if (t != null) setD(() => startTime = t);
-            }),
-            const SizedBox(height: AppSpacing.md),
-            _timePicker(label: 'Jam Selesai', value: endTime, onTap: () async {
-              final t = await _pickTime(ctx, initial: endTime ?? startTime);
-              if (t != null) setD(() => endTime = t);
-            }),
-          ]),
+              _textField(ctrl: periodCtrl, label: 'Nomor Jam', hint: 'contoh: 1', keyboardType: TextInputType.number),
+              const SizedBox(height: AppSpacing.md),
+              _textField(ctrl: labelCtrl, label: 'Label', hint: 'contoh: Jam 1 atau Istirahat'),
+              const SizedBox(height: AppSpacing.md),
+              _timePicker(ctx: ctx, label: 'Jam Mulai', value: startTime, onTap: () async {
+                final t = await _pickTime(ctx, initial: startTime);
+                if (t != null) setD(() => startTime = t);
+              }),
+              const SizedBox(height: AppSpacing.md),
+              _timePicker(ctx: ctx, label: 'Jam Selesai', value: endTime, onTap: () async {
+                final t = await _pickTime(ctx, initial: endTime ?? startTime);
+                if (t != null) setD(() => endTime = t);
+              }),
+              const SizedBox(height: AppSpacing.md),
+              Row(children: [
+                Switch(
+                  value: isBreak,
+                  onChanged: (v) => setD(() => isBreak = v),
+                  activeThumbColor: AppColors.warning,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Jam Istirahat', style: AppTextStyles.bodyMd),
+              ]),
+            ]),
+          ),
           actions: [
             AppButton.secondary(label: 'Batal', onPressed: () => Navigator.of(ctx).pop()),
             AppButton.primary(label: 'Simpan', onPressed: () {
               if (startTime == null || endTime == null) return;
+              if (periodCtrl.text.trim().isEmpty || labelCtrl.text.trim().isEmpty) return;
               if (needsSchoolPicker && dialogSchoolId == null) return;
               saved = true;
               Navigator.of(ctx).pop();
@@ -109,11 +155,20 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     );
 
     if (!saved || !mounted) return;
+    final period = int.tryParse(periodCtrl.text.trim());
+    if (period == null) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).createSchedule(
-        selectedShift, _formatTime(startTime!), _formatTime(endTime!),
-        schoolId: isSuperadmin ? dialogSchoolId : null);
+        dayOfWeek: selectedDay,
+        periodNumber: period,
+        label: labelCtrl.text.trim(),
+        startTime: _formatTime(startTime!),
+        endTime: _formatTime(endTime!),
+        isBreak: isBreak,
+        schoolId: isSuperadmin ? dialogSchoolId : null,
+      );
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -122,39 +177,59 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     }
   }
 
-  Future<void> _edit(ScheduleEntity schedule) async {
-    var selectedShift = _shiftTypes.any((s) => s.value == schedule.shiftType) ? schedule.shiftType : 'morning';
-    TimeOfDay? startTime = _parseTime(schedule.startTime);
-    TimeOfDay? endTime = _parseTime(schedule.endTime);
+  Future<void> _edit(ScheduleEntity s) async {
+    String selectedDay = s.dayOfWeek;
+    final periodCtrl = TextEditingController(text: '${s.periodNumber}');
+    final labelCtrl = TextEditingController(text: s.label);
+    TimeOfDay? startTime = _parseTime(s.startTime);
+    TimeOfDay? endTime = _parseTime(s.endTime);
+    bool isBreak = s.isBreak;
     bool saved = false;
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (_, setD) => AppDialog(
-          title: 'Edit Jadwal',
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            AppDropdown<String>(
-              label: 'Tipe Sesi',
-              value: selectedShift,
-              items: _shiftTypes,
-              onChanged: (v) { if (v != null) setD(() => selectedShift = v); },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _timePicker(label: 'Jam Mulai', value: startTime, onTap: () async {
-              final t = await _pickTime(ctx, initial: startTime);
-              if (t != null) setD(() => startTime = t);
-            }),
-            const SizedBox(height: AppSpacing.md),
-            _timePicker(label: 'Jam Selesai', value: endTime, onTap: () async {
-              final t = await _pickTime(ctx, initial: endTime ?? startTime);
-              if (t != null) setD(() => endTime = t);
-            }),
-          ]),
+          title: 'Edit Jam Pelajaran',
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              AppDropdown<String>(
+                label: 'Hari',
+                value: selectedDay,
+                items: _dayOptions,
+                onChanged: (v) { if (v != null) setD(() => selectedDay = v); },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _textField(ctrl: periodCtrl, label: 'Nomor Jam', hint: 'contoh: 1', keyboardType: TextInputType.number),
+              const SizedBox(height: AppSpacing.md),
+              _textField(ctrl: labelCtrl, label: 'Label', hint: 'contoh: Jam 1 atau Istirahat'),
+              const SizedBox(height: AppSpacing.md),
+              _timePicker(ctx: ctx, label: 'Jam Mulai', value: startTime, onTap: () async {
+                final t = await _pickTime(ctx, initial: startTime);
+                if (t != null) setD(() => startTime = t);
+              }),
+              const SizedBox(height: AppSpacing.md),
+              _timePicker(ctx: ctx, label: 'Jam Selesai', value: endTime, onTap: () async {
+                final t = await _pickTime(ctx, initial: endTime ?? startTime);
+                if (t != null) setD(() => endTime = t);
+              }),
+              const SizedBox(height: AppSpacing.md),
+              Row(children: [
+                Switch(
+                  value: isBreak,
+                  onChanged: (v) => setD(() => isBreak = v),
+                  activeThumbColor: AppColors.warning,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Jam Istirahat', style: AppTextStyles.bodyMd),
+              ]),
+            ]),
+          ),
           actions: [
             AppButton.secondary(label: 'Batal', onPressed: () => Navigator.of(ctx).pop()),
             AppButton.primary(label: 'Simpan', onPressed: () {
               if (startTime == null || endTime == null) return;
+              if (periodCtrl.text.trim().isEmpty || labelCtrl.text.trim().isEmpty) return;
               saved = true;
               Navigator.of(ctx).pop();
             }),
@@ -164,10 +239,20 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     );
 
     if (!saved || !mounted) return;
+    final period = int.tryParse(periodCtrl.text.trim());
+    if (period == null) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).updateSchedule(
-        schedule.id, selectedShift, _formatTime(startTime!), _formatTime(endTime!));
+        s.id,
+        dayOfWeek: selectedDay,
+        periodNumber: period,
+        label: labelCtrl.text.trim(),
+        startTime: _formatTime(startTime!),
+        endTime: _formatTime(endTime!),
+        isBreak: isBreak,
+      );
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -176,18 +261,18 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     }
   }
 
-  Future<void> _delete(ScheduleEntity schedule) async {
+  Future<void> _delete(ScheduleEntity s) async {
     final confirmed = await AppConfirmDialog.show(
       context: context,
-      title: 'Hapus Jadwal',
-      message: 'Jadwal "${_shiftLabel(schedule.shiftType)} (${schedule.startTime} – ${schedule.endTime})" akan dihapus permanen.',
+      title: 'Hapus Jam Pelajaran',
+      message: 'Jam "${s.label} (${s.startTime}–${s.endTime})" akan dihapus permanen.',
       confirmLabel: 'Hapus',
       isDanger: true,
     );
     if (confirmed != true) return;
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(academicRepositoryProvider).deleteSchedule(schedule.id);
+      await ref.read(academicRepositoryProvider).deleteSchedule(s.id);
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -199,20 +284,20 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
   void _showError(String msg) => ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(msg), backgroundColor: AppColors.error));
 
-  String _shiftLabel(String shift) => switch (shift) {
-    'morning' => 'Pagi',
-    'afternoon' => 'Siang',
-    'full_day' => 'Seharian',
-    _ => shift,
-  };
+  Widget _textField({required TextEditingController ctrl, required String label, String? hint, TextInputType? keyboardType}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: AppRadius.mdAll),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      ),
+    );
+  }
 
-  BadgeStatus _shiftBadge(String shift) => switch (shift) {
-    'morning' => BadgeStatus.info,
-    'afternoon' => BadgeStatus.warning,
-    _ => BadgeStatus.success,
-  };
-
-  Widget _timePicker({required String label, required TimeOfDay? value, required VoidCallback onTap}) {
+  Widget _timePicker({required BuildContext ctx, required String label, required TimeOfDay? value, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -226,7 +311,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
             Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.neutral500)),
             const SizedBox(height: 2),
             Text(
-              value != null ? value.format(context) : 'Pilih jam',
+              value != null ? value.format(ctx) : 'Pilih jam',
               style: AppTextStyles.bodyMd.copyWith(color: value != null ? AppColors.neutral900 : AppColors.neutral300),
             ),
           ])),
@@ -244,61 +329,105 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: AppButton.accent(
-            label: 'Tambah Jadwal',
+        Row(children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: _dayFilterOptions.map((opt) {
+                final isSelected = _selectedDay == opt.$1;
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: ChoiceChip(
+                    label: Text(opt.$2),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _selectedDay = opt.$1),
+                    selectedColor: AppColors.primary700,
+                    labelStyle: AppTextStyles.label.copyWith(
+                      color: isSelected ? AppColors.white : AppColors.neutral700,
+                    ),
+                  ),
+                );
+              }).toList()),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          AppButton.accent(
+            label: 'Tambah',
             prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
             onPressed: _isSubmitting ? null : _create,
           ),
-        ),
+        ]),
         const SizedBox(height: AppSpacing.md),
         asyncData.when(
           loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
           error: (e, _) => Center(child: Text(e.toString(), style: AppTextStyles.bodyMd.copyWith(color: AppColors.error))),
-          data: (schedules) => AppCard(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: Theme(
-                  data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
-                  child: DataTable(
-                    columnSpacing: isCompact ? 12 : 24,
-                    horizontalMargin: AppSpacing.md,
-                    headingRowHeight: isCompact ? 42 : 48,
-                    dataRowMinHeight: isCompact ? 50 : 54,
-                    dataRowMaxHeight: isCompact ? 50 : 54,
-                    headingTextStyle: AppTextStyles.label.copyWith(color: AppColors.neutral700, fontWeight: FontWeight.w700),
-                    dataTextStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900, fontWeight: FontWeight.w500),
-                    columns: const [
-                      DataColumn(label: SizedBox(width: 48, child: Text('No'))),
-                      DataColumn(label: SizedBox(width: 130, child: Text('Tipe Sesi'))),
-                      DataColumn(label: SizedBox(width: 110, child: Text('Jam Mulai'))),
-                      DataColumn(label: SizedBox(width: 110, child: Text('Jam Selesai'))),
-                      DataColumn(label: SizedBox(width: 100, child: Text('Aksi'))),
-                    ],
-                    rows: schedules.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final s = entry.value;
-                      return DataRow(cells: [
-                        DataCell(SizedBox(width: 48, child: Text('${i + 1}'))),
-                        DataCell(Align(alignment: Alignment.centerLeft, child: AppBadge(label: _shiftLabel(s.shiftType), status: _shiftBadge(s.shiftType)))),
-                        DataCell(SizedBox(width: 110, child: Text(s.startTime))),
-                        DataCell(SizedBox(width: 110, child: Text(s.endTime))),
-                        DataCell(SizedBox(width: 100, child: Row(children: [
-                          _actionBtn(Icons.edit_outlined, AppColors.warning, () => _edit(s)),
-                          const SizedBox(width: AppSpacing.sm),
-                          _actionBtn(Icons.delete_outline_rounded, AppColors.error, () => _delete(s)),
-                        ]))),
-                      ]);
-                    }).toList(),
+          data: (all) {
+            final schedules = _selectedDay == 'all'
+                ? all
+                : all.where((s) => s.dayOfWeek == _selectedDay).toList();
+            if (schedules.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  child: Text('Belum ada jam pelajaran.', style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500)),
+                ),
+              );
+            }
+            return AppCard(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: LayoutBuilder(builder: (context, constraints) => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
+                    child: DataTable(
+                      columnSpacing: isCompact ? 12 : 20,
+                      horizontalMargin: AppSpacing.md,
+                      headingRowHeight: isCompact ? 42 : 48,
+                      dataRowMinHeight: isCompact ? 50 : 54,
+                      dataRowMaxHeight: isCompact ? 50 : 54,
+                      headingTextStyle: AppTextStyles.label.copyWith(color: AppColors.neutral700, fontWeight: FontWeight.w700),
+                      dataTextStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900, fontWeight: FontWeight.w500),
+                      columns: [
+                        const DataColumn(label: SizedBox(width: 40, child: Text('No'))),
+                        if (_selectedDay == 'all')
+                          const DataColumn(label: SizedBox(width: 80, child: Text('Hari'))),
+                        const DataColumn(label: SizedBox(width: 50, child: Text('Jam'))),
+                        const DataColumn(label: SizedBox(width: 140, child: Text('Label'))),
+                        const DataColumn(label: SizedBox(width: 90, child: Text('Mulai'))),
+                        const DataColumn(label: SizedBox(width: 90, child: Text('Selesai'))),
+                        const DataColumn(label: SizedBox(width: 100, child: Text('Jenis'))),
+                        const DataColumn(label: SizedBox(width: 90, child: Text('Aksi'))),
+                      ],
+                      rows: schedules.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final s = entry.value;
+                        return DataRow(cells: [
+                          DataCell(SizedBox(width: 40, child: Text('${i + 1}'))),
+                          if (_selectedDay == 'all')
+                            DataCell(SizedBox(width: 80, child: Text(_dayLabel(s.dayOfWeek)))),
+                          DataCell(SizedBox(width: 50, child: Text('${s.periodNumber}'))),
+                          DataCell(SizedBox(width: 140, child: Text(s.label))),
+                          DataCell(SizedBox(width: 90, child: Text(s.startTime))),
+                          DataCell(SizedBox(width: 90, child: Text(s.endTime))),
+                          DataCell(SizedBox(width: 100, child: AppBadge(
+                            label: s.isBreak ? 'Istirahat' : 'Pelajaran',
+                            status: s.isBreak ? BadgeStatus.warning : BadgeStatus.info,
+                          ))),
+                          DataCell(SizedBox(width: 90, child: Row(children: [
+                            _actionBtn(Icons.edit_outlined, AppColors.warning, () => _edit(s)),
+                            const SizedBox(width: AppSpacing.sm),
+                            _actionBtn(Icons.delete_outline_rounded, AppColors.error, () => _delete(s)),
+                          ]))),
+                        ]);
+                      }).toList(),
+                    ),
                   ),
                 ),
-              ),
-            )),
-          ),
+              )),
+            );
+          },
         ),
       ]),
     );

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
@@ -7,11 +8,13 @@ import 'auth_state.dart';
 import 'token_storage.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   return AuthNotifier(
     ref.read(tokenStorageProvider),
     ref.read(dioProvider),
+    ref.read(cacheStoreProvider),
   );
 });
 
@@ -40,13 +43,16 @@ final currentUserProvider = Provider<AuthUser?>((ref) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final TokenStorage _storage;
   final Dio _dio;
+  final CacheStore _cacheStore;
 
-  AuthNotifier(this._storage, this._dio) : super(const AuthStateLoading()) {
+  AuthNotifier(this._storage, this._dio, this._cacheStore)
+    : super(const AuthStateLoading()) {
     loadFromStorage();
   }
 
   // ── Boot: check stored tokens ─────────────────────────────────────────────
   Future<void> loadFromStorage() async {
+    // Real session: validate stored token via /auth/me
     try {
       final token = await _storage.getAccessToken();
       if (token == null) {
@@ -54,7 +60,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
-      // Validate token by calling /auth/me
       final resp = await _dio.get(ApiEndpoints.me);
       final userData = resp.data['data'] as Map<String, dynamic>?;
       if (userData == null) {
@@ -73,28 +78,61 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Login ─────────────────────────────────────────────────────────────────
   Future<void> login(String email, String password) async {
     state = const AuthStateAuthenticating();
+    // Drop any cached responses from a previous session before authenticating.
+    await _cacheStore.clean();
     try {
       final resp = await _dio.post(
         ApiEndpoints.login,
         data: {'email': email, 'password': password},
       );
 
-      final data = resp.data['data'] as Map<String, dynamic>;
-      final accessToken  = data['access_token'] as String;
-      final refreshToken = data['refresh_token'] as String;
-      final userData     = data['user'] as Map<String, dynamic>;
+      final body = resp.data;
+      final bodyMap = body is Map ? body.cast<String, dynamic>() : null;
+      if (bodyMap == null) {
+        state = const AuthStateError('Format respons login tidak valid.');
+        return;
+      }
+
+      final success = bodyMap['success'] as bool? ?? false;
+      if (!success) {
+        await _setLoginFailure(
+          _serverMessageFromBody(bodyMap) ?? 'Login gagal. Coba lagi.',
+        );
+        return;
+      }
+
+      final data = bodyMap['data'];
+      if (data is! Map) {
+        await _setLoginFailure('Data login tidak valid.');
+        return;
+      }
+
+      final dataMap = data.cast<String, dynamic>();
+      final accessToken = dataMap['access_token'] as String?;
+      final refreshToken = dataMap['refresh_token'] as String?;
+      if (accessToken == null || refreshToken == null) {
+        await _setLoginFailure('Token login tidak ditemukan.');
+        return;
+      }
 
       await _storage.saveTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
 
+      final profileResp = await _dio.get(ApiEndpoints.me);
+      final userData = profileResp.data['data'] as Map<String, dynamic>?;
+      if (userData == null) {
+        await _setLoginFailure('Profil pengguna tidak ditemukan.');
+        return;
+      }
+
       state = AuthStateAuthenticated(AuthUser.fromJson(userData));
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      state = AuthStateError(_loginErrorMessage(status));
+      await _setLoginFailure(_serverMessage(e) ?? _loginErrorMessage(status));
     } catch (_) {
-      state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
+      await _setLoginFailure('Terjadi kesalahan. Coba lagi.');
     }
   }
 
@@ -121,9 +159,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (status == 409) {
-        state = const AuthStateError('Email sudah terdaftar. Gunakan email lain.');
+        state = const AuthStateError(
+          'Email sudah terdaftar. Gunakan email lain.',
+        );
       } else {
-        state = AuthStateError(_serverMessage(e) ?? 'Registrasi gagal. Coba lagi.');
+        state = AuthStateError(
+          _serverMessage(e) ?? 'Registrasi gagal. Coba lagi.',
+        );
       }
     } catch (_) {
       state = const AuthStateError('Terjadi kesalahan. Coba lagi.');
@@ -133,11 +175,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> logout() async {
     try {
-      await _dio.post(ApiEndpoints.logout);
+      // Only call revoke endpoint for real sessions
+      final refreshToken = await _storage.getRefreshToken();
+      if (refreshToken != null) {
+        try {
+          await _dio.post(
+            ApiEndpoints.logout,
+            data: {'refresh_token': refreshToken},
+          );
+        } catch (_) {
+          // Ignore logout endpoint errors
+        }
+      }
     } catch (_) {
-      // Ignore errors — still clear local tokens
+      // Ignore errors — always clear local state
     } finally {
       await _storage.clearAll();
+      // Purge cached tenant/user data so it can't be served to the next login.
+      await _cacheStore.clean();
       state = const AuthStateUnauthenticated();
     }
   }
@@ -151,16 +206,74 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   String _loginErrorMessage(int? status) => switch (status) {
-        401 => 'Email atau password salah.',
-        403 => 'Akun Anda tidak aktif. Hubungi administrator.',
-        _   => 'Login gagal. Coba lagi.',
-      };
+    401 => 'Email atau password salah.',
+    403 => 'Akun Anda tidak aktif. Hubungi administrator.',
+    _ => 'Login gagal. Coba lagi.',
+  };
 
   String? _serverMessage(DioException e) {
     try {
-      return e.response?.data['message'] as String?;
+      final data = e.response?.data;
+      if (data is Map) {
+        final body = data.cast<String, dynamic>();
+        return _serverMessageFromBody(body);
+      }
+      return null;
     } catch (_) {
       return null;
     }
+  }
+
+  String? _serverMessageFromBody(Map<String, dynamic> body) {
+    // Prefer field-specific backend errors first so the UI can render the
+    // exact server source of truth.
+    final errors = body['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      final messages = errors
+          .where((error) => error != null)
+          .map((error) => error.toString())
+          .where((text) => text.trim().isNotEmpty)
+          .toList();
+      if (messages.isNotEmpty) {
+        return messages.join('\n');
+      }
+    }
+
+    if (errors is Map) {
+      final errorMap = errors.cast<String, dynamic>();
+      final messages = <String>[];
+      for (final entry in errorMap.entries) {
+        final value = entry.value;
+        if (value is List && value.isNotEmpty) {
+          messages.addAll(
+            value
+                .where((item) => item != null)
+                .map((item) => item.toString())
+                .where((text) => text.trim().isNotEmpty)
+                .map((text) => '${entry.key}: $text'),
+          );
+        } else if (value != null) {
+          final text = value.toString().trim();
+          if (text.isNotEmpty) {
+            messages.add('${entry.key}: $text');
+          }
+        }
+      }
+      if (messages.isNotEmpty) {
+        return messages.join('\n');
+      }
+    }
+
+    final message = body['message'];
+    if (message is String && message.isNotEmpty) {
+      return message;
+    }
+
+    return null;
+  }
+
+  Future<void> _setLoginFailure(String message) async {
+    await _storage.clearAll();
+    state = AuthStateError(message);
   }
 }

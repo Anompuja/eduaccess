@@ -1,0 +1,36 @@
+# ── Version control ───────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Flutter build output (large, rebuilt inside container) ────────────────────
+build/
+/coverage/
+
+# ── Dart tool cache ───────────────────────────────────────────────────────────
+.dart_tool/
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ── Platform folders not needed for web build ─────────────────────────────────
+android/
+ios/
+linux/
+macos/
+windows/
+
+# ── Tests (not needed in production image) ────────────────────────────────────
+test/
+
+# ── Docs / editor config ──────────────────────────────────────────────────────
+*.md
+.idea/
+.vscode/
+.claude/
+*.iml
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+*.env

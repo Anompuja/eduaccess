@@ -24,6 +24,8 @@ abstract final class RouteNames {
 
   // ── Protected — Dev 3 (academic & operations) ────────────────────────────
   static const String academic = '/academic';
+  static const String classSchedule = '/class-schedule';
+  static String classScheduleDetail(String id) => '/class-schedule/$id';
   static const String gradePromotion = '/class-promotion';
   static const String studentTracking = '/student-tracking';
   static const String school = '/school';

@@ -1,65 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dialog.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_empty_state.dart';
-import '../../../../core/widgets/app_toast.dart';
-import '../../data/datasources/class_promotion_dummy_data.dart';
-import '../../data/models/class_promotion_entities.dart';
+import '../../../academic/presentation/providers/academic_providers.dart';
+import '../../../student_tracking/presentation/providers/student_tracking_providers.dart';
+import '../providers/class_promotion_providers.dart';
 
-class ClassPromotionScreen extends StatefulWidget {
+class ClassPromotionScreen extends ConsumerStatefulWidget {
   const ClassPromotionScreen({super.key});
 
   @override
-  State<ClassPromotionScreen> createState() => _ClassPromotionScreenState();
+  ConsumerState<ClassPromotionScreen> createState() =>
+      _ClassPromotionScreenState();
 }
 
-class _ClassPromotionScreenState extends State<ClassPromotionScreen> {
-  String _selectedAcademicYear = classPromotionAcademicYears.first;
-  String _selectedSourceClassId = classPromotionClassOptions.first.id;
-  String? _selectedTargetClassId;
-  final Map<String, PromotionDecision> _decisions = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _syncDefaultTargetClass();
-  }
-
-  List<PromotionStudent> get _students =>
-      classPromotionStudentsByClass[_selectedSourceClassId] ?? const [];
-
-  PromotionClassOption? get _sourceClassOption {
-    final options = classPromotionClassOptions.where((e) => e.id == _selectedSourceClassId);
-    return options.isEmpty ? null : options.first;
-  }
-
-  List<PromotionClassOption> get _targetClassOptions {
-    final source = _sourceClassOption;
-    if (source == null) return const [];
-    return classPromotionClassOptions
-        .where((option) => option.level == source.level && option.id != source.id)
-        .toList();
-  }
-
-  int get _promoteCount =>
-      _decisions.values.where((d) => d == PromotionDecision.promote).length;
-  int get _retainCount =>
-      _decisions.values.where((d) => d == PromotionDecision.retain).length;
+class _ClassPromotionScreenState extends ConsumerState<ClassPromotionScreen> {
+  String? _sourceClassroomId;
+  String? _targetClassroomId;
+  String _status = 'promoted';
+  final Set<String> _selectedStudentIds = {};
+  bool _isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
+    final isCompact =
+        Responsive.isMobile(context) || Responsive.isTablet(context);
+    final classroomsAsync = ref.watch(classroomsProvider);
 
     return SingleChildScrollView(
-      padding: isCompact ? const EdgeInsets.all(AppSpacing.lg) : AppSpacing.pagePadding,
+      padding: isCompact
+          ? const EdgeInsets.all(AppSpacing.lg)
+          : AppSpacing.pagePadding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -69,162 +48,254 @@ class _ClassPromotionScreenState extends State<ClassPromotionScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Tentukan siswa naik kelas atau tinggal kelas (dummy data, tanpa backend).',
+            'Pindahkan siswa dari kelas sumber ke kelas tujuan. Siswa yang tidak dipilih tetap tinggal kelas.',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _buildFilterCard(isCompact),
-          const SizedBox(height: AppSpacing.lg),
-          _buildSummaryCard(),
-          const SizedBox(height: AppSpacing.lg),
-          _buildStudentsCard(isCompact),
+          classroomsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (error, _) => AppCard(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: AppEmptyState(
+                  message: error.toString().replaceFirst('Exception: ', ''),
+                ),
+              ),
+            ),
+            data: (classrooms) {
+              if (classrooms.isEmpty) {
+                return const AppCard(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                    child: AppEmptyState(
+                      message: 'Belum ada data ruang kelas.',
+                    ),
+                  ),
+                );
+              }
+
+              final classroomItems = classrooms
+                  .map(
+                    (classroom) => AppDropdownItem<String>(
+                      value: classroom.id,
+                      label: classroom.name,
+                    ),
+                  )
+                  .toList();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFilterCard(isCompact, classroomItems),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (_sourceClassroomId != null) _buildStudentsSection(),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterCard(bool isMobile) {
+  Widget _buildFilterCard(
+    bool isMobile,
+    List<AppDropdownItem<String>> classroomItems,
+  ) {
+    final sourceDropdown = AppDropdown<String>(
+      label: 'Kelas Sumber',
+      hint: 'Pilih kelas sumber',
+      value: _sourceClassroomId,
+      items: classroomItems,
+      onChanged: (value) => setState(() {
+        _sourceClassroomId = value;
+        _targetClassroomId = null;
+        _selectedStudentIds.clear();
+      }),
+    );
+
+    final targetDropdown = AppDropdown<String>(
+      label: 'Kelas Tujuan',
+      hint: 'Pilih kelas tujuan',
+      value: _targetClassroomId,
+      items: classroomItems
+          .where((item) => item.value != _sourceClassroomId)
+          .toList(),
+      onChanged: (value) => setState(() => _targetClassroomId = value),
+    );
+
+    final statusDropdown = AppDropdown<String>(
+      label: 'Jenis',
+      value: _status,
+      items: const [
+        AppDropdownItem<String>(value: 'promoted', label: 'Naik Kelas'),
+        AppDropdownItem<String>(value: 'transferred', label: 'Pindah'),
+      ],
+      onChanged: (value) => setState(() => _status = value ?? 'promoted'),
+    );
+
     return AppCard(
-      child: Column(
-        children: [
-          if (isMobile)
-            Column(
+      child: isMobile
+          ? Column(
               children: [
-                AppDropdown<String>(
-                  label: 'Tahun Ajaran',
-                  value: _selectedAcademicYear,
-                  items: classPromotionAcademicYears
-                      .map((year) => AppDropdownItem<String>(value: year, label: year))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => _selectedAcademicYear = value);
-                  },
-                ),
+                sourceDropdown,
                 const SizedBox(height: AppSpacing.md),
-                AppDropdown<String>(
-                  label: 'Kelas Sumber',
-                  value: _selectedSourceClassId,
-                  items: classPromotionClassOptions
-                      .map((item) => AppDropdownItem<String>(value: item.id, label: item.label))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedSourceClassId = value;
-                      _decisions.clear();
-                      _syncDefaultTargetClass();
-                    });
-                  },
-                ),
+                targetDropdown,
                 const SizedBox(height: AppSpacing.md),
-                AppDropdown<String>(
-                  label: 'Kelas Tujuan',
-                  value: _selectedTargetClassId,
-                  items: _targetClassOptions
-                      .map((item) => AppDropdownItem<String>(value: item.id, label: item.label))
-                      .toList(),
-                  onChanged: (value) => setState(() => _selectedTargetClassId = value),
-                ),
+                statusDropdown,
               ],
             )
-          else
-            Row(
+          : Row(
               children: [
-                Expanded(
-                  child: AppDropdown<String>(
-                    label: 'Tahun Ajaran',
-                    value: _selectedAcademicYear,
-                    items: classPromotionAcademicYears
-                        .map((year) => AppDropdownItem<String>(value: year, label: year))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _selectedAcademicYear = value);
-                    },
-                  ),
-                ),
+                Expanded(child: sourceDropdown),
                 const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: AppDropdown<String>(
-                    label: 'Kelas Sumber',
-                    value: _selectedSourceClassId,
-                    items: classPromotionClassOptions
-                        .map((item) => AppDropdownItem<String>(value: item.id, label: item.label))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() {
-                        _selectedSourceClassId = value;
-                        _decisions.clear();
-                        _syncDefaultTargetClass();
-                      });
-                    },
-                  ),
-                ),
+                Expanded(child: targetDropdown),
                 const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: AppDropdown<String>(
-                    label: 'Kelas Tujuan',
-                    value: _selectedTargetClassId,
-                    items: _targetClassOptions
-                        .map((item) => AppDropdownItem<String>(value: item.id, label: item.label))
-                        .toList(),
-                    onChanged: (value) => setState(() => _selectedTargetClassId = value),
-                  ),
-                ),
+                Expanded(child: statusDropdown),
               ],
             ),
-          const SizedBox(height: AppSpacing.md),
-          if (isMobile)
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton.secondary(
-                    label: 'Pilih Semua Naik Kelas',
-                    onPressed: _markAllPromote,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton.ghost(
-                    label: 'Reset Pilihan',
-                    onPressed: () => setState(_decisions.clear),
-                  ),
-                ),
-              ],
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                AppButton.secondary(
-                  label: 'Pilih Semua Naik Kelas',
-                  onPressed: _markAllPromote,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                AppButton.ghost(
-                  label: 'Reset Pilihan',
-                  onPressed: () => setState(_decisions.clear),
-                ),
-              ],
-            ),
-        ],
-      ),
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildStudentsSection() {
+    final sourceClassroomId = _sourceClassroomId!;
+    final asyncStudents = ref.watch(
+      classroomStudentsProvider(sourceClassroomId),
+    );
+
+    return asyncStudents.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => AppCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: AppEmptyState(
+            message: error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      ),
+      data: (students) {
+        if (students.isEmpty) {
+          return const AppCard(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+              child: AppEmptyState(
+                message: 'Tidak ada siswa aktif pada kelas sumber ini.',
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSummaryCard(students.length),
+            const SizedBox(height: AppSpacing.lg),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Daftar Siswa',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.neutral900,
+                        ),
+                      ),
+                      const Spacer(),
+                      AppButton.ghost(
+                        label: _selectedStudentIds.length == students.length
+                            ? 'Batal Semua'
+                            : 'Pilih Semua',
+                        onPressed: () => setState(() {
+                          if (_selectedStudentIds.length == students.length) {
+                            _selectedStudentIds.clear();
+                          } else {
+                            _selectedStudentIds
+                              ..clear()
+                              ..addAll(
+                                students.map((student) => student.studentId),
+                              );
+                          }
+                        }),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  ...students.map(
+                    (student) => CheckboxListTile(
+                      value: _selectedStudentIds.contains(student.studentId),
+                      onChanged: (checked) => setState(() {
+                        if (checked == true) {
+                          _selectedStudentIds.add(student.studentId);
+                        } else {
+                          _selectedStudentIds.remove(student.studentId);
+                        }
+                      }),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: AppColors.primary700,
+                      title: Text(
+                        student.studentName,
+                        style: AppTextStyles.bodyMd.copyWith(
+                          color: AppColors.neutral900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'NIS: ${student.nis.isEmpty ? '-' : student.nis} · ${student.fullClassName}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.neutral500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: AppButton.primary(
+                      label: 'Proses Kenaikan',
+                      isLoading: _isSubmitting,
+                      onPressed:
+                          (_selectedStudentIds.isEmpty ||
+                              _targetClassroomId == null ||
+                              _isSubmitting)
+                          ? null
+                          : () => _openConfirmDialog(students.length),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSummaryCard(int total) {
     return AppCard(
       child: Wrap(
         spacing: AppSpacing.md,
         runSpacing: AppSpacing.sm,
         children: [
-          _summaryItem('Total Siswa', '${_students.length}', AppColors.primary700),
-          _summaryItem('Naik Kelas', '$_promoteCount', AppColors.success),
-          _summaryItem('Tinggal Kelas', '$_retainCount', AppColors.warning),
+          _summaryItem('Total Siswa', '$total', AppColors.primary700),
+          _summaryItem(
+            _status == 'transferred' ? 'Dipindah' : 'Naik Kelas',
+            '${_selectedStudentIds.length}',
+            AppColors.success,
+          ),
+          _summaryItem(
+            'Tinggal Kelas',
+            '${total - _selectedStudentIds.length}',
+            AppColors.warning,
+          ),
         ],
       ),
     );
@@ -241,292 +312,96 @@ class _ClassPromotionScreenState extends State<ClassPromotionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            label,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.xs),
           Text(value, style: AppTextStyles.h4.copyWith(color: color)),
-          const SizedBox(height: AppSpacing.xs),
-          Text(label, style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral700)),
         ],
       ),
     );
   }
 
-  Widget _buildStudentsCard(bool isMobile) {
-    if (_students.isEmpty) {
-      return const AppCard(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-          child: AppEmptyState(message: 'Tidak ada data siswa pada kelas sumber ini.'),
-        ),
-      );
-    }
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isMobile)
-            ..._students.map(_buildStudentMobileCard)
-          else
-            _buildStudentsTable(),
-          const SizedBox(height: AppSpacing.md),
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton.primary(
-              label: 'Konfirmasi Promosi',
-              onPressed: _decisions.isEmpty ? null : _openConfirmDialog,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStudentMobileCard(PromotionStudent student) {
-    final decision = _decisions[student.id];
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.neutral50,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: AppColors.neutral100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(student.name, style: AppTextStyles.bodyMdSemiBold.copyWith(color: AppColors.neutral900)),
-          const SizedBox(height: AppSpacing.xs),
-          Text('${student.nis} • ${student.sourceClass}',
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500)),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              _decisionChip(student.id, PromotionDecision.promote, 'Naik Kelas'),
-              const SizedBox(width: AppSpacing.sm),
-              _decisionChip(student.id, PromotionDecision.retain, 'Tinggal Kelas'),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (decision != null) _decisionBadge(decision),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStudentsTable() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: constraints.maxWidth),
-            child: Theme(
-              data: Theme.of(context).copyWith(dividerColor: AppColors.neutral100),
-              child: DataTable(
-                columnSpacing: 24,
-                horizontalMargin: AppSpacing.md,
-                headingRowHeight: 48,
-                dataRowMinHeight: 54,
-                dataRowMaxHeight: 54,
-                dividerThickness: 1,
-                headingTextStyle: AppTextStyles.label.copyWith(
-                  color: AppColors.neutral700,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-                dataTextStyle: AppTextStyles.bodyMd.copyWith(
-                  color: AppColors.neutral900,
-                  fontWeight: FontWeight.w500,
-                ),
-                columns: [
-                  DataColumn(label: _tableHeader('No', width: 64)),
-                  DataColumn(label: _tableHeader('Nama', width: 220)),
-                  DataColumn(label: _tableHeader('NIS', width: 120)),
-                  DataColumn(label: _tableHeader('Kelas Saat Ini', width: 140)),
-                  DataColumn(label: _tableHeader('Keputusan', width: 260)),
-                  DataColumn(label: _tableHeader('Status', width: 130)),
-                ],
-                rows: _students.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final student = entry.value;
-                  final decision = _decisions[student.id];
-                  return DataRow(
-                    cells: [
-                      DataCell(_cellBox('${index + 1}', width: 64)),
-                      DataCell(_cellBox(student.name, width: 220)),
-                      DataCell(_cellBox(student.nis, width: 120)),
-                      DataCell(_cellBox(student.sourceClass, width: 140)),
-                      DataCell(
-                        SizedBox(
-                          width: 260,
-                          child: Row(
-                            children: [
-                              _decisionChip(student.id, PromotionDecision.promote, 'Naik Kelas'),
-                              const SizedBox(width: AppSpacing.sm),
-                              _decisionChip(student.id, PromotionDecision.retain, 'Tinggal Kelas'),
-                            ],
-                          ),
-                        ),
-                      ),
-                      DataCell(
-                        SizedBox(
-                          width: 130,
-                          child: decision == null ? const SizedBox.shrink() : _decisionBadge(decision),
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _decisionChip(String studentId, PromotionDecision decision, String label) {
-    final selected = _decisions[studentId] == decision;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _decisions[studentId] = decision;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary100 : AppColors.neutral50,
-          borderRadius: AppRadius.pillAll,
-          border: Border.all(
-            color: selected ? AppColors.primary500 : AppColors.neutral300,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            color: selected ? AppColors.primary700 : AppColors.neutral700,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _decisionBadge(PromotionDecision decision) {
-    return switch (decision) {
-      PromotionDecision.promote => const AppBadge(label: 'NAIK', status: BadgeStatus.success),
-      PromotionDecision.retain => const AppBadge(label: 'TINGGAL', status: BadgeStatus.warning),
-    };
-  }
-
-  Future<void> _openConfirmDialog() async {
-    final promoteStudents = _students
-        .where((student) => _decisions[student.id] == PromotionDecision.promote)
-        .toList();
-    final retainStudents = _students
-        .where((student) => _decisions[student.id] == PromotionDecision.retain)
-        .toList();
-
-    await showDialog<void>(
+  Future<void> _openConfirmDialog(int total) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AppDialog(
-        title: 'Konfirmasi Promosi',
-        subtitle: 'Tahun Ajaran $_selectedAcademicYear',
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kelas sumber: ${_sourceClassOption?.label ?? '-'}',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Kelas tujuan: ${_findClassLabel(_selectedTargetClassId) ?? '-'}',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _decisionSummaryLine('Naik Kelas', promoteStudents.length, AppColors.success),
-            const SizedBox(height: AppSpacing.xs),
-            _decisionSummaryLine('Tinggal Kelas', retainStudents.length, AppColors.warning),
-          ],
+        title: 'Konfirmasi Kenaikan',
+        subtitle:
+            'Akan memproses ${_selectedStudentIds.length} dari $total siswa.',
+        maxWidth: 520,
+        content: Text(
+          _status == 'transferred'
+              ? 'Siswa yang dipilih akan dipindahkan ke kelas tujuan.'
+              : 'Siswa yang dipilih akan dinaikkan ke kelas tujuan.',
+          style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
         ),
         actions: [
           AppButton.secondary(
             label: 'Batal',
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
           AppButton.primary(
             label: 'Proses',
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              AppToast.show(
-                context,
-                message: 'Simulasi promosi berhasil diproses (${_decisions.length} siswa).',
-              );
-            },
+            onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
         ],
       ),
     );
-  }
 
-  Widget _decisionSummaryLine(String label, int count, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          '$label: $count siswa',
-          style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral700),
-        ),
-      ],
-    );
-  }
-
-  void _markAllPromote() {
-    setState(() {
-      for (final student in _students) {
-        _decisions[student.id] = PromotionDecision.promote;
-      }
-    });
-  }
-
-  void _syncDefaultTargetClass() {
-    final source = _sourceClassOption;
-    if (source == null) {
-      _selectedTargetClassId = null;
+    if (confirmed != true ||
+        _targetClassroomId == null ||
+        _selectedStudentIds.isEmpty) {
       return;
     }
 
-    final hasSuggestedTarget = _targetClassOptions.any((opt) => opt.id == source.nextClassId);
-    if (hasSuggestedTarget) {
-      _selectedTargetClassId = source.nextClassId;
+    await _processPromotion();
+  }
+
+  Future<void> _processPromotion() async {
+    final sourceClassroomId = _sourceClassroomId;
+    final targetClassroomId = _targetClassroomId;
+    if (sourceClassroomId == null ||
+        targetClassroomId == null ||
+        _selectedStudentIds.isEmpty) {
       return;
     }
 
-    _selectedTargetClassId = _targetClassOptions.isEmpty ? null : _targetClassOptions.first.id;
-  }
+    setState(() => _isSubmitting = true);
 
-  String? _findClassLabel(String? classId) {
-    if (classId == null) return null;
-    final matches = classPromotionClassOptions.where((e) => e.id == classId);
-    return matches.isEmpty ? null : matches.first.label;
-  }
+    try {
+      final result = await ref
+          .read(classPromotionRepositoryProvider)
+          .promote(
+            studentIds: _selectedStudentIds.toList(),
+            toClassroomId: targetClassroomId,
+            status: _status,
+          );
 
-  Widget _tableHeader(String label, {double? width}) {
-    final header = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
-    if (width == null) return header;
-    return SizedBox(width: width, child: header);
-  }
+      if (!mounted) return;
 
-  Widget _cellBox(String text, {required double width}) {
-    return SizedBox(
-      width: width,
-      child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
-    );
+      ref.invalidate(classroomStudentsProvider(sourceClassroomId));
+      setState(() {
+        _selectedStudentIds.clear();
+        _isSubmitting = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Berhasil memproses ${result.success} siswa, ${result.failed} gagal.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
   }
 }

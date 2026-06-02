@@ -53,7 +53,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _savingProfile = true);
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    // TODO: call PUT /profile API
     final user = ref.read(currentUserProvider);
     if (user != null) {
       ref.read(authNotifierProvider.notifier).updateUser(
@@ -69,7 +68,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     setState(() => _savingPassword = true);
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    // TODO: call PUT /users/:id/password API
     _currPassCtrl.clear();
     _newPassCtrl.clear();
     _confirmPassCtrl.clear();

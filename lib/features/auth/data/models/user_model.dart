@@ -18,7 +18,7 @@ class UserModel extends UserEntity {
         email: json['email'] as String,
         role: json['role'] as String? ?? '',
         schoolId: json['school_id'] as String?,
-        avatarUrl: json['avatar_url'] as String?,
+        avatarUrl: (json['avatar'] ?? json['avatar_url']) as String?,
       );
 
   Map<String, dynamic> toJson() => {

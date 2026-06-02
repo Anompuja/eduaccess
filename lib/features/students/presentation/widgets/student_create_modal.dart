@@ -192,10 +192,11 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
         ? (ref.watch(dashboardSchoolsProvider).valueOrNull ?? <DashboardSchool>[])
         : <DashboardSchool>[];
 
+    final effectiveSchoolId = isSuperadmin ? (activeSchool?.id ?? _selectedSchoolId) : user?.schoolId;
 
-    final levels = ref.watch(levelsProvider).valueOrNull ?? <EducationLevelEntity>[];
-    final classes = ref.watch(classesProvider).valueOrNull ?? <ClassEntity>[];
-    final subClasses = ref.watch(subClassesProvider).valueOrNull ?? <SubClassEntity>[];
+    final levels = ref.watch(levelsBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <EducationLevelEntity>[];
+    final classes = ref.watch(classesBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <ClassEntity>[];
+    final subClasses = ref.watch(subClassesBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <SubClassEntity>[];
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(

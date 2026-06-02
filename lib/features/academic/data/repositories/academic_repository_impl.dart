@@ -114,16 +114,16 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.deleteClassroom(id, schoolId: schoolId);
 
   @override
-  Future<List<ScheduleEntity>> getSchedules({String? schoolId}) =>
-      remoteDataSource.getSchedules(schoolId: schoolId);
+  Future<List<ScheduleEntity>> getSchedules({String? schoolId, String? dayOfWeek}) =>
+      remoteDataSource.getSchedules(schoolId: schoolId, dayOfWeek: dayOfWeek);
 
   @override
-  Future<ScheduleEntity> createSchedule(String shiftType, String startTime, String endTime, {String? schoolId}) =>
-      remoteDataSource.createSchedule(shiftType, startTime, endTime, schoolId: schoolId);
+  Future<ScheduleEntity> createSchedule({required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) =>
+      remoteDataSource.createSchedule(dayOfWeek: dayOfWeek, periodNumber: periodNumber, label: label, startTime: startTime, endTime: endTime, isBreak: isBreak, schoolId: schoolId);
 
   @override
-  Future<ScheduleEntity> updateSchedule(String id, String shiftType, String startTime, String endTime, {String? schoolId}) =>
-      remoteDataSource.updateSchedule(id, shiftType, startTime, endTime, schoolId: schoolId);
+  Future<ScheduleEntity> updateSchedule(String id, {required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) =>
+      remoteDataSource.updateSchedule(id, dayOfWeek: dayOfWeek, periodNumber: periodNumber, label: label, startTime: startTime, endTime: endTime, isBreak: isBreak, schoolId: schoolId);
 
   @override
   Future<void> deleteSchedule(String id, {String? schoolId}) =>

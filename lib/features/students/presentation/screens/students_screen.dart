@@ -43,9 +43,9 @@ class StudentsScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final schoolId = user?.role == UserRole.superadmin ? activeSchool?.id : user?.schoolId;
 
-    final levels = ref.watch(levelsProvider).valueOrNull ?? [];
-    final classes = ref.watch(classesProvider).valueOrNull ?? [];
-    final subClasses = ref.watch(subClassesProvider).valueOrNull ?? [];
+    final levels = ref.watch(levelsBySchoolProvider(schoolId)).valueOrNull ?? [];
+    final classes = ref.watch(classesBySchoolProvider(schoolId)).valueOrNull ?? [];
+    final subClasses = ref.watch(subClassesBySchoolProvider(schoolId)).valueOrNull ?? [];
 
     ref.listen(activeSchoolProvider, (_, next) {
       ref.read(studentsCurrentPageProvider.notifier).state = 1;

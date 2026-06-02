@@ -28,30 +28,70 @@ String? _schoolId(Ref ref) {
   return null;
 }
 
-final levelsProvider = FutureProvider.autoDispose<List<EducationLevelEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getLevels(schoolId: _schoolId(ref));
+final levelsProvider = FutureProvider<List<EducationLevelEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getLevels(schoolId: _schoolId(ref));
 });
 
-final classesProvider = FutureProvider.autoDispose<List<ClassEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getClasses(schoolId: _schoolId(ref));
+final levelsBySchoolProvider =
+    FutureProvider.family<List<EducationLevelEntity>, String?>((
+      ref,
+      schoolId,
+    ) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getLevels(schoolId: schoolId);
+    });
+
+final classesProvider = FutureProvider<List<ClassEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getClasses(schoolId: _schoolId(ref));
 });
 
-final subClassesProvider = FutureProvider.autoDispose<List<SubClassEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getSubClasses(schoolId: _schoolId(ref));
+final classesBySchoolProvider =
+    FutureProvider.family<List<ClassEntity>, String?>((ref, schoolId) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getClasses(schoolId: schoolId);
+    });
+
+final subClassesProvider = FutureProvider<List<SubClassEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getSubClasses(schoolId: _schoolId(ref));
 });
 
-final academicYearsProvider = FutureProvider.autoDispose<List<AcademicYearEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getAcademicYears(schoolId: _schoolId(ref));
+final subClassesBySchoolProvider =
+    FutureProvider.family<List<SubClassEntity>, String?>((ref, schoolId) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getSubClasses(schoolId: schoolId);
+    });
+
+final academicYearsProvider = FutureProvider<List<AcademicYearEntity>>((
+  ref,
+) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getAcademicYears(schoolId: _schoolId(ref));
 });
 
-final subjectsProvider = FutureProvider.autoDispose<List<SubjectEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getSubjects(schoolId: _schoolId(ref));
+final subjectsProvider = FutureProvider<List<SubjectEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getSubjects(schoolId: _schoolId(ref));
 });
 
-final classroomsProvider = FutureProvider.autoDispose<List<ClassroomEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getClassrooms(schoolId: _schoolId(ref));
+final classroomsProvider = FutureProvider<List<ClassroomEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getClassrooms(schoolId: _schoolId(ref));
 });
 
-final schedulesProvider = FutureProvider.autoDispose<List<ScheduleEntity>>((ref) async {
-  return ref.watch(academicRepositoryProvider).getSchedules(schoolId: _schoolId(ref));
+final schedulesProvider = FutureProvider<List<ScheduleEntity>>((ref) async {
+  return ref
+      .watch(academicRepositoryProvider)
+      .getSchedules(schoolId: _schoolId(ref));
 });
