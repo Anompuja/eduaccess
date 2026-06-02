@@ -10,6 +10,7 @@ abstract final class AdminsScreenConstants {
 
   static const String noHeader = 'NO';
   static const String nameHeader = 'NAMA';
+  static const String schoolHeader = 'SEKOLAH';
   static const String phoneNumberHeader = 'PHONE NUMBER';
   static const String addressHeader = 'ADDRESS';
   static const String nikHeader = 'NIK';
@@ -22,6 +23,8 @@ abstract final class AdminsScreenConstants {
   static const double desktopAddButtonBottomPadding = 4;
 
   static const double noColumnWidth = 44;
+  static const double schoolColumnWidthMobile = 140;
+  static const double schoolColumnWidthDesktop = 180;
   static const double nameColumnWidthMobile = 180;
   static const double nameColumnWidthDesktop = 240;
   static const double phoneNumberColumnWidthMobile = 150;

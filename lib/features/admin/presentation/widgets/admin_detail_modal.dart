@@ -73,7 +73,19 @@ class AdminDetailModal extends StatelessWidget {
                 icon: Icons.admin_panel_settings_outlined,
                 children: [
                   _DetailItem(label: 'Admin ID', value: data.adminId),
+                  _DetailItem(
+                    label: 'School ID',
+                    value: data.schoolId.isEmpty ? '-' : data.schoolId,
+                  ),
                   _DetailItem(label: 'Nama', value: data.name),
+                  _DetailItem(
+                    label: 'Email',
+                    value: data.email.isEmpty ? '-' : data.email,
+                  ),
+                  _DetailItem(
+                    label: 'Username',
+                    value: data.username.isEmpty ? '-' : data.username,
+                  ),
                   _DetailItem(label: 'Phone Number', value: data.phoneNumber),
                   _DetailItem(label: 'Address', value: data.address),
                   _DetailItem(label: 'NIK', value: data.nik),

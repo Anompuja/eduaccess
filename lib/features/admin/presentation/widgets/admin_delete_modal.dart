@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../data/models/admin_row_data.dart';
+import '../providers/admins_provider.dart';
 
 Future<void> showAdminDeleteModal(
   BuildContext context, {
+  required WidgetRef ref,
   required AdminRowData data,
 }) {
   return showDialog<void>(
@@ -16,13 +19,13 @@ Future<void> showAdminDeleteModal(
   );
 }
 
-class AdminDeleteModal extends StatelessWidget {
+class AdminDeleteModal extends ConsumerWidget {
   final AdminRowData data;
 
   const AdminDeleteModal({super.key, required this.data});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -68,7 +71,7 @@ class AdminDeleteModal extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Aksi ini hanya tampilan UI. Data belum benar-benar dihapus.',
+                          'Data akan dihapus di backend Admin.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -130,7 +133,17 @@ class AdminDeleteModal extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.danger(
                     label: 'Hapus',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () async {
+                      await ref.read(deleteAdminProvider(data.adminId).future);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${data.name} berhasil dihapus'),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
