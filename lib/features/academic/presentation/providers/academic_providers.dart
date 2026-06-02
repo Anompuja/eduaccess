@@ -34,17 +34,41 @@ final levelsProvider = FutureProvider<List<EducationLevelEntity>>((ref) async {
       .getLevels(schoolId: _schoolId(ref));
 });
 
+final levelsBySchoolProvider =
+    FutureProvider.family<List<EducationLevelEntity>, String?>((
+      ref,
+      schoolId,
+    ) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getLevels(schoolId: schoolId);
+    });
+
 final classesProvider = FutureProvider<List<ClassEntity>>((ref) async {
   return ref
       .watch(academicRepositoryProvider)
       .getClasses(schoolId: _schoolId(ref));
 });
 
+final classesBySchoolProvider =
+    FutureProvider.family<List<ClassEntity>, String?>((ref, schoolId) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getClasses(schoolId: schoolId);
+    });
+
 final subClassesProvider = FutureProvider<List<SubClassEntity>>((ref) async {
   return ref
       .watch(academicRepositoryProvider)
       .getSubClasses(schoolId: _schoolId(ref));
 });
+
+final subClassesBySchoolProvider =
+    FutureProvider.family<List<SubClassEntity>, String?>((ref, schoolId) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getSubClasses(schoolId: schoolId);
+    });
 
 final academicYearsProvider = FutureProvider<List<AcademicYearEntity>>((
   ref,
