@@ -74,6 +74,10 @@ _PageInfo _infoForRoute(String location) => switch (location) {
     title: 'Reports',
     subtitle: 'Ringkasan statistik dan export laporan',
   ),
+  String l when l.startsWith(RouteNames.help) => (
+    title: 'Bantuan',
+    subtitle: 'Panduan penggunaan dan kanal support',
+  ),
   String l when l.startsWith(RouteNames.settings) => (
     title: 'Pengaturan',
     subtitle: 'Preferensi aplikasi',

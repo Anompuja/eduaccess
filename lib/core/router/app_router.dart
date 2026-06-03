@@ -6,6 +6,7 @@ import '../../features/academic/presentation/screens/academic_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_detail_screen.dart';
 import '../../features/headmasters/presentation/screens/headmasters_screen.dart';
+import '../../features/help/presentation/screens/help_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
@@ -251,11 +252,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteNames.reports,
             builder: (_, _) => const ReportsScreen(),
           ),
-          GoRoute(
-            path: RouteNames.help,
-            builder: (_, _) =>
-                const PlaceholderScreen(title: 'Bantuan', assignedTo: 'Dev 3'),
-          ),
+          GoRoute(path: RouteNames.help, builder: (_, _) => const HelpScreen()),
         ],
       ),
     ],
