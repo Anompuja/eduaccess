@@ -23,7 +23,6 @@ import '../../features/students/presentation/screens/students_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
-import '../../features/users/presentation/screens/users_screen.dart';
 import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
@@ -140,13 +139,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const NotificationsScreen(),
           ),
           GoRoute(
-            path: '/users/:id',
-            builder: (_, state) => PlaceholderScreen(
-              title: 'Detail User (${state.pathParameters['id']})',
-              assignedTo: 'Dev 2',
-            ),
-          ),
-          GoRoute(
             path: RouteNames.students,
             builder: (_, _) => const StudentsScreen(),
           ),
@@ -165,10 +157,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.headmasters,
             builder: (_, _) => const HeadmastersScreen(),
-          ),
-          GoRoute(
-            path: RouteNames.users,
-            builder: (_, _) => const UsersScreen(),
           ),
           GoRoute(
             path: '/teachers/:id',

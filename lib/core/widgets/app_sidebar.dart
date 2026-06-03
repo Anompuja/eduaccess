@@ -39,12 +39,6 @@ const _menuItems = [
     allowedRoles: _allRoles,
   ),
   _NavItem(
-    label: 'User Management',
-    route: RouteNames.users,
-    icon: Icons.manage_accounts_outlined,
-    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
-  ),
-  _NavItem(
     label: 'Manajemen Admin',
     route: RouteNames.admins,
     icon: Icons.admin_panel_settings_outlined,
