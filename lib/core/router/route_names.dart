@@ -17,6 +17,7 @@ abstract final class RouteNames {
   // ── Protected — Dev 2 (people management) ────────────────────────────────
   static const String users = '/users';
   static const String admins = '/admins';
+  static const String headmasters = '/headmasters';
   static const String students = '/students';
   static const String teachers = '/teachers';
   static const String staff = '/staff';
@@ -39,6 +40,7 @@ abstract final class RouteNames {
   // ── Dynamic path helpers ──────────────────────────────────────────────────
   static String userDetail(String id) => '/users/$id';
   static String adminDetail(String id) => '/admins/$id';
+  static String headmasterDetail(String id) => '/headmasters/$id';
   static String studentDetail(String id) => '/students/$id';
   static String teacherDetail(String id) => '/teachers/$id';
   static String staffDetail(String id) => '/staff/$id';

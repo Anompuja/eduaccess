@@ -12,27 +12,29 @@ import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../features/dashboard/domain/entities/dashboard_school.dart';
 import '../../../../features/dashboard/presentation/providers/dashboard_provider.dart';
-import '../providers/staff_provider.dart';
+import '../providers/headmasters_provider.dart';
 
-Future<void> showStaffCreateModal(BuildContext context) {
+Future<void> showHeadmasterCreateModal(BuildContext context) {
   return showDialog<void>(
     context: context,
-    builder: (_) => const StaffCreateModal(),
+    builder: (_) => const HeadmasterCreateModal(),
   );
 }
 
-class StaffCreateModal extends ConsumerStatefulWidget {
-  const StaffCreateModal({super.key});
+class HeadmasterCreateModal extends ConsumerStatefulWidget {
+  const HeadmasterCreateModal({super.key});
 
   @override
-  ConsumerState<StaffCreateModal> createState() => _StaffCreateModalState();
+  ConsumerState<HeadmasterCreateModal> createState() =>
+      _HeadmasterCreateModalState();
 }
 
-class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
+class _HeadmasterCreateModalState extends ConsumerState<HeadmasterCreateModal> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _passwordCtrl;
+  late final TextEditingController _nipCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _birthPlaceCtrl;
@@ -56,6 +58,7 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
     _emailCtrl = TextEditingController();
     _usernameCtrl = TextEditingController();
     _passwordCtrl = TextEditingController();
+    _nipCtrl = TextEditingController();
     _phoneCtrl = TextEditingController();
     _addressCtrl = TextEditingController();
     _birthPlaceCtrl = TextEditingController();
@@ -71,6 +74,7 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
     _emailCtrl.dispose();
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+    _nipCtrl.dispose();
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _birthPlaceCtrl.dispose();
@@ -100,7 +104,7 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
     });
   }
 
-  Future<void> _saveStaff() async {
+  Future<void> _saveHeadmaster() async {
     final user = ref.read(currentUserProvider);
     final activeSchool = ref.read(activeSchoolProvider);
     final isSuperadmin = user?.role == UserRole.superadmin;
@@ -133,11 +137,12 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
 
     setState(() => _isLoading = true);
     try {
-      final data = {
+      final data = <String, dynamic>{
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
         'username': _usernameCtrl.text.trim(),
         'password': _passwordCtrl.text,
+        'nip': _nipCtrl.text.trim().isEmpty ? null : _nipCtrl.text.trim(),
         'phone_number': _phoneCtrl.text.trim().isEmpty
             ? null
             : _phoneCtrl.text.trim(),
@@ -164,12 +169,12 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
         data['school_id'] = effectiveSchoolId;
       }
 
-      final staff = await ref.read(createStaffProvider(data).future);
+      final headmaster = await ref.read(createHeadmasterProvider(data).future);
 
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${staff.name} berhasil ditambahkan')),
+          SnackBar(content: Text('${headmaster.name} berhasil ditambahkan')),
         );
       }
     } catch (e) {
@@ -196,7 +201,6 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
               <DashboardSchool>[])
         : <DashboardSchool>[];
     final effectiveSchoolId = activeSchool?.id ?? _selectedSchoolId;
-    final requiredSchoolLabel = needsSchoolPicker ? 'Sekolah *' : 'Sekolah';
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
@@ -221,7 +225,7 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tambah Staff Baru',
+                          'Tambah Kepala Sekolah',
                           style: AppTextStyles.h3.copyWith(
                             color: AppColors.neutral900,
                           ),
@@ -229,8 +233,8 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           isSuperadmin && activeSchool != null
-                              ? 'Staff akan dibuat untuk ${activeSchool.name}.'
-                              : 'Data akan dikirim langsung ke backend Staff.',
+                              ? 'Kepala sekolah akan dibuat untuk ${activeSchool.name}.'
+                              : 'Data akan dikirim langsung ke backend Headmaster.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -269,8 +273,8 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                       children: [
                         if (needsSchoolPicker) ...[
                           AppDropdown<String?>(
-                            label: requiredSchoolLabel,
-                            hint: 'Pilih sekolah untuk staff ini',
+                            label: 'Sekolah *',
+                            hint: 'Pilih sekolah untuk kepala sekolah ini',
                             value: _selectedSchoolId,
                             items: schools
                                 .map(
@@ -293,8 +297,8 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                             SizedBox(
                               width: fieldWidth,
                               child: AppTextField(
-                                label: _requiredLabel('Nama Staff'),
-                                hint: 'Masukkan nama staff',
+                                label: _requiredLabel('Nama Kepala Sekolah'),
+                                hint: 'Masukkan nama kepala sekolah',
                                 controller: _nameCtrl,
                               ),
                             ),
@@ -325,19 +329,18 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                             SizedBox(
                               width: fieldWidth,
                               child: AppTextField(
-                                label: 'No. Telepon',
-                                hint: 'Masukkan nomor telepon',
-                                controller: _phoneCtrl,
-                                keyboardType: TextInputType.phone,
+                                label: 'NIP',
+                                hint: 'Masukkan NIP',
+                                controller: _nipCtrl,
                               ),
                             ),
                             SizedBox(
                               width: fieldWidth,
                               child: AppTextField(
-                                label: 'Alamat',
-                                hint: 'Masukkan alamat',
-                                controller: _addressCtrl,
-                                maxLines: 3,
+                                label: 'No. Telepon',
+                                hint: 'Masukkan nomor telepon',
+                                controller: _phoneCtrl,
+                                keyboardType: TextInputType.phone,
                               ),
                             ),
                             SizedBox(
@@ -409,6 +412,15 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                                 controller: _ktpImagePathCtrl,
                               ),
                             ),
+                            SizedBox(
+                              width: constraints.maxWidth,
+                              child: AppTextField(
+                                label: 'Alamat',
+                                hint: 'Masukkan alamat',
+                                controller: _addressCtrl,
+                                maxLines: 3,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -428,12 +440,14 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.accent(
-                    label: _isLoading ? 'Menyimpan...' : 'Simpan Staff',
+                    label: _isLoading
+                        ? 'Menyimpan...'
+                        : 'Simpan Kepala Sekolah',
                     onPressed:
                         _isLoading ||
                             (isSuperadmin && effectiveSchoolId == null)
                         ? null
-                        : _saveStaff,
+                        : _saveHeadmaster,
                   ),
                 ],
               ),

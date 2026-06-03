@@ -26,6 +26,10 @@ _PageInfo _infoForRoute(String location) => switch (location) {
     title: 'Manajemen Guru',
     subtitle: 'Kelola data guru sekolah',
   ),
+  String l when l.startsWith(RouteNames.headmasters) => (
+    title: 'Manajemen Kepala Sekolah',
+    subtitle: 'Kelola data kepala sekolah per tenant',
+  ),
   String l when l.startsWith(RouteNames.staff) => (
     title: 'Manajemen Staff',
     subtitle: 'Kelola data staf sekolah',
@@ -102,8 +106,9 @@ class AppTopbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final location = GoRouterState.of(context).matchedLocation;
-    final info =
-        titleOverride != null ? (title: titleOverride!, subtitle: '') : _infoForRoute(location);
+    final info = titleOverride != null
+        ? (title: titleOverride!, subtitle: '')
+        : _infoForRoute(location);
     final user = ref.watch(currentUserProvider);
     final initials = _initials(user?.name ?? '');
     final contentHeight = isMobile ? 64.0 : 72.0;
@@ -258,7 +263,9 @@ class _SchoolContextChip extends ConsumerWidget {
     }
 
     final isMissing = activeSchool == null;
-    final backgroundColor = isMissing ? AppColors.accent100 : AppColors.primary100;
+    final backgroundColor = isMissing
+        ? AppColors.accent100
+        : AppColors.primary100;
     final textColor = isMissing ? AppColors.accent700 : AppColors.primary700;
     final label = isMissing ? 'Pilih Sekolah' : activeSchool.name;
 
@@ -276,11 +283,7 @@ class _SchoolContextChip extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.school_outlined,
-              size: 16,
-              color: textColor,
-            ),
+            Icon(Icons.school_outlined, size: 16, color: textColor),
             const SizedBox(width: AppSpacing.xs),
             Text(
               label,
@@ -297,4 +300,3 @@ class _SchoolContextChip extends ConsumerWidget {
     );
   }
 }
-

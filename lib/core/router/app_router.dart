@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/academic/presentation/screens/academic_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_detail_screen.dart';
+import '../../features/headmasters/presentation/screens/headmasters_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
@@ -160,8 +161,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteNames.admins,
             builder: (_, _) => const AdminsScreen(),
           ),
-          GoRoute(path: RouteNames.users, 
-          builder: (_, _) => const UsersScreen()),
+          GoRoute(
+            path: RouteNames.headmasters,
+            builder: (_, _) => const HeadmastersScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.users,
+            builder: (_, _) => const UsersScreen(),
+          ),
           GoRoute(
             path: '/teachers/:id',
             builder: (_, state) => PlaceholderScreen(
@@ -197,7 +204,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/class-schedule/:id',
-            builder: (_, state) => ClassScheduleDetailScreen(scheduleId: state.pathParameters['id']!),
+            builder: (_, state) => ClassScheduleDetailScreen(
+              scheduleId: state.pathParameters['id']!,
+            ),
           ),
           GoRoute(
             path: RouteNames.gradePromotion,
