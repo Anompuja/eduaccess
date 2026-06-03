@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../data/models/staff_row_data.dart';
+import '../../data/models/headmaster_row_data.dart';
 
-Future<void> showStaffDetailModal(
+Future<void> showHeadmasterDetailModal(
   BuildContext context, {
-  required StaffRowData data,
+  required HeadmasterRowData data,
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) => StaffDetailModal(data: data),
+    builder: (_) => HeadmasterDetailModal(data: data),
   );
 }
 
-class StaffDetailModal extends StatelessWidget {
-  final StaffRowData data;
+class HeadmasterDetailModal extends StatelessWidget {
+  final HeadmasterRowData data;
 
-  const StaffDetailModal({super.key, required this.data});
+  const HeadmasterDetailModal({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class StaffDetailModal extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Detail Staff',
+                          'Detail Kepala Sekolah',
                           style: AppTextStyles.h3.copyWith(
                             color: AppColors.neutral900,
                           ),
@@ -70,50 +70,34 @@ class StaffDetailModal extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
               _DetailSection(
                 title: 'Profil',
-                icon: Icons.badge_outlined,
+                icon: Icons.account_balance_outlined,
                 children: [
-                  _DetailItem(label: 'Staff ID', value: data.staffId),
+                  _DetailItem(label: 'Headmaster ID', value: data.headmasterId),
                   _DetailItem(label: 'User ID', value: data.userId),
                   _DetailItem(label: 'School ID', value: data.schoolId),
                   _DetailItem(label: 'Nama', value: data.name),
+                  _DetailItem(label: 'NIP', value: data.nip),
+                  _DetailItem(label: 'Username', value: data.username),
                   _DetailItem(label: 'Email', value: data.email),
-                  _DetailItem(
-                    label: 'Username',
-                    value: data.username.isEmpty ? '-' : data.username,
-                  ),
-                  _DetailItem(
-                    label: 'Telepon',
-                    value: data.phoneNumber.isEmpty ? '-' : data.phoneNumber,
-                  ),
-                  _DetailItem(
-                    label: 'Alamat',
-                    value: data.address.isEmpty ? '-' : data.address,
-                  ),
-                  _DetailItem(
-                    label: 'Jenis Kelamin',
-                    value: data.genderLabel.isEmpty ? '-' : data.genderLabel,
-                  ),
-                  _DetailItem(
-                    label: 'Agama',
-                    value: data.religion.isEmpty ? '-' : data.religion,
-                  ),
-                  _DetailItem(
-                    label: 'Tempat Lahir',
-                    value: data.birthPlace.isEmpty ? '-' : data.birthPlace,
-                  ),
+                  _DetailItem(label: 'Telepon', value: data.phoneNumber),
+                  _DetailItem(label: 'Status', value: data.status),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _DetailSection(
+                title: 'Data Personal',
+                icon: Icons.person_outline,
+                children: [
+                  _DetailItem(label: 'Jenis Kelamin', value: data.genderLabel),
+                  _DetailItem(label: 'Agama', value: data.religion),
+                  _DetailItem(label: 'Tempat Lahir', value: data.birthPlace),
                   _DetailItem(
                     label: 'Tanggal Lahir',
-                    value: data.birthDate.isEmpty ? '-' : data.birthDate,
+                    value: data.birthDateLabel,
                   ),
-                  _DetailItem(
-                    label: 'NIK',
-                    value: data.nik.isEmpty ? '-' : data.nik,
-                  ),
-                  _DetailItem(
-                    label: 'KTP Image Path',
-                    value: data.ktpImagePath.isEmpty ? '-' : data.ktpImagePath,
-                  ),
-                  _DetailItem(label: 'Status', value: data.status),
+                  _DetailItem(label: 'NIK', value: data.nik),
+                  _DetailItem(label: 'Path Foto KTP', value: data.ktpImagePath),
+                  _DetailItem(label: 'Alamat', value: data.address),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -121,8 +105,15 @@ class StaffDetailModal extends StatelessWidget {
                 title: 'Timeline',
                 icon: Icons.schedule,
                 children: [
-                  _DetailItem(label: 'Dibuat Pada', value: data.createdAt),
-                  _DetailItem(label: 'Diperbarui Pada', value: data.updatedAt),
+                  _DetailItem(label: 'Dibuat Pada', value: data.createdAtLabel),
+                  _DetailItem(
+                    label: 'Diperbarui Pada',
+                    value: data.updatedAtLabel,
+                  ),
+                  _DetailItem(
+                    label: 'Dihapus Pada',
+                    value: data.deletedAtLabel,
+                  ),
                 ],
               ),
             ],
@@ -211,6 +202,7 @@ class _DetailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final value = item.value.trim().isEmpty ? '-' : item.value;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -232,7 +224,7 @@ class _DetailField extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            item.value,
+            value,
             style: AppTextStyles.bodyLgSemiBold.copyWith(
               color: AppColors.neutral900,
             ),

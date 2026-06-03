@@ -51,6 +51,12 @@ const _menuItems = [
     allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
   ),
   _NavItem(
+    label: 'Kepala Sekolah',
+    route: RouteNames.headmasters,
+    icon: Icons.account_balance_outlined,
+    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  ),
+  _NavItem(
     label: 'Manajemen Siswa',
     route: RouteNames.students,
     icon: Icons.school_outlined,
