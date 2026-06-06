@@ -91,7 +91,7 @@ class StaffDetailModal extends StatelessWidget {
                   ),
                   _DetailItem(
                     label: 'Jenis Kelamin',
-                    value: data.gender.isEmpty ? '-' : data.gender,
+                    value: data.genderLabel.isEmpty ? '-' : data.genderLabel,
                   ),
                   _DetailItem(
                     label: 'Agama',

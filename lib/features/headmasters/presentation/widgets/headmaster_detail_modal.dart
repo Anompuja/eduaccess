@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../data/models/user_row_data.dart';
+import '../../data/models/headmaster_row_data.dart';
 
-Future<void> showUserDetailModal(
+Future<void> showHeadmasterDetailModal(
   BuildContext context, {
-  required UserRowData data,
+  required HeadmasterRowData data,
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) => UserDetailModal(data: data),
+    builder: (_) => HeadmasterDetailModal(data: data),
   );
 }
 
-class UserDetailModal extends StatelessWidget {
-  final UserRowData data;
+class HeadmasterDetailModal extends StatelessWidget {
+  final HeadmasterRowData data;
 
-  const UserDetailModal({super.key, required this.data});
+  const HeadmasterDetailModal({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class UserDetailModal extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Detail User',
+                          'Detail Kepala Sekolah',
                           style: AppTextStyles.h3.copyWith(
                             color: AppColors.neutral900,
                           ),
@@ -70,14 +70,34 @@ class UserDetailModal extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
               _DetailSection(
                 title: 'Profil',
+                icon: Icons.account_balance_outlined,
+                children: [
+                  _DetailItem(label: 'Headmaster ID', value: data.headmasterId),
+                  _DetailItem(label: 'User ID', value: data.userId),
+                  _DetailItem(label: 'School ID', value: data.schoolId),
+                  _DetailItem(label: 'Nama', value: data.name),
+                  _DetailItem(label: 'NIP', value: data.nip),
+                  _DetailItem(label: 'Username', value: data.username),
+                  _DetailItem(label: 'Email', value: data.email),
+                  _DetailItem(label: 'Telepon', value: data.phoneNumber),
+                  _DetailItem(label: 'Status', value: data.status),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              _DetailSection(
+                title: 'Data Personal',
                 icon: Icons.person_outline,
                 children: [
-                  _DetailItem(label: 'User ID', value: data.userId),
-                  _DetailItem(label: 'Nama', value: data.name),
-                  _DetailItem(label: 'Email', value: data.email),
-                  _DetailItem(label: 'Role', value: data.role),
-                  _DetailItem(label: 'No. Telepon', value: data.phone),
-                  _DetailItem(label: 'Status', value: data.status),
+                  _DetailItem(label: 'Jenis Kelamin', value: data.genderLabel),
+                  _DetailItem(label: 'Agama', value: data.religion),
+                  _DetailItem(label: 'Tempat Lahir', value: data.birthPlace),
+                  _DetailItem(
+                    label: 'Tanggal Lahir',
+                    value: data.birthDateLabel,
+                  ),
+                  _DetailItem(label: 'NIK', value: data.nik),
+                  _DetailItem(label: 'Path Foto KTP', value: data.ktpImagePath),
+                  _DetailItem(label: 'Alamat', value: data.address),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -85,8 +105,15 @@ class UserDetailModal extends StatelessWidget {
                 title: 'Timeline',
                 icon: Icons.schedule,
                 children: [
-                  _DetailItem(label: 'Dibuat Pada', value: data.createdAt),
-                  _DetailItem(label: 'Diperbarui Pada', value: data.updatedAt),
+                  _DetailItem(label: 'Dibuat Pada', value: data.createdAtLabel),
+                  _DetailItem(
+                    label: 'Diperbarui Pada',
+                    value: data.updatedAtLabel,
+                  ),
+                  _DetailItem(
+                    label: 'Dihapus Pada',
+                    value: data.deletedAtLabel,
+                  ),
                 ],
               ),
             ],
@@ -175,6 +202,7 @@ class _DetailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final value = item.value.trim().isEmpty ? '-' : item.value;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -196,7 +224,7 @@ class _DetailField extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            item.value,
+            value,
             style: AppTextStyles.bodyLgSemiBold.copyWith(
               color: AppColors.neutral900,
             ),

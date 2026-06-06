@@ -1,25 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../data/models/user_row_data.dart';
+import '../../data/models/headmaster_row_data.dart';
+import '../providers/headmasters_provider.dart';
 
-Future<void> showUserDeleteModal(
+Future<void> showHeadmasterDeleteModal(
   BuildContext context, {
-  required UserRowData data,
+  required WidgetRef ref,
+  required HeadmasterRowData data,
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) => UserDeleteModal(data: data),
+    builder: (_) => HeadmasterDeleteModal(ref: ref, data: data),
   );
 }
 
-class UserDeleteModal extends StatelessWidget {
-  final UserRowData data;
+class HeadmasterDeleteModal extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  final HeadmasterRowData data;
 
-  const UserDeleteModal({super.key, required this.data});
+  const HeadmasterDeleteModal({
+    super.key,
+    required this.ref,
+    required this.data,
+  });
+
+  @override
+  ConsumerState<HeadmasterDeleteModal> createState() =>
+      _HeadmasterDeleteModalState();
+}
+
+class _HeadmasterDeleteModalState extends ConsumerState<HeadmasterDeleteModal> {
+  bool _isLoading = false;
+
+  Future<void> _deleteHeadmaster() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(deleteHeadmasterProvider(widget.data.headmasterId).future);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data kepala sekolah berhasil dihapus')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,14 +100,14 @@ class UserDeleteModal extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Hapus Data User?',
+                          'Hapus Kepala Sekolah?',
                           style: AppTextStyles.h4.copyWith(
                             color: AppColors.neutral900,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          'Aksi ini hanya tampilan UI. Data belum benar-benar dihapus.',
+                          'Data akan dihapus lewat endpoint backend Headmaster.',
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.neutral500,
                           ),
@@ -77,7 +116,9 @@ class UserDeleteModal extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     color: AppColors.neutral700,
                   ),
@@ -96,7 +137,7 @@ class UserDeleteModal extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'User yang dipilih',
+                      'Kepala sekolah yang dipilih',
                       style: AppTextStyles.label.copyWith(
                         color: AppColors.neutral500,
                         letterSpacing: 0.8,
@@ -104,14 +145,16 @@ class UserDeleteModal extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      data.name,
+                      widget.data.name,
                       style: AppTextStyles.bodyLgSemiBold.copyWith(
                         color: AppColors.neutral900,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      'Role: ${data.role} • Email: ${data.email}',
+                      widget.data.username.isEmpty
+                          ? widget.data.email
+                          : 'Username: ${widget.data.username} | Email: ${widget.data.email}',
                       style: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.neutral700,
                       ),
@@ -125,12 +168,14 @@ class UserDeleteModal extends StatelessWidget {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.danger(
-                    label: 'Hapus',
-                    onPressed: () => Navigator.of(context).pop(),
+                    label: _isLoading ? 'Menghapus...' : 'Hapus',
+                    onPressed: _isLoading ? null : _deleteHeadmaster,
                   ),
                 ],
               ),

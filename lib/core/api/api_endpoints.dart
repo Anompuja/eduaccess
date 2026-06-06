@@ -13,6 +13,10 @@ abstract final class ApiEndpoints {
   static const String admins = '/admins';
   static String adminById(String id) => '/admins/$id';
 
+  // ── Headmasters ────────────────────────────────────────────────────────────
+  static const String headmasters = '/headmasters';
+  static String headmasterById(String id) => '/headmasters/$id';
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
   static const String dashboardStats = '/dashboard/stats';
   static const String schools = '/schools';
@@ -48,7 +52,8 @@ abstract final class ApiEndpoints {
   static String academicSubClassById(String id) => '/academic/sub-classes/$id';
   static const String academicYearsList = '/academic/academic-years';
   static String academicYearById(String id) => '/academic/academic-years/$id';
-  static String academicYearActivate(String id) => '/academic/academic-years/$id/activate';
+  static String academicYearActivate(String id) =>
+      '/academic/academic-years/$id/activate';
   static const String subjectsList = '/academic/subjects';
   static String subjectById(String id) => '/academic/subjects/$id';
   static const String classroomsList = '/academic/classrooms';
@@ -60,15 +65,20 @@ abstract final class ApiEndpoints {
   static const String classSchedules = '/class-schedules';
   static String classScheduleById(String id) => '/class-schedules/$id';
   static String classScheduleStart(String id) => '/class-schedules/$id/start';
-  static String classScheduleComplete(String id) => '/class-schedules/$id/complete';
+  static String classScheduleComplete(String id) =>
+      '/class-schedules/$id/complete';
   static String classScheduleCancel(String id) => '/class-schedules/$id/cancel';
-  static String classScheduleSyncStudents(String id) => '/class-schedules/$id/sync-students';
-  static String classScheduleAttendances(String id) => '/class-schedules/$id/attendances';
-  static String classScheduleAttendance(String scheduleId, String studentId) => '/class-schedules/$scheduleId/attendances/$studentId';
+  static String classScheduleSyncStudents(String id) =>
+      '/class-schedules/$id/sync-students';
+  static String classScheduleAttendances(String id) =>
+      '/class-schedules/$id/attendances';
+  static String classScheduleAttendance(String scheduleId, String studentId) =>
+      '/class-schedules/$scheduleId/attendances/$studentId';
 
   // ── Student Tracking & Promotion ──────────────────────────────────────────
   static const String studentStudies = '/student-studies';
-  static String studentStudyDetail(String studentId) => '/student-studies/$studentId';
+  static String studentStudyDetail(String studentId) =>
+      '/student-studies/$studentId';
   static const String studentPromotions = '/student-promotions';
   static const String studentPromotionPromote = '/student-promotions/promote';
 

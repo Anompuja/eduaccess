@@ -1,8 +1,9 @@
-class StaffRowData {
-  final String staffId;
+class HeadmasterRowData {
+  final String headmasterId;
   final String userId;
   final String schoolId;
   final String name;
+  final String nip;
   final String email;
   final String username;
   final String avatar;
@@ -18,11 +19,12 @@ class StaffRowData {
   final String createdAt;
   final String updatedAt;
 
-  const StaffRowData({
-    required this.staffId,
+  const HeadmasterRowData({
+    required this.headmasterId,
     required this.userId,
     required this.schoolId,
     required this.name,
+    required this.nip,
     required this.email,
     required this.username,
     required this.avatar,
@@ -44,35 +46,50 @@ class StaffRowData {
   String get status => isActive ? 'Aktif' : 'Nonaktif';
   String get genderLabel => _genderLabel(gender);
 
-  factory StaffRowData.fromJson(Map<String, dynamic> json) {
-    return StaffRowData(
-      staffId: json['id'] as String? ?? '',
-      userId: json['user_id'] as String? ?? '',
-      schoolId: json['school_id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      email: json['email'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      avatar: json['avatar'] as String? ?? '',
-      phoneNumber: json['phone_number'] as String? ?? '',
-      address: json['address'] as String? ?? '',
-      gender: json['gender'] as String? ?? '',
-      religion: json['religion'] as String? ?? '',
-      birthPlace: json['birth_place'] as String? ?? '',
-      birthDate: _formatDate(json['birth_date']),
-      nik: json['nik'] as String? ?? '',
-      ktpImagePath: json['ktp_image_path'] as String? ?? '',
-      deletedAt: _formatDate(json['deleted_at']),
-      createdAt: _formatDate(json['created_at']),
-      updatedAt: _formatDate(json['updated_at']),
+  String get birthDateLabel => _formatDate(birthDate);
+
+  String get deletedAtLabel => _formatDate(deletedAt);
+
+  String get createdAtLabel => _formatDate(createdAt);
+
+  String get updatedAtLabel => _formatDate(updatedAt);
+
+  factory HeadmasterRowData.fromJson(Map<String, dynamic> json) {
+    return HeadmasterRowData(
+      headmasterId: _stringValue(json['id']),
+      userId: _stringValue(json['user_id']),
+      schoolId: _stringValue(json['school_id']),
+      name: _stringValue(json['name']),
+      nip: _stringValue(json['nip']),
+      email: _stringValue(json['email']),
+      username: _stringValue(json['username']),
+      avatar: _stringValue(json['avatar']),
+      phoneNumber: _stringValue(json['phone_number']),
+      address: _stringValue(json['address']),
+      gender: _stringValue(json['gender']),
+      religion: _stringValue(json['religion']),
+      birthPlace: _stringValue(json['birth_place']),
+      birthDate: _stringValue(json['birth_date']),
+      nik: _stringValue(json['nik']),
+      ktpImagePath: _stringValue(json['ktp_image_path']),
+      deletedAt: _stringValue(json['deleted_at']),
+      createdAt: _stringValue(json['created_at']),
+      updatedAt: _stringValue(json['updated_at']),
     );
   }
 
-  static String _formatDate(dynamic value) {
-    if (value == null) return '';
+  static String _stringValue(dynamic value) {
+    if (value == null) {
+      return '';
+    }
+    return value.toString();
+  }
 
-    final text = value.toString();
-    final parsed = DateTime.tryParse(text);
-    if (parsed == null) return text;
+  static String _formatDate(String value) {
+    if (value.isEmpty) return '';
+
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value;
 
     final local = parsed.toLocal();
     const months = <String>[
