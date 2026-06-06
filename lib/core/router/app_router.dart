@@ -59,7 +59,7 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.help,
   };
 
-  const guruRoutes = {RouteNames.attendance, RouteNames.cbt};
+  const guruRoutes = {RouteNames.attendance, RouteNames.cbt, RouteNames.students};
 
   const studentRoutes = {RouteNames.attendance, RouteNames.cbt};
   const staffRoutes = {RouteNames.attendance};
