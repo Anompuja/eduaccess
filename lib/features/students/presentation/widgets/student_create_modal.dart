@@ -10,12 +10,15 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../../features/dashboard/domain/entities/dashboard_school.dart';
 import '../../../../features/dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../../features/academic/presentation/providers/academic_providers.dart';
 import '../../../../features/academic/domain/entities/education_level_entity.dart';
 import '../../../../features/academic/domain/entities/class_entity.dart';
 import '../../../../features/academic/domain/entities/sub_class_entity.dart';
+import '../../../../features/subscription/data/models/subscription_entities.dart';
+import '../../../../features/subscription/presentation/providers/subscription_provider.dart';
 import '../providers/students_provider.dart';
 
 Future<void> showStudentCreateModal(BuildContext context) {
@@ -50,7 +53,7 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
   String? _selectedEducationLevelId;
   String? _selectedClassId;
   String? _selectedSubClassId;
-  
+
   String? _selectedGender;
   String? _selectedReligion;
   String? _selectedJalurMasuk;
@@ -129,7 +132,21 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
     if (isSuperadmin && effectiveSchoolId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Silakan pilih sekolah terlebih dahulu')),
+          const SnackBar(
+            content: Text('Silakan pilih sekolah terlebih dahulu'),
+          ),
+        );
+      }
+      return;
+    }
+
+    final schoolId = effectiveSchoolId ?? user?.schoolId;
+    if (schoolId == null || schoolId.isEmpty) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Konteks sekolah belum tersedia untuk membuat siswa.',
+          type: ToastType.warning,
         );
       }
       return;
@@ -137,6 +154,24 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
 
     setState(() => _isLoading = true);
     try {
+      final overview = await ref.read(
+        schoolSubscriptionOverviewProvider((
+          schoolId: schoolId,
+          includeSchoolIdQuery: isSuperadmin,
+        )).future,
+      );
+      if (overview.isAtCapacity) {
+        if (mounted) {
+          AppToast.show(
+            context,
+            message:
+                'Kuota siswa paket ${overview.plan.tier.label} sudah penuh. Upgrade paket terlebih dahulu.',
+            type: ToastType.warning,
+          );
+        }
+        return;
+      }
+
       final data = <String, dynamic>{
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -144,13 +179,23 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
         'password': _passwordCtrl.text,
         'nis': _nisCtrl.text.trim().isEmpty ? null : _nisCtrl.text.trim(),
         'nisn': _nisnCtrl.text.trim().isEmpty ? null : _nisnCtrl.text.trim(),
-        'phone_number': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-        'address': _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-        'birth_place': _birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim(),
-        'birth_date': _birthDateCtrl.text.trim().isEmpty ? null : _birthDateCtrl.text.trim(),
+        'phone_number': _phoneCtrl.text.trim().isEmpty
+            ? null
+            : _phoneCtrl.text.trim(),
+        'address': _addressCtrl.text.trim().isEmpty
+            ? null
+            : _addressCtrl.text.trim(),
+        'birth_place': _birthPlaceCtrl.text.trim().isEmpty
+            ? null
+            : _birthPlaceCtrl.text.trim(),
+        'birth_date': _birthDateCtrl.text.trim().isEmpty
+            ? null
+            : _birthDateCtrl.text.trim(),
         'gender': _selectedGender,
         'religion': _selectedReligion,
-        'tahun_masuk': _tahunMasukCtrl.text.trim().isEmpty ? null : _tahunMasukCtrl.text.trim(),
+        'tahun_masuk': _tahunMasukCtrl.text.trim().isEmpty
+            ? null
+            : _tahunMasukCtrl.text.trim(),
         'jalur_masuk_sekolah': _selectedJalurMasuk,
         'education_level_id': _selectedEducationLevelId,
         'class_id': _selectedClassId,
@@ -171,9 +216,9 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     } finally {
       if (mounted) {
@@ -189,14 +234,31 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
     final isSuperadmin = user?.role == UserRole.superadmin;
     final needsSchoolPicker = isSuperadmin && activeSchool == null;
     final schools = needsSchoolPicker
-        ? (ref.watch(dashboardSchoolsProvider).valueOrNull ?? <DashboardSchool>[])
+        ? (ref.watch(dashboardSchoolsProvider).valueOrNull ??
+              <DashboardSchool>[])
         : <DashboardSchool>[];
 
-    final effectiveSchoolId = isSuperadmin ? (activeSchool?.id ?? _selectedSchoolId) : user?.schoolId;
+    final effectiveSchoolId = isSuperadmin
+        ? (activeSchool?.id ?? _selectedSchoolId)
+        : user?.schoolId;
+    final subscriptionOverviewAsync = effectiveSchoolId == null
+        ? null
+        : ref.watch(
+            schoolSubscriptionOverviewProvider((
+              schoolId: effectiveSchoolId,
+              includeSchoolIdQuery: isSuperadmin,
+            )),
+          );
 
-    final levels = ref.watch(levelsBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <EducationLevelEntity>[];
-    final classes = ref.watch(classesBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <ClassEntity>[];
-    final subClasses = ref.watch(subClassesBySchoolProvider(effectiveSchoolId)).valueOrNull ?? <SubClassEntity>[];
+    final levels =
+        ref.watch(levelsBySchoolProvider(effectiveSchoolId)).valueOrNull ??
+        <EducationLevelEntity>[];
+    final classes =
+        ref.watch(classesBySchoolProvider(effectiveSchoolId)).valueOrNull ??
+        <ClassEntity>[];
+    final subClasses =
+        ref.watch(subClassesBySchoolProvider(effectiveSchoolId)).valueOrNull ??
+        <SubClassEntity>[];
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(
@@ -222,20 +284,26 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                       children: [
                         Text(
                           'Tambah Siswa Baru',
-                          style: AppTextStyles.h3.copyWith(color: AppColors.neutral900),
+                          style: AppTextStyles.h3.copyWith(
+                            color: AppColors.neutral900,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           isSuperadmin && activeSchool != null
                               ? 'Siswa akan dibuat untuk ${activeSchool.name}.'
                               : 'Data akan dikirim ke backend Siswa.',
-                          style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.neutral500,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                     color: AppColors.neutral700,
                   ),
@@ -274,7 +342,15 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                   ),
                                 )
                                 .toList(),
-                            onChanged: (value) => setState(() => _selectedSchoolId = value),
+                            onChanged: (value) =>
+                                setState(() => _selectedSchoolId = value),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        if (subscriptionOverviewAsync != null) ...[
+                          _QuotaInfoCard(
+                            subscriptionOverviewAsync:
+                                subscriptionOverviewAsync,
                           ),
                           const SizedBox(height: AppSpacing.md),
                         ],
@@ -359,7 +435,9 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 onTap: _pickBirthDate,
                                 suffix: IconButton(
                                   onPressed: _pickBirthDate,
-                                  icon: const Icon(Icons.calendar_month_outlined),
+                                  icon: const Icon(
+                                    Icons.calendar_month_outlined,
+                                  ),
                                   color: AppColors.neutral500,
                                 ),
                               ),
@@ -371,10 +449,17 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 hint: 'Pilih',
                                 value: _selectedGender,
                                 items: const [
-                                  AppDropdownItem(value: 'L', label: 'Laki-laki (L)'),
-                                  AppDropdownItem(value: 'P', label: 'Perempuan (P)'),
+                                  AppDropdownItem(
+                                    value: 'L',
+                                    label: 'Laki-laki (L)',
+                                  ),
+                                  AppDropdownItem(
+                                    value: 'P',
+                                    label: 'Perempuan (P)',
+                                  ),
                                 ],
-                                onChanged: (val) => setState(() => _selectedGender = val),
+                                onChanged: (val) =>
+                                    setState(() => _selectedGender = val),
                               ),
                             ),
                             SizedBox(
@@ -383,10 +468,24 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 label: 'Agama',
                                 hint: 'Pilih Agama',
                                 value: _selectedReligion,
-                                items: ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu']
-                                    .map((r) => AppDropdownItem<String?>(value: r, label: r))
-                                    .toList(),
-                                onChanged: (val) => setState(() => _selectedReligion = val),
+                                items:
+                                    [
+                                          'Islam',
+                                          'Kristen',
+                                          'Katolik',
+                                          'Hindu',
+                                          'Buddha',
+                                          'Konghucu',
+                                        ]
+                                        .map(
+                                          (r) => AppDropdownItem<String?>(
+                                            value: r,
+                                            label: r,
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (val) =>
+                                    setState(() => _selectedReligion = val),
                               ),
                             ),
                             SizedBox(
@@ -404,10 +503,17 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 label: 'Jalur Masuk',
                                 hint: 'Pilih Jalur Masuk',
                                 value: _selectedJalurMasuk,
-                                items: ['reguler', 'beasiswa', 'mutasi', 'lainnya']
-                                    .map((j) => AppDropdownItem<String?>(value: j, label: j))
-                                    .toList(),
-                                onChanged: (val) => setState(() => _selectedJalurMasuk = val),
+                                items:
+                                    ['reguler', 'beasiswa', 'mutasi', 'lainnya']
+                                        .map(
+                                          (j) => AppDropdownItem<String?>(
+                                            value: j,
+                                            label: j,
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged: (val) =>
+                                    setState(() => _selectedJalurMasuk = val),
                               ),
                             ),
                             SizedBox(
@@ -417,7 +523,12 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 hint: 'Pilih Tingkat',
                                 value: _selectedEducationLevelId,
                                 items: levels
-                                    .map((l) => AppDropdownItem<String?>(value: l.id, label: l.name))
+                                    .map(
+                                      (l) => AppDropdownItem<String?>(
+                                        value: l.id,
+                                        label: l.name,
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: (val) {
                                   setState(() {
@@ -436,8 +547,17 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 hint: 'Pilih Kelas',
                                 value: _selectedClassId,
                                 items: classes
-                                    .where((c) => c.educationLevelId == _selectedEducationLevelId)
-                                    .map((c) => AppDropdownItem<String?>(value: c.id, label: c.name))
+                                    .where(
+                                      (c) =>
+                                          c.educationLevelId ==
+                                          _selectedEducationLevelId,
+                                    )
+                                    .map(
+                                      (c) => AppDropdownItem<String?>(
+                                        value: c.id,
+                                        label: c.name,
+                                      ),
+                                    )
                                     .toList(),
                                 onChanged: (val) {
                                   setState(() {
@@ -456,9 +576,15 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                                 value: _selectedSubClassId,
                                 items: subClasses
                                     .where((s) => s.classId == _selectedClassId)
-                                    .map((s) => AppDropdownItem<String?>(value: s.id, label: s.name))
+                                    .map(
+                                      (s) => AppDropdownItem<String?>(
+                                        value: s.id,
+                                        label: s.name,
+                                      ),
+                                    )
                                     .toList(),
-                                onChanged: (val) => setState(() => _selectedSubClassId = val),
+                                onChanged: (val) =>
+                                    setState(() => _selectedSubClassId = val),
                               ),
                             ),
                             SizedBox(
@@ -483,7 +609,9 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
                 children: [
                   AppButton.secondary(
                     label: 'Batal',
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   AppButton.accent(
@@ -496,6 +624,95 @@ class _StudentCreateModalState extends ConsumerState<StudentCreateModal> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _QuotaInfoCard extends StatelessWidget {
+  final AsyncValue<SchoolSubscriptionOverview> subscriptionOverviewAsync;
+
+  const _QuotaInfoCard({required this.subscriptionOverviewAsync});
+
+  @override
+  Widget build(BuildContext context) {
+    return subscriptionOverviewAsync.when(
+      loading: () => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.neutral50,
+          borderRadius: AppRadius.lgAll,
+          border: Border.all(color: AppColors.neutral100),
+        ),
+        child: Text(
+          'Memeriksa kuota siswa paket aktif...',
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+        ),
+      ),
+      error: (error, _) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.08),
+          borderRadius: AppRadius.lgAll,
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
+        ),
+        child: Text(
+          'Kuota siswa belum bisa diverifikasi: $error',
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.warning),
+        ),
+      ),
+      data: (overview) {
+        final isAtCapacity = overview.isAtCapacity;
+        final isNearCapacity = overview.isNearCapacity;
+        final accentColor = isAtCapacity
+            ? AppColors.error
+            : isNearCapacity
+            ? AppColors.warning
+            : AppColors.primary700;
+
+        final helperText = overview.studentsLimit <= 0
+            ? 'Limit siswa belum dikirim oleh backend untuk paket ini.'
+            : isAtCapacity
+            ? 'Kuota siswa penuh. Siswa baru tidak dapat dibuat sampai paket di-upgrade.'
+            : 'Sisa kuota ${overview.remainingStudents} siswa pada paket ${overview.plan.tier.label}.';
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.08),
+            borderRadius: AppRadius.lgAll,
+            border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kuota Siswa Paket',
+                style: AppTextStyles.label.copyWith(
+                  color: accentColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${overview.studentsUsed}/${overview.studentsLimit <= 0 ? '-' : overview.studentsLimit} siswa',
+                style: AppTextStyles.bodyLgSemiBold.copyWith(
+                  color: AppColors.neutral900,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                helperText,
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.neutral700,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

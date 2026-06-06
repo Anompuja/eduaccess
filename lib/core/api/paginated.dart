@@ -44,14 +44,32 @@ class Paginated<T> {
         : <T>[];
 
     final pagination = body['pagination'];
+    Map<String, dynamic> metadata = <String, dynamic>{};
     if (pagination is Map) {
-      final p = pagination.cast<String, dynamic>();
+      metadata = pagination.cast<String, dynamic>();
+    } else if (body.containsKey('page') ||
+        body.containsKey('per_page') ||
+        body.containsKey('total') ||
+        body.containsKey('total_pages')) {
+      metadata = body;
+    }
+
+    if (metadata.isNotEmpty) {
+      final page = (metadata['page'] as num?)?.toInt() ?? 1;
+      final perPage =
+          (metadata['per_page'] as num?)?.toInt() ??
+          (items.isEmpty ? 0 : items.length);
+      final total = (metadata['total'] as num?)?.toInt() ?? items.length;
+      final totalPages =
+          (metadata['total_pages'] as num?)?.toInt() ??
+          (perPage <= 0 ? (items.isEmpty ? 0 : 1) : (total / perPage).ceil());
+
       return Paginated<T>(
         items: items,
-        page: (p['page'] as num?)?.toInt() ?? 1,
-        perPage: (p['per_page'] as num?)?.toInt() ?? items.length,
-        total: (p['total'] as num?)?.toInt() ?? items.length,
-        totalPages: (p['total_pages'] as num?)?.toInt() ?? 1,
+        page: page,
+        perPage: perPage,
+        total: total,
+        totalPages: totalPages,
       );
     }
 

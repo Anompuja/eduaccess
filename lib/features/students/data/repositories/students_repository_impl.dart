@@ -35,6 +35,10 @@ class StudentsRepositoryImpl {
     return _remoteDataSource.updateStudent(id, data);
   }
 
+  Future<int> getStudentCount({required String schoolId}) {
+    return _remoteDataSource.getStudentCount(schoolId: schoolId);
+  }
+
   Future<void> deleteStudent(String id) {
     return _remoteDataSource.deleteStudent(id);
   }

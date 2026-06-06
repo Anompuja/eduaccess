@@ -59,19 +59,55 @@ class StudentsRemoteDataSource {
     try {
       final response = await _dio.post(ApiEndpoints.students, data: data);
       final payload = response.data;
-      final studentJson = payload is Map ? (payload['data'] ?? payload) : payload;
-      return StudentRowData.fromJson(Map<String, dynamic>.from(studentJson as Map));
+      final studentJson = payload is Map
+          ? (payload['data'] ?? payload)
+          : payload;
+      return StudentRowData.fromJson(
+        Map<String, dynamic>.from(studentJson as Map),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
   }
 
-  Future<StudentRowData> updateStudent(String id, Map<String, dynamic> data) async {
+  Future<StudentRowData> updateStudent(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final response = await _dio.put(ApiEndpoints.studentById(id), data: data);
       final payload = response.data;
-      final studentJson = payload is Map ? (payload['data'] ?? payload) : payload;
-      return StudentRowData.fromJson(Map<String, dynamic>.from(studentJson as Map));
+      final studentJson = payload is Map
+          ? (payload['data'] ?? payload)
+          : payload;
+      return StudentRowData.fromJson(
+        Map<String, dynamic>.from(studentJson as Map),
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  Future<int> getStudentCount({required String schoolId}) async {
+    try {
+      final params = <String, dynamic>{'page': 1, 'per_page': 1};
+      if (schoolId.isNotEmpty) {
+        params['school_id'] = schoolId;
+      }
+
+      final response = await _dio.get(
+        ApiEndpoints.students,
+        queryParameters: params,
+      );
+
+      final data = response.data;
+      if (data is! Map) return 0;
+
+      final paginated = Paginated<StudentRowData>.fromResponseBody(
+        data.cast<String, dynamic>(),
+        StudentRowData.fromJson,
+      );
+      return paginated.total;
     } on DioException catch (e) {
       throw _handleDioException(e);
     }

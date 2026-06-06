@@ -1,19 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/api/api_client.dart';
 import '../../../../core/api/paginated.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
 import '../../../../core/providers/active_school_provider.dart';
-import '../../data/datasources/students_remote_data_source.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../data/models/student_row_data.dart';
-import '../../data/repositories/students_repository_impl.dart';
 import '../constants/students_screen_constants.dart';
-
-final studentsRepositoryProvider = Provider((ref) {
-  final dio = ref.watch(dioProvider);
-  return StudentsRepositoryImpl(StudentsRemoteDataSource(dio));
-});
+import 'students_data_provider.dart';
 
 final studentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 
@@ -32,7 +26,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   final query = ref.watch(studentsSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
-  
+
   // Custom API filters
   final levelFilter = ref.watch(studentsLevelFilterProvider);
   final classFilter = ref.watch(studentsClassFilterProvider);
@@ -40,7 +34,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
 
   final schoolId = switch (user?.role) {
     UserRole.superadmin => activeSchool?.id,
-    _ => user?.schoolId,
+    _ => null,
   };
 
   return repository.getStudents(
@@ -59,6 +53,27 @@ final createStudentProvider = FutureProvider.autoDispose
       final repository = ref.watch(studentsRepositoryProvider);
       final student = await repository.createStudent(data);
       ref.invalidate(studentsProvider);
+      ref.invalidate(currentSchoolSubscriptionOverviewProvider);
+
+      final requestedSchoolId = (data['school_id'] as String?)?.trim() ?? '';
+      final targetSchoolId = requestedSchoolId.isNotEmpty
+          ? requestedSchoolId
+          : student.schoolId.trim();
+      if (targetSchoolId.isNotEmpty) {
+        ref.invalidate(
+          schoolStudentCountProvider((
+            schoolId: targetSchoolId,
+            includeSchoolIdQuery: requestedSchoolId.isNotEmpty,
+          )),
+        );
+        ref.invalidate(schoolSubscriptionProvider(targetSchoolId));
+        ref.invalidate(
+          schoolSubscriptionOverviewProvider((
+            schoolId: targetSchoolId,
+            includeSchoolIdQuery: requestedSchoolId.isNotEmpty,
+          )),
+        );
+      }
       return student;
     });
 
@@ -80,4 +95,23 @@ final deleteStudentProvider = FutureProvider.autoDispose.family<void, String>((
   final repository = ref.watch(studentsRepositoryProvider);
   await repository.deleteStudent(studentId);
   ref.invalidate(studentsProvider);
+
+  final currentSchoolId = ref.read(currentSubscriptionSchoolIdProvider);
+  final currentUser = ref.read(currentUserProvider);
+  ref.invalidate(currentSchoolSubscriptionOverviewProvider);
+  if (currentSchoolId != null && currentSchoolId.isNotEmpty) {
+    ref.invalidate(
+      schoolStudentCountProvider((
+        schoolId: currentSchoolId,
+        includeSchoolIdQuery: currentUser?.role == UserRole.superadmin,
+      )),
+    );
+    ref.invalidate(schoolSubscriptionProvider(currentSchoolId));
+    ref.invalidate(
+      schoolSubscriptionOverviewProvider((
+        schoolId: currentSchoolId,
+        includeSchoolIdQuery: currentUser?.role == UserRole.superadmin,
+      )),
+    );
+  }
 });

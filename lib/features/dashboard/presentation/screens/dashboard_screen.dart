@@ -393,7 +393,7 @@ class _AttendanceSummary extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Data ringkas dari backend untuk sekolah aktif.',
+            'Data ringkas untuk sekolah aktif.',
             style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
           ),
           const SizedBox(height: AppSpacing.lg),

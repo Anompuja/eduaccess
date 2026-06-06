@@ -37,8 +37,6 @@ const _dev3OpenRoutes = {
   RouteNames.gradePromotion,
   RouteNames.studentTracking,
   RouteNames.school,
-  RouteNames.subscription,
-  RouteNames.payment,
   RouteNames.reports,
 };
 
@@ -64,8 +62,15 @@ String? _roleGuard(UserRole role, String location) {
 
   const studentRoutes = {RouteNames.attendance, RouteNames.cbt};
   const staffRoutes = {RouteNames.attendance};
+  const billingRoutes = {RouteNames.subscription, RouteNames.payment};
 
   if (can(universalRoutes)) return null;
+  if (can(billingRoutes)) {
+    return switch (role) {
+      UserRole.superadmin || UserRole.adminSekolah => null,
+      _ => RouteNames.dashboard,
+    };
+  }
 
   return switch (role) {
     UserRole.superadmin ||

@@ -1029,7 +1029,7 @@ List<_HelpFaq> _faqsForRole(UserRole role) {
         tag: 'Billing',
         question: 'Mengapa payment atau subscription belum berubah?',
         answer:
-            'Status pada modul payment dan subscription masih bersifat simulasi frontend, jadi belum selalu merefleksikan data transaksi backend.',
+            'Subscription kini mengikuti data backend per sekolah, tetapi modul payment masih berupa simulasi UI sehingga status invoice belum selalu merefleksikan transaksi nyata.',
       ),
     ],
     UserRole.kepalaSekolah => const [
