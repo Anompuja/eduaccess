@@ -72,7 +72,6 @@ class UserDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.person_outline,
                 children: [
-                  _DetailItem(label: 'User ID', value: data.userId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'Email', value: data.email),
                   _DetailItem(label: 'Role', value: data.role),

@@ -72,7 +72,6 @@ class ParentDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.family_restroom_outlined,
                 children: [
-                  _DetailItem(label: 'Parent ID', value: data.parentId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'Email', value: data.email),
                   _DetailItem(
