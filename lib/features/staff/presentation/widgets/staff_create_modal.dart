@@ -337,7 +337,6 @@ class _StaffCreateModalState extends ConsumerState<StaffCreateModal> {
                                 label: 'Alamat',
                                 hint: 'Masukkan alamat',
                                 controller: _addressCtrl,
-                                maxLines: 3,
                               ),
                             ),
                             SizedBox(

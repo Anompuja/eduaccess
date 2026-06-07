@@ -264,16 +264,16 @@ class StaffScreen extends ConsumerWidget {
                                                 .phoneColumnWidthDesktop,
                                     ),
                                   ),
-                                  DataColumn(
-                                    label: _tableHeader(
-                                      StaffScreenConstants.statusHeader,
-                                      width: isSmallScreen
-                                          ? StaffScreenConstants
-                                                .statusColumnWidthMobile
-                                          : StaffScreenConstants
-                                                .statusColumnWidthDesktop,
-                                    ),
-                                  ),
+                                  // DataColumn(
+                                  //   label: _tableHeader(
+                                  //     StaffScreenConstants.statusHeader,
+                                  //     width: isSmallScreen
+                                  //         ? StaffScreenConstants
+                                  //               .statusColumnWidthMobile
+                                  //         : StaffScreenConstants
+                                  //               .statusColumnWidthDesktop,
+                                  //   ),
+                                  // ),
                                   DataColumn(
                                     label: _tableHeader(
                                       StaffScreenConstants.actionsHeader,
@@ -377,27 +377,27 @@ class StaffScreen extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
-                                      DataCell(
-                                        SizedBox(
-                                          width: isSmallScreen
-                                              ? StaffScreenConstants
-                                                    .statusColumnWidthMobile
-                                              : StaffScreenConstants
-                                                    .statusColumnWidthDesktop,
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: AppBadge(
-                                              label: row.status.toUpperCase(),
-                                              status:
-                                                  row.status ==
-                                                      StaffScreenConstants
-                                                          .activeStatus
-                                                  ? BadgeStatus.info
-                                                  : BadgeStatus.muted,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                      // DataCell(
+                                      //   SizedBox(
+                                      //     width: isSmallScreen
+                                      //         ? StaffScreenConstants
+                                      //               .statusColumnWidthMobile
+                                      //         : StaffScreenConstants
+                                      //               .statusColumnWidthDesktop,
+                                      //     child: Align(
+                                      //       alignment: Alignment.centerLeft,
+                                      //       child: AppBadge(
+                                      //         label: row.status.toUpperCase(),
+                                      //         status:
+                                      //             row.status ==
+                                      //                 StaffScreenConstants
+                                      //                     .activeStatus
+                                      //             ? BadgeStatus.info
+                                      //             : BadgeStatus.muted,
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // ),
                                       DataCell(
                                         SizedBox(
                                           width: isSmallScreen
