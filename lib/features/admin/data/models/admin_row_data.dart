@@ -45,11 +45,28 @@ class AdminRowData {
       gender: json['gender'] as String? ?? '',
       religion: json['religion'] as String? ?? '',
       birthPlace: json['birth_place'] as String? ?? '',
-      birthDate: json['birth_date'] as String? ?? '',
+      birthDate: json['birth_date']?.toString() ?? '',
       nik: json['nik'] as String? ?? '',
       ktpImagePath: json['ktp_image_path'] as String? ?? '',
-      createdAt: json['created_at'] as String? ?? '',
-      updatedAt: json['updated_at'] as String? ?? '',
+      createdAt: _formatDate(json['created_at']),
+      updatedAt: _formatDate(json['updated_at']),
     );
   }
+
+  static String _formatDate(dynamic value) {
+  if (value == null) return '';
+
+  final text = value.toString();
+  final parsed = DateTime.tryParse(text);
+  if (parsed == null) return text;
+
+  const months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
+
+  final day = parsed.day.toString().padLeft(2, '0');
+
+  return '$day ${months[parsed.month - 1]} ${parsed.year}';
+}
 }

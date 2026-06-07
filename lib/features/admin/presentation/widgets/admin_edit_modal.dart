@@ -50,6 +50,7 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
   late final TextEditingController _ktpImagePathCtrl;
   bool _isLoading = false;
   String? _selectedSchoolId;
+  String? _selectedGender;
 
   @override
   void initState() {
@@ -88,6 +89,30 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
 
   String _requiredLabel(String label) => '$label *';
 
+    
+    static const List<({String label, String value})> _genderOptions = [
+    (label: 'Laki-laki', value: 'male'),
+    (label: 'Perempuan', value: 'female'),
+    (label: 'Lainnya', value: 'other'),
+  ];
+
+
+    Future<void> _pickBirthDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (selected == null) return;
+    setState(() {
+      _birthDateCtrl.text =
+          '${selected.year.toString().padLeft(4, '0')}-'
+          '${selected.month.toString().padLeft(2, '0')}-'
+          '${selected.day.toString().padLeft(2, '0')}';
+    });
+  }
+
   Future<void> _saveAdmin() async {
     if (_nameCtrl.text.trim().isEmpty || _emailCtrl.text.trim().isEmpty) {
       if (mounted) {
@@ -112,9 +137,7 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
         'address': _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
-        'gender': _genderCtrl.text.trim().isEmpty
-            ? null
-            : _genderCtrl.text.trim(),
+        'gender': _selectedGender,
         'religion': _religionCtrl.text.trim().isEmpty
             ? null
             : _religionCtrl.text.trim(),
@@ -302,10 +325,12 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
                             ),
                             SizedBox(
                               width: fieldWidth,
-                              child: AppTextField(
-                                label: 'Jenis Kelamin ',
-                                hint: 'Masukkan jenis kelamin (L/P)',
-                                controller: _genderCtrl,
+                              child: AppDropdown<String?>(
+                                label: 'Jenis Kelamin',
+                                hint: 'Pilih jenis kelamin',
+                                value: _selectedGender,
+                                items: _genderOptions.map((o) => AppDropdownItem<String?>(value: o.value, label: o.label)).toList(),
+                                onChanged: (v) => setState(() => _selectedGender = v),
                               ),
                             ),
                             SizedBox(
@@ -317,11 +342,14 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
                               ),
                             ),
                             SizedBox(
-                              width: fieldWidth,
+                             width: fieldWidth,
                               child: AppTextField(
-                                label: 'Tempat Lahir',
-                                hint: 'Masukkan tempat lahir',
-                                controller: _birthPlaceCtrl,
+                               label: 'Tanggal Lahir',
+                            hint: 'YYYY-MM-DD',
+                            controller: _birthDateCtrl,
+                            readOnly: true,
+                            onTap: _pickBirthDate,
+                            suffix: IconButton(onPressed: _pickBirthDate, icon: const Icon(Icons.calendar_month_outlined), color: AppColors.neutral500),
                               ),
                             ),
                             SizedBox(
