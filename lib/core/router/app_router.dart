@@ -12,7 +12,6 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admins_screen.dart';
-import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
@@ -55,7 +54,6 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.dashboard,
     RouteNames.profile,
     RouteNames.settings,
-    RouteNames.notifications,
     RouteNames.help,
   };
 
@@ -139,10 +137,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.settings,
             builder: (_, _) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: RouteNames.notifications,
-            builder: (_, _) => const NotificationsScreen(),
           ),
           GoRoute(
             path: RouteNames.students,

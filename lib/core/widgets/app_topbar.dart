@@ -6,7 +6,6 @@ import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
 import '../providers/active_school_provider.dart';
 import '../router/route_names.dart';
-import '../../features/notifications/providers/notifications_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
@@ -82,10 +81,6 @@ _PageInfo _infoForRoute(String location) => switch (location) {
     title: 'Pengaturan',
     subtitle: 'Preferensi aplikasi',
   ),
-  String l when l.startsWith(RouteNames.notifications) => (
-    title: 'Notifikasi',
-    subtitle: 'Pesan dan pemberitahuan sistem',
-  ),
   String l when l.startsWith(RouteNames.profile) => (
     title: 'Profil',
     subtitle: 'Informasi akun Anda',
@@ -158,8 +153,7 @@ class AppTopbar extends ConsumerWidget {
           ),
         ),
         if (!isMobile) const _SchoolContextChip(),
-        _NotificationBell(compact: isMobile),
-        SizedBox(width: isMobile ? AppSpacing.sm : AppSpacing.md),
+        SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
         GestureDetector(
           onTap: () => context.push(RouteNames.profile),
           child: CircleAvatar(
@@ -196,61 +190,6 @@ class AppTopbar extends ConsumerWidget {
     if (parts.isEmpty || parts[0].isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
-}
-
-class _NotificationBell extends ConsumerWidget {
-  final bool compact;
-  const _NotificationBell({this.compact = false});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(unreadNotificationsCountProvider);
-    final size = compact ? 32.0 : 36.0;
-
-    return GestureDetector(
-      onTap: () => context.push(RouteNames.notifications),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: const BoxDecoration(
-              color: AppColors.neutral100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.notifications_outlined,
-              size: compact ? 18 : 20,
-              color: AppColors.neutral700,
-            ),
-          ),
-          if (unreadCount > 0)
-            Positioned(
-              top: -2,
-              right: -2,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
-                child: Text(
-                  unreadCount > 99 ? '99+' : '$unreadCount',
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
 

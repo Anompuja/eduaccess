@@ -103,8 +103,4 @@ abstract final class ApiEndpoints {
   static const String profile = '/profile';
   static String userPassword(String id) => '/users/$id/password';
 
-  // ── Notifications ─────────────────────────────────────────────────────────
-  static const String notifications = '/notifications';
-  static String notificationRead(String id) => '/notifications/$id/read';
-  static const String notificationsReadAll = '/notifications/read-all';
 }
