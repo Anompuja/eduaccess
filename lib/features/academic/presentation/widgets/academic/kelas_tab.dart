@@ -9,6 +9,8 @@ import 'package:eduaccess/core/widgets/app_card.dart';
 import 'package:eduaccess/core/widgets/app_dialog.dart';
 import 'package:eduaccess/core/widgets/app_dropdown.dart';
 import 'package:eduaccess/core/widgets/app_text_field.dart';
+import 'package:eduaccess/core/api/api_client.dart';
+import 'package:eduaccess/core/widgets/app_refresh_button.dart';
 import 'package:eduaccess/core/auth/auth_notifier.dart';
 import 'package:eduaccess/core/auth/auth_state.dart';
 import 'package:eduaccess/core/providers/active_school_provider.dart';
@@ -110,14 +112,20 @@ class _KelasTabState extends ConsumerState<KelasTab> {
         },
       ),
     );
-    nameCtrl.dispose();
-
     final levelId = resultLevelId;
     final name = resultName;
-    if (levelId == null || name == null || !mounted) return;
+    if (levelId == null || name == null || !mounted) {
+      nameCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    nameCtrl.dispose();
+    if (!mounted) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).createClass(levelId, name, schoolId: resultSchoolId);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -160,14 +168,20 @@ class _KelasTabState extends ConsumerState<KelasTab> {
         ),
       ),
     );
-    nameCtrl.dispose();
-
     final name = resultName;
     final levelId = resultLevelId;
-    if (name == null || levelId == null || !mounted) return;
+    if (name == null || levelId == null || !mounted) {
+      nameCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    nameCtrl.dispose();
+    if (!mounted) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).updateClass(kelas.id, levelId, name);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -193,6 +207,7 @@ class _KelasTabState extends ConsumerState<KelasTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).deleteClass(kelas.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
       if (_filterLevelId == kelas.id) setState(() => _filterLevelId = 'all');
     } catch (e) {
@@ -235,16 +250,40 @@ class _KelasTabState extends ConsumerState<KelasTab> {
           Column(children: [
             _levelFilter(levels),
             const SizedBox(height: AppSpacing.md),
-            SizedBox(width: double.infinity, child: AppButton.accent(
-              label: 'Tambah Kelas',
-              prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
-              onPressed: _isSubmitting ? null : () => _create(levels),
-            )),
+            Row(
+              children: [
+                AppRefreshButton(
+                  onRefresh: () async {
+                    await ref.read(cacheStoreProvider).clean();
+                    ref.invalidate(classesProvider);
+                    ref.invalidate(levelsProvider);
+                    ref.invalidate(subClassesProvider);
+                  },
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: AppButton.accent(
+                    label: 'Tambah Kelas',
+                    prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
+                    onPressed: _isSubmitting ? null : () => _create(levels),
+                  ),
+                ),
+              ],
+            ),
           ])
         else
           Row(children: [
             SizedBox(width: 260, child: _levelFilter(levels)),
             const Spacer(),
+            AppRefreshButton(
+              onRefresh: () async {
+                await ref.read(cacheStoreProvider).clean();
+                ref.invalidate(classesProvider);
+                ref.invalidate(levelsProvider);
+                ref.invalidate(subClassesProvider);
+              },
+            ),
+            const SizedBox(width: AppSpacing.sm),
             AppButton.accent(
               label: 'Tambah Kelas',
               prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),

@@ -41,11 +41,18 @@ class StudentsScreen extends ConsumerWidget {
     final subClassFilter = ref.watch(studentsSubClassFilterProvider);
 
     final user = ref.watch(currentUserProvider);
+    final isGuru = user?.role == UserRole.guru;
     final schoolId = user?.role == UserRole.superadmin ? activeSchool?.id : user?.schoolId;
 
     final levels = ref.watch(levelsBySchoolProvider(schoolId)).valueOrNull ?? [];
     final classes = ref.watch(classesBySchoolProvider(schoolId)).valueOrNull ?? [];
-    final subClasses = ref.watch(subClassesBySchoolProvider(schoolId)).valueOrNull ?? [];
+    final allSubClasses = ref.watch(subClassesBySchoolProvider(schoolId)).valueOrNull ?? [];
+    final teacherSubClassIds = isGuru
+        ? (ref.watch(teacherSubClassIdsProvider).valueOrNull ?? <String>{})
+        : <String>{};
+    final subClasses = isGuru
+        ? allSubClasses.where((s) => teacherSubClassIds.contains(s.id)).toList()
+        : allSubClasses;
 
     ref.listen(activeSchoolProvider, (_, next) {
       ref.read(studentsCurrentPageProvider.notifier).state = 1;
@@ -148,18 +155,20 @@ class StudentsScreen extends ConsumerWidget {
                     ref.read(studentsCurrentPageProvider.notifier).state = 1;
                   },
                 ),
-                const SizedBox(height: AppSpacing.md),
-                AppButton.accent(
-                  height: StudentsScreenConstants.addButtonHeight,
-                  isFullWidth: true,
-                  label: StudentsScreenConstants.addButtonLabel,
-                  prefixIcon: const Icon(
-                    StudentsScreenConstants.addIcon,
-                    size: StudentsScreenConstants.actionIconSize,
-                    color: AppColors.white,
+                if (!isGuru) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton.accent(
+                    height: StudentsScreenConstants.addButtonHeight,
+                    isFullWidth: true,
+                    label: StudentsScreenConstants.addButtonLabel,
+                    prefixIcon: const Icon(
+                      StudentsScreenConstants.addIcon,
+                      size: StudentsScreenConstants.actionIconSize,
+                      color: AppColors.white,
+                    ),
+                    onPressed: () => _openStudentCreateModal(context),
                   ),
-                  onPressed: () => _openStudentCreateModal(context),
-                ),
+                ],
               ],
             )
           else
@@ -228,22 +237,23 @@ class StudentsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: StudentsScreenConstants.desktopAddButtonBottomPadding,
-                    left: StudentsScreenConstants.desktopAddButtonLeftPadding,
-                  ),
-                  child: AppButton.accent(
-                    height: StudentsScreenConstants.addButtonHeight,
-                    label: StudentsScreenConstants.addButtonLabel,
-                    prefixIcon: const Icon(
-                      StudentsScreenConstants.addIcon,
-                      size: StudentsScreenConstants.actionIconSize,
-                      color: AppColors.white,
+                if (!isGuru)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: StudentsScreenConstants.desktopAddButtonBottomPadding,
+                      left: StudentsScreenConstants.desktopAddButtonLeftPadding,
                     ),
-                    onPressed: () => _openStudentCreateModal(context),
+                    child: AppButton.accent(
+                      height: StudentsScreenConstants.addButtonHeight,
+                      label: StudentsScreenConstants.addButtonLabel,
+                      prefixIcon: const Icon(
+                        StudentsScreenConstants.addIcon,
+                        size: StudentsScreenConstants.actionIconSize,
+                        color: AppColors.white,
+                      ),
+                      onPressed: () => _openStudentCreateModal(context),
+                    ),
                   ),
-                ),
               ],
             ),
           const SizedBox(height: AppSpacing.lg),
@@ -467,18 +477,20 @@ class StudentsScreen extends ConsumerWidget {
                                                 backgroundColor: AppColors.info,
                                                 onTap: () => _openStudentDetailModal(context, e),
                                               ),
-                                              const SizedBox(width: AppSpacing.sm),
-                                              _actionIconButton(
-                                                icon: StudentsScreenConstants.editIcon,
-                                                backgroundColor: AppColors.warning,
-                                                onTap: () => _openStudentEditModal(context, e),
-                                              ),
-                                              const SizedBox(width: AppSpacing.sm),
-                                              _actionIconButton(
-                                                icon: StudentsScreenConstants.deleteIcon,
-                                                backgroundColor: AppColors.error,
-                                                onTap: () => _openStudentDeleteModal(context, e),
-                                              ),
+                                              if (!isGuru) ...[
+                                                const SizedBox(width: AppSpacing.sm),
+                                                _actionIconButton(
+                                                  icon: StudentsScreenConstants.editIcon,
+                                                  backgroundColor: AppColors.warning,
+                                                  onTap: () => _openStudentEditModal(context, e),
+                                                ),
+                                                const SizedBox(width: AppSpacing.sm),
+                                                _actionIconButton(
+                                                  icon: StudentsScreenConstants.deleteIcon,
+                                                  backgroundColor: AppColors.error,
+                                                  onTap: () => _openStudentDeleteModal(context, e),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),

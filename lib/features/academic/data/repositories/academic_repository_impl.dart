@@ -22,8 +22,11 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.createLevel(name, schoolId: schoolId);
 
   @override
-  Future<EducationLevelEntity> updateLevel(String id, String name, {String? schoolId}) =>
-      remoteDataSource.updateLevel(id, name, schoolId: schoolId);
+  Future<EducationLevelEntity> updateLevel(
+    String id,
+    String name, {
+    String? schoolId,
+  }) => remoteDataSource.updateLevel(id, name, schoolId: schoolId);
 
   @override
   Future<void> deleteLevel(String id, {String? schoolId}) =>
@@ -34,12 +37,25 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.getClasses(schoolId: schoolId);
 
   @override
-  Future<ClassEntity> createClass(String educationLevelId, String name, {String? schoolId}) =>
+  Future<ClassEntity> createClass(
+    String educationLevelId,
+    String name, {
+    String? schoolId,
+  }) =>
       remoteDataSource.createClass(educationLevelId, name, schoolId: schoolId);
 
   @override
-  Future<ClassEntity> updateClass(String id, String educationLevelId, String name, {String? schoolId}) =>
-      remoteDataSource.updateClass(id, educationLevelId, name, schoolId: schoolId);
+  Future<ClassEntity> updateClass(
+    String id,
+    String educationLevelId,
+    String name, {
+    String? schoolId,
+  }) => remoteDataSource.updateClass(
+    id,
+    educationLevelId,
+    name,
+    schoolId: schoolId,
+  );
 
   @override
   Future<void> deleteClass(String id, {String? schoolId}) =>
@@ -50,12 +66,19 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.getSubClasses(schoolId: schoolId);
 
   @override
-  Future<SubClassEntity> createSubClass(String classId, String name, {String? schoolId}) =>
-      remoteDataSource.createSubClass(classId, name, schoolId: schoolId);
+  Future<SubClassEntity> createSubClass(
+    String classId,
+    String name, {
+    String? schoolId,
+  }) => remoteDataSource.createSubClass(classId, name, schoolId: schoolId);
 
   @override
-  Future<SubClassEntity> updateSubClass(String id, String classId, String name, {String? schoolId}) =>
-      remoteDataSource.updateSubClass(id, classId, name, schoolId: schoolId);
+  Future<SubClassEntity> updateSubClass(
+    String id,
+    String classId,
+    String name, {
+    String? schoolId,
+  }) => remoteDataSource.updateSubClass(id, classId, name, schoolId: schoolId);
 
   @override
   Future<void> deleteSubClass(String id, {String? schoolId}) =>
@@ -66,12 +89,36 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.getAcademicYears(schoolId: schoolId);
 
   @override
-  Future<AcademicYearEntity> createAcademicYear(String name, String startDate, String endDate, String description, {String? schoolId}) =>
-      remoteDataSource.createAcademicYear(name, startDate, endDate, description, schoolId: schoolId);
+  Future<AcademicYearEntity> createAcademicYear(
+    String name,
+    String startDate,
+    String endDate,
+    String description, {
+    String? schoolId,
+  }) => remoteDataSource.createAcademicYear(
+    name,
+    startDate,
+    endDate,
+    description,
+    schoolId: schoolId,
+  );
 
   @override
-  Future<AcademicYearEntity> updateAcademicYear(String id, String name, String startDate, String endDate, String description, {String? schoolId}) =>
-      remoteDataSource.updateAcademicYear(id, name, startDate, endDate, description, schoolId: schoolId);
+  Future<AcademicYearEntity> updateAcademicYear(
+    String id,
+    String name,
+    String startDate,
+    String endDate,
+    String description, {
+    String? schoolId,
+  }) => remoteDataSource.updateAcademicYear(
+    id,
+    name,
+    startDate,
+    endDate,
+    description,
+    schoolId: schoolId,
+  );
 
   @override
   Future<void> deleteAcademicYear(String id, {String? schoolId}) =>
@@ -86,12 +133,19 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.getSubjects(schoolId: schoolId);
 
   @override
-  Future<SubjectEntity> createSubject(String name, String category, {String? schoolId}) =>
-      remoteDataSource.createSubject(name, category, schoolId: schoolId);
+  Future<SubjectEntity> createSubject(
+    String name,
+    String category, {
+    String? schoolId,
+  }) => remoteDataSource.createSubject(name, category, schoolId: schoolId);
 
   @override
-  Future<SubjectEntity> updateSubject(String id, String name, String category, {String? schoolId}) =>
-      remoteDataSource.updateSubject(id, name, category, schoolId: schoolId);
+  Future<SubjectEntity> updateSubject(
+    String id,
+    String name,
+    String category, {
+    String? schoolId,
+  }) => remoteDataSource.updateSubject(id, name, category, schoolId: schoolId);
 
   @override
   Future<void> deleteSubject(String id, {String? schoolId}) =>
@@ -102,28 +156,112 @@ class AcademicRepositoryImpl implements AcademicRepository {
       remoteDataSource.getClassrooms(schoolId: schoolId);
 
   @override
-  Future<ClassroomEntity> createClassroom(String name, int capacity, int floor, String building, String roomType, String facilities, {String? schoolId}) =>
-      remoteDataSource.createClassroom(name, capacity, floor, building, roomType, facilities, schoolId: schoolId);
+  Future<ClassroomEntity> createClassroom(
+    String name,
+    int capacity,
+    String floor,
+    String building,
+    String roomType,
+    String facilities, {
+    String? classId,
+    String? subClassId,
+    String? academicYearId,
+    String? homeroomTeacherId,
+    String? schoolId,
+  }) => remoteDataSource.createClassroom(
+    name,
+    capacity,
+    floor,
+    building,
+    roomType,
+    facilities,
+    classId: classId,
+    subClassId: subClassId,
+    academicYearId: academicYearId,
+    homeroomTeacherId: homeroomTeacherId,
+    schoolId: schoolId,
+  );
 
   @override
-  Future<ClassroomEntity> updateClassroom(String id, String name, int capacity, int floor, String building, String roomType, String facilities, {String? schoolId}) =>
-      remoteDataSource.updateClassroom(id, name, capacity, floor, building, roomType, facilities, schoolId: schoolId);
+  Future<ClassroomEntity> updateClassroom(
+    String id,
+    String name,
+    int capacity,
+    String floor,
+    String building,
+    String roomType,
+    String facilities, {
+    String status = 'available',
+    String? classId,
+    String? subClassId,
+    String? academicYearId,
+    String? homeroomTeacherId,
+    String? schoolId,
+  }) => remoteDataSource.updateClassroom(
+    id,
+    name,
+    capacity,
+    floor,
+    building,
+    roomType,
+    facilities,
+    status: status,
+    classId: classId,
+    subClassId: subClassId,
+    academicYearId: academicYearId,
+    homeroomTeacherId: homeroomTeacherId,
+    schoolId: schoolId,
+  );
 
   @override
   Future<void> deleteClassroom(String id, {String? schoolId}) =>
       remoteDataSource.deleteClassroom(id, schoolId: schoolId);
 
   @override
-  Future<List<ScheduleEntity>> getSchedules({String? schoolId, String? dayOfWeek}) =>
-      remoteDataSource.getSchedules(schoolId: schoolId, dayOfWeek: dayOfWeek);
+  Future<List<ScheduleEntity>> getSchedules({
+    String? schoolId,
+    String? dayOfWeek,
+  }) => remoteDataSource.getSchedules(schoolId: schoolId, dayOfWeek: dayOfWeek);
 
   @override
-  Future<ScheduleEntity> createSchedule({required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) =>
-      remoteDataSource.createSchedule(dayOfWeek: dayOfWeek, periodNumber: periodNumber, label: label, startTime: startTime, endTime: endTime, isBreak: isBreak, schoolId: schoolId);
+  Future<ScheduleEntity> createSchedule({
+    required String dayOfWeek,
+    required int periodNumber,
+    required String label,
+    required String startTime,
+    required String endTime,
+    required bool isBreak,
+    String? schoolId,
+  }) => remoteDataSource.createSchedule(
+    dayOfWeek: dayOfWeek,
+    periodNumber: periodNumber,
+    label: label,
+    startTime: startTime,
+    endTime: endTime,
+    isBreak: isBreak,
+    schoolId: schoolId,
+  );
 
   @override
-  Future<ScheduleEntity> updateSchedule(String id, {required String dayOfWeek, required int periodNumber, required String label, required String startTime, required String endTime, required bool isBreak, String? schoolId}) =>
-      remoteDataSource.updateSchedule(id, dayOfWeek: dayOfWeek, periodNumber: periodNumber, label: label, startTime: startTime, endTime: endTime, isBreak: isBreak, schoolId: schoolId);
+  Future<ScheduleEntity> updateSchedule(
+    String id, {
+    required String dayOfWeek,
+    required int periodNumber,
+    required String label,
+    required String startTime,
+    required String endTime,
+    required bool isBreak,
+    String? schoolId,
+  }) => remoteDataSource.updateSchedule(
+    id,
+    dayOfWeek: dayOfWeek,
+    periodNumber: periodNumber,
+    label: label,
+    startTime: startTime,
+    endTime: endTime,
+    isBreak: isBreak,
+    schoolId: schoolId,
+  );
 
   @override
   Future<void> deleteSchedule(String id, {String? schoolId}) =>

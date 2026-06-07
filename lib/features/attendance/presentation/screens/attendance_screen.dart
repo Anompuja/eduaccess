@@ -9,6 +9,7 @@ import 'package:eduaccess/core/theme/app_spacing.dart';
 import 'package:eduaccess/core/theme/app_text_styles.dart';
 import 'package:eduaccess/core/widgets/app_button.dart';
 import 'package:eduaccess/core/widgets/app_card.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AttendanceScreen extends ConsumerWidget {
   const AttendanceScreen({super.key});
@@ -45,17 +46,26 @@ class AttendanceScreen extends ConsumerWidget {
       children: [
         const Icon(Icons.qr_code_scanner_rounded, size: 72, color: AppColors.primary500),
         const SizedBox(height: AppSpacing.lg),
-        Text('Scan QR Kehadiran', style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
+        Text('Scan QR Absensi', style: AppTextStyles.h4.copyWith(color: AppColors.neutral900)),
         const SizedBox(height: AppSpacing.md),
         Text(
-          'Arahkan kamera HP-mu ke QR code yang ditampilkan guru di layar. '
-          'Pastikan kamu sudah login di browser sebelum scan.',
+          kIsWeb
+              ? 'Buka aplikasi di HP untuk scan QR code absensi dari guru.'
+              : 'Tap tombol di bawah lalu arahkan kamera ke QR code yang ditampilkan guru.',
           style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.xl),
+        if (!kIsWeb)
+          AppButton.primary(
+            label: 'Buka Scanner QR',
+            prefixIcon: const Icon(Icons.qr_code_scanner_rounded, size: 18, color: AppColors.white),
+            isFullWidth: true,
+            onPressed: () => context.push(RouteNames.attendanceScanner),
+          ),
+        const SizedBox(height: AppSpacing.md),
         Text(
-          'QR code baru diterbitkan setiap 30 detik untuk mencegah kecurangan.',
+          'QR code diperbarui setiap 30 detik untuk mencegah kecurangan.',
           style: AppTextStyles.label.copyWith(color: AppColors.neutral500),
           textAlign: TextAlign.center,
         ),

@@ -115,7 +115,7 @@ class ClassScheduleRemoteDataSourceImpl implements ClassScheduleRemoteDataSource
   @override
   Future<void> startClassSchedule(String id) async {
     try {
-      await dio.post(ApiEndpoints.classScheduleStart(id));
+      await dio.patch(ApiEndpoints.classScheduleStart(id));
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Jadwal kelas'));
     }
@@ -124,7 +124,7 @@ class ClassScheduleRemoteDataSourceImpl implements ClassScheduleRemoteDataSource
   @override
   Future<void> completeClassSchedule(String id) async {
     try {
-      await dio.post(ApiEndpoints.classScheduleComplete(id));
+      await dio.patch(ApiEndpoints.classScheduleComplete(id));
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Jadwal kelas'));
     }
@@ -133,7 +133,7 @@ class ClassScheduleRemoteDataSourceImpl implements ClassScheduleRemoteDataSource
   @override
   Future<void> cancelClassSchedule(String id) async {
     try {
-      await dio.post(ApiEndpoints.classScheduleCancel(id));
+      await dio.patch(ApiEndpoints.classScheduleCancel(id));
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Jadwal kelas'));
     }

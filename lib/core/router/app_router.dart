@@ -6,6 +6,7 @@ import '../../features/academic/presentation/screens/academic_screen.dart';
 import '../../features/attendance/presentation/screens/attendance_screen.dart';
 import '../../features/attendance/presentation/screens/attendance_qr_display_screen.dart';
 import '../../features/attendance/presentation/screens/attendance_scan_screen.dart';
+import '../../features/attendance/presentation/screens/attendance_scanner_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_detail_screen.dart';
 import '../../features/headmasters/presentation/screens/headmasters_screen.dart';
@@ -63,7 +64,7 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.help,
   };
 
-  const guruRoutes = {RouteNames.attendance, RouteNames.cbt};
+  const guruRoutes = {RouteNames.attendance, RouteNames.cbt, RouteNames.students};
 
   const studentRoutes = {RouteNames.attendance, RouteNames.cbt};
   const staffRoutes = {RouteNames.attendance};
@@ -252,6 +253,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => AttendanceScanScreen(
               token: state.uri.queryParameters['token'],
             ),
+          ),
+          GoRoute(
+            path: RouteNames.attendanceScanner,
+            builder: (_, _) => const AttendanceScannerScreen(),
           ),
           GoRoute(
             path: RouteNames.subscription,

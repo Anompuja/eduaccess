@@ -194,7 +194,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
               dataTextStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900, fontWeight: FontWeight.w500),
               columns: [
                 const DataColumn(label: SizedBox(width: 40, child: Text('No'))),
-                const DataColumn(label: SizedBox(width: 200, child: Text('ID Siswa'))),
+                const DataColumn(label: SizedBox(width: 200, child: Text('Siswa'))),
                 const DataColumn(label: SizedBox(width: 110, child: Text('Status'))),
                 const DataColumn(label: SizedBox(width: 140, child: Text('Catatan'))),
                 if (canEdit) const DataColumn(label: SizedBox(width: 70, child: Text('Aksi'))),
@@ -204,7 +204,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
                 final att = entry.value;
                 return DataRow(cells: [
                   DataCell(SizedBox(width: 40, child: Text('${i + 1}'))),
-                  DataCell(SizedBox(width: 200, child: Text(att.studentId, overflow: TextOverflow.ellipsis))),
+                  DataCell(SizedBox(width: 200, child: Text(att.studentName.isEmpty ? '-' : att.studentName, overflow: TextOverflow.ellipsis))),
                   DataCell(SizedBox(width: 110, child: _attendanceBadge(att.status))),
                   DataCell(SizedBox(width: 140, child: Text(att.note.isEmpty ? '-' : att.note, overflow: TextOverflow.ellipsis))),
                   if (canEdit)

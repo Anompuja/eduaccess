@@ -5,6 +5,8 @@ import '../../../../core/api/paginated.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
 import '../../../../core/providers/active_school_provider.dart';
+import '../../../academic/presentation/providers/academic_providers.dart';
+import '../../../class_schedule/presentation/providers/class_schedule_providers.dart';
 import '../../data/datasources/students_remote_data_source.dart';
 import '../../data/models/student_row_data.dart';
 import '../../data/repositories/students_repository_impl.dart';
@@ -24,6 +26,29 @@ final studentsLevelFilterProvider = StateProvider<String?>((ref) => null);
 final studentsClassFilterProvider = StateProvider<String?>((ref) => null);
 final studentsSubClassFilterProvider = StateProvider<String?>((ref) => null);
 
+/// Returns the sub-class IDs of classrooms this teacher teaches in.
+/// Flow: class_schedules(teacher_id) → classroom_ids → school_classrooms.sub_class_id
+/// Empty set for non-guru roles or when data is unavailable.
+final teacherSubClassIdsProvider = FutureProvider.autoDispose<Set<String>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user?.role != UserRole.guru) return {};
+
+  final schedules = await ref.watch(
+    classSchedulesProvider(ClassScheduleFilter(teacherId: user!.id)).future,
+  );
+  final classroomIds = schedules.map((s) => s.classroomId).toSet();
+  if (classroomIds.isEmpty) return {};
+
+  // Cross-reference with classrooms to get sub_class_id
+  final classrooms = await ref.watch(
+    classroomsBySchoolProvider(user.schoolId).future,
+  );
+  return classrooms
+      .where((c) => classroomIds.contains(c.id) && c.subClassId != null)
+      .map((c) => c.subClassId!)
+      .toSet();
+});
+
 final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   ref,
 ) async {
@@ -32,7 +57,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   final query = ref.watch(studentsSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
-  
+
   // Custom API filters
   final levelFilter = ref.watch(studentsLevelFilterProvider);
   final classFilter = ref.watch(studentsClassFilterProvider);
@@ -43,6 +68,16 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     _ => user?.schoolId,
   };
 
+  // For guru: restrict to sub-classes they teach. Auto-select first sub-class
+  // when no filter is active, so they never see the full school roster.
+  String? effectiveSubClassId = subClassFilter;
+  if (user?.role == UserRole.guru) {
+    final teacherSubClassIds = await ref.watch(teacherSubClassIdsProvider.future);
+    if (effectiveSubClassId == null || !teacherSubClassIds.contains(effectiveSubClassId)) {
+      effectiveSubClassId = teacherSubClassIds.isNotEmpty ? teacherSubClassIds.first : null;
+    }
+  }
+
   return repository.getStudents(
     page: page,
     perPage: StudentsScreenConstants.rowsPerPage,
@@ -50,7 +85,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     schoolId: schoolId,
     educationLevelId: levelFilter,
     classId: classFilter,
-    subClassId: subClassFilter,
+    subClassId: effectiveSubClassId,
   );
 });
 

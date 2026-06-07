@@ -9,6 +9,8 @@ import 'package:eduaccess/core/widgets/app_button.dart';
 import 'package:eduaccess/core/widgets/app_card.dart';
 import 'package:eduaccess/core/widgets/app_dialog.dart';
 import 'package:eduaccess/core/widgets/app_dropdown.dart';
+import 'package:eduaccess/core/api/api_client.dart';
+import 'package:eduaccess/core/widgets/app_refresh_button.dart';
 import 'package:eduaccess/core/auth/auth_notifier.dart';
 import 'package:eduaccess/core/auth/auth_state.dart';
 import 'package:eduaccess/core/providers/active_school_provider.dart';
@@ -154,9 +156,21 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
       ),
     );
 
-    if (!saved || !mounted) return;
+    if (!saved || !mounted) {
+      periodCtrl.dispose();
+      labelCtrl.dispose();
+      return;
+    }
     final period = int.tryParse(periodCtrl.text.trim());
-    if (period == null) return;
+    if (period == null) {
+      periodCtrl.dispose();
+      labelCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    periodCtrl.dispose();
+    labelCtrl.dispose();
+    if (!mounted) return;
 
     setState(() => _isSubmitting = true);
     try {
@@ -169,6 +183,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
         isBreak: isBreak,
         schoolId: isSuperadmin ? dialogSchoolId : null,
       );
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -238,9 +253,21 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
       ),
     );
 
-    if (!saved || !mounted) return;
+    if (!saved || !mounted) {
+      periodCtrl.dispose();
+      labelCtrl.dispose();
+      return;
+    }
     final period = int.tryParse(periodCtrl.text.trim());
-    if (period == null) return;
+    if (period == null) {
+      periodCtrl.dispose();
+      labelCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    periodCtrl.dispose();
+    labelCtrl.dispose();
+    if (!mounted) return;
 
     setState(() => _isSubmitting = true);
     try {
@@ -253,6 +280,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
         endTime: _formatTime(endTime!),
         isBreak: isBreak,
       );
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -273,6 +301,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).deleteSchedule(s.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(schedulesProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -321,10 +350,18 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     );
   }
 
+  bool get _canWrite {
+    final role = ref.read(currentUserProvider)?.role;
+    return role == UserRole.superadmin ||
+        role == UserRole.adminSekolah ||
+        role == UserRole.kepalaSekolah;
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncData = ref.watch(schedulesProvider);
     final isCompact = Responsive.isMobile(context) || Responsive.isTablet(context);
+    final canWrite = _canWrite;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -351,11 +388,19 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          AppButton.accent(
-            label: 'Tambah',
-            prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
-            onPressed: _isSubmitting ? null : _create,
+          AppRefreshButton(
+            onRefresh: () async {
+              await ref.read(cacheStoreProvider).clean();
+              ref.invalidate(schedulesProvider);
+            },
           ),
+          const SizedBox(width: AppSpacing.sm),
+          if (canWrite)
+            AppButton.accent(
+              label: 'Tambah',
+              prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
+              onPressed: _isSubmitting ? null : _create,
+            ),
         ]),
         const SizedBox(height: AppSpacing.md),
         asyncData.when(
@@ -415,11 +460,13 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
                             label: s.isBreak ? 'Istirahat' : 'Pelajaran',
                             status: s.isBreak ? BadgeStatus.warning : BadgeStatus.info,
                           ))),
-                          DataCell(SizedBox(width: 90, child: Row(children: [
-                            _actionBtn(Icons.edit_outlined, AppColors.warning, () => _edit(s)),
-                            const SizedBox(width: AppSpacing.sm),
-                            _actionBtn(Icons.delete_outline_rounded, AppColors.error, () => _delete(s)),
-                          ]))),
+                          DataCell(SizedBox(width: 90, child: canWrite
+                            ? Row(children: [
+                                _actionBtn(Icons.edit_outlined, AppColors.warning, () => _edit(s)),
+                                const SizedBox(width: AppSpacing.sm),
+                                _actionBtn(Icons.delete_outline_rounded, AppColors.error, () => _delete(s)),
+                              ])
+                            : const SizedBox.shrink())),
                         ]);
                       }).toList(),
                     ),

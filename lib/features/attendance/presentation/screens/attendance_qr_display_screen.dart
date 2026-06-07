@@ -58,10 +58,8 @@ class _AttendanceQrDisplayScreenState extends ConsumerState<AttendanceQrDisplayS
     });
   }
 
-  String _buildQrUrl(String token) {
-    final origin = Uri.base.origin;
-    return '$origin/attendance/scan?token=$token';
-  }
+  // QR encodes the raw JWT token — scanned directly by the in-app scanner.
+  String _buildQrData(String token) => token;
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +119,7 @@ class _AttendanceQrDisplayScreenState extends ConsumerState<AttendanceQrDisplayS
                       ),
                     ),
                     data: (token) => QrImageView(
-                      data: _buildQrUrl(token),
+                      data: _buildQrData(token),
                       version: QrVersions.auto,
                       size: 280,
                       backgroundColor: AppColors.white,
@@ -198,7 +196,7 @@ class _AttendanceQrDisplayScreenState extends ConsumerState<AttendanceQrDisplayS
                       const Divider(height: 1),
                       ...attendances.map((att) => ListTile(
                         dense: true,
-                        title: Text(att.studentId, style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900)),
+                        title: Text(att.studentName.isEmpty ? '-' : att.studentName, style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900)),
                         trailing: _attendanceBadge(att.status),
                       )),
                     ],

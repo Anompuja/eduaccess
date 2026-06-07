@@ -13,6 +13,8 @@ import '../../domain/entities/schedule_entity.dart';
 import '../../domain/entities/subject_entity.dart';
 import '../../domain/entities/sub_class_entity.dart';
 import '../../domain/repositories/academic_repository.dart';
+import '../../../teachers/presentation/providers/teachers_provider.dart';
+import '../../../teachers/data/models/teacher_row_data.dart';
 
 final academicRepositoryProvider = Provider<AcademicRepository>((ref) {
   final dio = ref.watch(dioProvider);
@@ -90,8 +92,30 @@ final classroomsProvider = FutureProvider<List<ClassroomEntity>>((ref) async {
       .getClassrooms(schoolId: _schoolId(ref));
 });
 
+final classroomsBySchoolProvider =
+    FutureProvider.family<List<ClassroomEntity>, String?>((ref, schoolId) async {
+      return ref
+          .watch(academicRepositoryProvider)
+          .getClassrooms(schoolId: schoolId);
+    });
+
 final schedulesProvider = FutureProvider<List<ScheduleEntity>>((ref) async {
   return ref
       .watch(academicRepositoryProvider)
       .getSchedules(schoolId: _schoolId(ref));
+});
+
+// Flat teacher list for classroom form dropdowns.
+// Value used as homeroom_teacher_id = TeacherRowData.userId (auth.users UUID).
+final teachersForDropdownProvider = FutureProvider<List<TeacherRowData>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  final activeSchool = ref.watch(activeSchoolProvider);
+  final schoolId = switch (user?.role) {
+    UserRole.superadmin => activeSchool?.id,
+    _ => user?.schoolId,
+  };
+  final result = await ref
+      .watch(teachersRepositoryProvider)
+      .getTeachers(page: 1, perPage: 200, schoolId: schoolId);
+  return result.items.where((t) => t.userId.isNotEmpty).toList();
 });

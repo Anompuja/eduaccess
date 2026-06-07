@@ -10,6 +10,8 @@ import 'package:eduaccess/core/widgets/app_card.dart';
 import 'package:eduaccess/core/widgets/app_dialog.dart';
 import 'package:eduaccess/core/widgets/app_dropdown.dart';
 import 'package:eduaccess/core/widgets/app_text_field.dart';
+import 'package:eduaccess/core/api/api_client.dart';
+import 'package:eduaccess/core/widgets/app_refresh_button.dart';
 import 'package:eduaccess/core/auth/auth_notifier.dart';
 import 'package:eduaccess/core/auth/auth_state.dart';
 import 'package:eduaccess/core/providers/active_school_provider.dart';
@@ -89,13 +91,19 @@ class _MataPelajaranTabState extends ConsumerState<MataPelajaranTab> {
         ),
       ),
     );
-    nameCtrl.dispose();
-
     final name = resultName;
-    if (name == null || !mounted) return;
+    if (name == null || !mounted) {
+      nameCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    nameCtrl.dispose();
+    if (!mounted) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).createSubject(name, resultCategory!, schoolId: resultSchoolId);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subjectsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -138,13 +146,19 @@ class _MataPelajaranTabState extends ConsumerState<MataPelajaranTab> {
         ),
       ),
     );
-    nameCtrl.dispose();
-
     final name = resultName;
-    if (name == null || !mounted) return;
+    if (name == null || !mounted) {
+      nameCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    nameCtrl.dispose();
+    if (!mounted) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).updateSubject(subject.id, name, resultCategory!);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subjectsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -165,6 +179,7 @@ class _MataPelajaranTabState extends ConsumerState<MataPelajaranTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).deleteSubject(subject.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subjectsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -197,13 +212,22 @@ class _MataPelajaranTabState extends ConsumerState<MataPelajaranTab> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: AppButton.accent(
-            label: 'Tambah Mata Pelajaran',
-            prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
-            onPressed: _isSubmitting ? null : _create,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AppRefreshButton(
+              onRefresh: () async {
+                await ref.read(cacheStoreProvider).clean();
+                ref.invalidate(subjectsProvider);
+              },
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AppButton.accent(
+              label: 'Tambah Mata Pelajaran',
+              prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
+              onPressed: _isSubmitting ? null : _create,
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.md),
         asyncData.when(

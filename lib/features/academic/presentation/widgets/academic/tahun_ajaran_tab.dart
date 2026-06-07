@@ -9,6 +9,8 @@ import 'package:eduaccess/core/widgets/app_button.dart';
 import 'package:eduaccess/core/widgets/app_card.dart';
 import 'package:eduaccess/core/widgets/app_dialog.dart';
 import 'package:eduaccess/core/widgets/app_text_field.dart';
+import 'package:eduaccess/core/api/api_client.dart';
+import 'package:eduaccess/core/widgets/app_refresh_button.dart';
 import 'package:eduaccess/core/auth/auth_notifier.dart';
 import 'package:eduaccess/core/auth/auth_state.dart';
 import 'package:eduaccess/core/providers/active_school_provider.dart';
@@ -105,16 +107,23 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
         ),
       ),
     );
+    final name = resultName;
+    if (name == null || startDate == null || endDate == null || !mounted) {
+      nameCtrl.dispose();
+      descCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
     nameCtrl.dispose();
     descCtrl.dispose();
+    if (!mounted) return;
 
-    final name = resultName;
-    if (name == null || startDate == null || endDate == null || !mounted) return;
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).createAcademicYear(
         name, _formatIso(startDate!), _formatIso(endDate!), resultDesc ?? '',
         schoolId: resultSchoolId);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -164,15 +173,22 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
         ),
       ),
     );
+    final name = resultName;
+    if (name == null || startDate == null || endDate == null || !mounted) {
+      nameCtrl.dispose();
+      descCtrl.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
     nameCtrl.dispose();
     descCtrl.dispose();
+    if (!mounted) return;
 
-    final name = resultName;
-    if (name == null || startDate == null || endDate == null || !mounted) return;
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).updateAcademicYear(
         ay.id, name, _formatIso(startDate!), _formatIso(endDate!), resultDesc ?? '');
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -193,6 +209,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).activateAcademicYear(ay.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -213,6 +230,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).deleteAcademicYear(ay.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -256,13 +274,22 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: AppButton.accent(
-            label: 'Tambah Tahun Ajaran',
-            prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
-            onPressed: _isSubmitting ? null : _create,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AppRefreshButton(
+              onRefresh: () async {
+                await ref.read(cacheStoreProvider).clean();
+                ref.invalidate(academicYearsProvider);
+              },
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AppButton.accent(
+              label: 'Tambah Tahun Ajaran',
+              prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
+              onPressed: _isSubmitting ? null : _create,
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.md),
         asyncData.when(
