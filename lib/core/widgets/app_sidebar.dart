@@ -48,7 +48,7 @@ const _menuItems = [
     label: 'Kepala Sekolah',
     route: RouteNames.headmasters,
     icon: Icons.account_balance_outlined,
-    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+    allowedRoles: {UserRole.superadmin},
   ),
   _NavItem(
     label: 'Manajemen Siswa',
@@ -138,19 +138,19 @@ const _menuItems = [
       UserRole.kepalaSekolah,
     },
   ),
-  _NavItem(
-    label: 'CBT / Ujian',
-    route: RouteNames.cbt,
-    icon: Icons.quiz_outlined,
-    allowedRoles: {
-      UserRole.superadmin,
-      UserRole.adminSekolah,
-      UserRole.kepalaSekolah,
-      UserRole.guru,
-      UserRole.siswa,
-      UserRole.orangtua,
-    },
-  ),
+  // _NavItem(
+  //   label: 'CBT / Ujian',
+  //   route: RouteNames.cbt,
+  //   icon: Icons.quiz_outlined,
+  //   allowedRoles: {
+  //     UserRole.superadmin,
+  //     UserRole.adminSekolah,
+  //     UserRole.kepalaSekolah,
+  //     UserRole.guru,
+  //     UserRole.siswa,
+  //     UserRole.orangtua,
+  //   },
+  // ),
   _NavItem(
     label: 'Absensi',
     route: RouteNames.attendance,
@@ -180,12 +180,12 @@ const _generalItems = [
     icon: Icons.receipt_long_outlined,
     allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
   ),
-  _NavItem(
-    label: 'Reports',
-    route: RouteNames.reports,
-    icon: Icons.bar_chart_outlined,
-    allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
-  ),
+  // _NavItem(
+  //   label: 'Reports',
+  //   route: RouteNames.reports,
+  //   icon: Icons.bar_chart_outlined,
+  //   allowedRoles: {UserRole.superadmin, UserRole.adminSekolah},
+  // ),
   _NavItem(
     label: 'Pengaturan',
     route: RouteNames.settings,
