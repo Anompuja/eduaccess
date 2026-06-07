@@ -3,16 +3,15 @@ class TeacherRowData {
   final String userId;
   final String schoolId;
   final String name;
-  final String nip;
-  final String subject;
-  final String subjectValue;
-  final String username;
   final String email;
+  final String username;
   final String phone;
-  final String status;
   final String avatar;
+  final String nip;
   final String nuptk;
   final String address;
+  final String gender;
+  final String religion;
   final String birthPlace;
   final String birthDate;
   final String nik;
@@ -21,6 +20,11 @@ class TeacherRowData {
   final String golonganDarah;
   final String beratBadan;
   final String tinggiBadan;
+  final String penyakitYangSeringKambuh;
+  final String kelainanJasmani;
+  final String penyakitKronisYangPernahDiderita;
+  final String rtRw;
+  final String kodePos;
   final String pendidikanTerakhir;
   final String jurusan;
   final String tahunLulus;
@@ -32,20 +36,19 @@ class TeacherRowData {
   const TeacherRowData({
     required this.teacherId,
     required this.name,
-    required this.nip,
-    required this.subject,
     required this.email,
     required this.phone,
-    required this.status,
     required this.createdAt,
     required this.updatedAt,
-    this.subjectValue = '',
     this.userId = '',
     this.schoolId = '',
     this.username = '',
     this.avatar = '',
+    this.nip = '',
     this.nuptk = '',
     this.address = '',
+    this.gender = '',
+    this.religion = '',
     this.birthPlace = '',
     this.birthDate = '',
     this.nik = '',
@@ -54,6 +57,11 @@ class TeacherRowData {
     this.golonganDarah = '',
     this.beratBadan = '',
     this.tinggiBadan = '',
+    this.penyakitYangSeringKambuh = '',
+    this.kelainanJasmani = '',
+    this.penyakitKronisYangPernahDiderita = '',
+    this.rtRw = '',
+    this.kodePos = '',
     this.pendidikanTerakhir = '',
     this.jurusan = '',
     this.tahunLulus = '',
@@ -63,32 +71,47 @@ class TeacherRowData {
 
   bool get isActive => deletedAt.isEmpty;
 
+  String get genderLabel {
+    switch (gender.trim().toLowerCase()) {
+      case 'male':
+        return 'Laki-laki';
+      case 'female':
+        return 'Perempuan';
+      case 'other':
+        return 'Lainnya';
+      default:
+        return gender;
+    }
+  }
+
   factory TeacherRowData.fromJson(Map<String, dynamic> json) {
     return TeacherRowData(
       teacherId: json['id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
       schoolId: json['school_id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      nip: json['nip'] as String? ?? '',
-      subject: (json['pendidikan_terakhir'] as String? ?? json['jurusan'] as String? ?? '').trim(),
-      subjectValue: '',
-      username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
+      username: json['username'] as String? ?? '',
       phone: json['phone_number'] as String? ?? '',
-      status: (json['deleted_at'] == null || json['deleted_at'].toString().isEmpty)
-          ? 'Aktif'
-          : 'Nonaktif',
       avatar: json['avatar'] as String? ?? '',
+      nip: json['nip'] as String? ?? '',
       nuptk: json['nuptk'] as String? ?? '',
       address: json['address'] as String? ?? '',
+      gender: json['gender'] as String? ?? '',
+      religion: json['religion'] as String? ?? '',
       birthPlace: json['birth_place'] as String? ?? '',
-      birthDate: _formatDate(json['birth_date']),
+      birthDate: json['birth_date']?.toString() ?? '',
       nik: json['nik'] as String? ?? '',
       ktpImagePath: json['ktp_image_path'] as String? ?? '',
       kewarganegaraan: json['kewarganegaraan'] as String? ?? '',
       golonganDarah: json['golongan_darah'] as String? ?? '',
       beratBadan: json['berat_badan'] as String? ?? '',
       tinggiBadan: json['tinggi_badan'] as String? ?? '',
+      penyakitYangSeringKambuh: json['penyakit_yang_sering_kambuh'] as String? ?? '',
+      kelainanJasmani: json['kelainan_jasmani'] as String? ?? '',
+      penyakitKronisYangPernahDiderita: json['penyakit_kronis_yang_pernah_diderita'] as String? ?? '',
+      rtRw: json['rt_rw'] as String? ?? '',
+      kodePos: json['kode_pos'] as String? ?? '',
       pendidikanTerakhir: json['pendidikan_terakhir'] as String? ?? '',
       jurusan: json['jurusan'] as String? ?? '',
       tahunLulus: json['tahun_lulus'] as String? ?? '',
@@ -99,34 +122,20 @@ class TeacherRowData {
     );
   }
 
-  static String _formatDate(dynamic value) {
-    if (value == null) return '';
+static String _formatDate(dynamic value) {
+  if (value == null) return '';
 
-    final text = value.toString();
-    final parsed = DateTime.tryParse(text);
-    if (parsed == null) return text;
+  final text = value.toString();
+  final parsed = DateTime.tryParse(text);
+  if (parsed == null) return text;
 
-    final local = parsed.toLocal();
-    const months = <String>[
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
+  const months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+  ];
 
-    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
-    final minute = local.minute.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    final ampm = local.hour >= 12 ? 'PM' : 'AM';
+  final day = parsed.day.toString().padLeft(2, '0');
 
-    return '$day ${months[local.month - 1]} ${local.year}, ${hour.toString().padLeft(2, '0')}:$minute $ampm';
-  }
+  return '$day ${months[parsed.month - 1]} ${parsed.year}';
+}
 }

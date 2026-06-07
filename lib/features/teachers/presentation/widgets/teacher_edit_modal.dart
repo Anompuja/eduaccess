@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../data/models/teacher_row_data.dart';
 import '../providers/teachers_provider.dart';
@@ -35,27 +36,72 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _nipCtrl;
+  late final TextEditingController _nuptkCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _addressCtrl;
+  late final TextEditingController _religionCtrl;
   late final TextEditingController _birthPlaceCtrl;
   late final TextEditingController _birthDateCtrl;
   late final TextEditingController _nikCtrl;
   late final TextEditingController _ktpImagePathCtrl;
+  late final TextEditingController _kewarganegaraanCtrl;
+  late final TextEditingController _golonganDarahCtrl;
+  late final TextEditingController _beratBadanCtrl;
+  late final TextEditingController _tinggiBadanCtrl;
+  late final TextEditingController _penyakitYangSeringKambuhCtrl;
+  late final TextEditingController _kelainanJasmaniCtrl;
+  late final TextEditingController _penyakitKronisCtrl;
+  late final TextEditingController _rtRwCtrl;
+  late final TextEditingController _kodePosCtrl;
+  late final TextEditingController _pendidikanTerakhirCtrl;
+  late final TextEditingController _jurusanCtrl;
+  late final TextEditingController _tahunLulusCtrl;
+  late final TextEditingController _tahunMasukCtrl;
+  late final TextEditingController _addressCtrl;
+  String? _selectedGender;
   bool _isLoading = false;
+
+  static const List<({String label, String value})> _genderOptions = [
+    (label: 'Laki-laki', value: 'male'),
+    (label: 'Perempuan', value: 'female'),
+    (label: 'Lainnya', value: 'other'),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.data.name);
-    _emailCtrl = TextEditingController(text: widget.data.email);
-    _usernameCtrl = TextEditingController(text: widget.data.username);
-    _nipCtrl = TextEditingController(text: widget.data.nip);
-    _phoneCtrl = TextEditingController(text: widget.data.phone);
-    _addressCtrl = TextEditingController(text: widget.data.address);
-    _birthPlaceCtrl = TextEditingController(text: widget.data.birthPlace);
-    _birthDateCtrl = TextEditingController(text: widget.data.birthDate);
-    _nikCtrl = TextEditingController(text: widget.data.nik);
-    _ktpImagePathCtrl = TextEditingController(text: widget.data.ktpImagePath);
+    final d = widget.data;
+    _nameCtrl = TextEditingController(text: d.name);
+    _emailCtrl = TextEditingController(text: d.email);
+    _usernameCtrl = TextEditingController(text: d.username);
+    _nipCtrl = TextEditingController(text: d.nip);
+    _nuptkCtrl = TextEditingController(text: d.nuptk);
+    _phoneCtrl = TextEditingController(text: d.phone);
+    _religionCtrl = TextEditingController(text: d.religion);
+    _birthPlaceCtrl = TextEditingController(text: d.birthPlace);
+    _birthDateCtrl = TextEditingController(text: d.birthDate);
+    _nikCtrl = TextEditingController(text: d.nik);
+    _ktpImagePathCtrl = TextEditingController(text: d.ktpImagePath);
+    _kewarganegaraanCtrl = TextEditingController(text: d.kewarganegaraan);
+    _golonganDarahCtrl = TextEditingController(text: d.golonganDarah);
+    _beratBadanCtrl = TextEditingController(text: d.beratBadan);
+    _tinggiBadanCtrl = TextEditingController(text: d.tinggiBadan);
+    _penyakitYangSeringKambuhCtrl = TextEditingController(text: d.penyakitYangSeringKambuh);
+    _kelainanJasmaniCtrl = TextEditingController(text: d.kelainanJasmani);
+    _penyakitKronisCtrl = TextEditingController(text: d.penyakitKronisYangPernahDiderita);
+    _rtRwCtrl = TextEditingController(text: d.rtRw);
+    _kodePosCtrl = TextEditingController(text: d.kodePos);
+    _pendidikanTerakhirCtrl = TextEditingController(text: d.pendidikanTerakhir);
+    _jurusanCtrl = TextEditingController(text: d.jurusan);
+    _tahunLulusCtrl = TextEditingController(text: d.tahunLulus);
+    _tahunMasukCtrl = TextEditingController(text: d.tahunMasuk);
+    _addressCtrl = TextEditingController(text: d.address);
+    _selectedGender = _normalizeGender(d.gender);
+  }
+
+  String? _normalizeGender(String value) {
+    final v = value.trim().toLowerCase();
+    if (v == 'male' || v == 'female' || v == 'other') return v;
+    return null;
   }
 
   @override
@@ -64,16 +110,33 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
     _emailCtrl.dispose();
     _usernameCtrl.dispose();
     _nipCtrl.dispose();
+    _nuptkCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
+    _religionCtrl.dispose();
     _birthPlaceCtrl.dispose();
     _birthDateCtrl.dispose();
     _nikCtrl.dispose();
     _ktpImagePathCtrl.dispose();
+    _kewarganegaraanCtrl.dispose();
+    _golonganDarahCtrl.dispose();
+    _beratBadanCtrl.dispose();
+    _tinggiBadanCtrl.dispose();
+    _penyakitYangSeringKambuhCtrl.dispose();
+    _kelainanJasmaniCtrl.dispose();
+    _penyakitKronisCtrl.dispose();
+    _rtRwCtrl.dispose();
+    _kodePosCtrl.dispose();
+    _pendidikanTerakhirCtrl.dispose();
+    _jurusanCtrl.dispose();
+    _tahunLulusCtrl.dispose();
+    _tahunMasukCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
 
   String _requiredLabel(String label) => '$label *';
+
+  String? _nullIfEmpty(String v) => v.trim().isEmpty ? null : v.trim();
 
   Future<void> _pickBirthDate() async {
     final selected = await showDatePicker(
@@ -83,7 +146,6 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
       lastDate: DateTime.now(),
     );
     if (selected == null) return;
-
     setState(() {
       _birthDateCtrl.text =
           '${selected.year.toString().padLeft(4, '0')}-'
@@ -113,13 +175,29 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
             'name': _nameCtrl.text.trim(),
             'email': _emailCtrl.text.trim(),
             'username': _usernameCtrl.text.trim(),
-            'nip': _nipCtrl.text.trim().isEmpty ? null : _nipCtrl.text.trim(),
-            'phone_number': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-            'address': _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-            'birth_place': _birthPlaceCtrl.text.trim().isEmpty ? null : _birthPlaceCtrl.text.trim(),
-            'birth_date': _birthDateCtrl.text.trim().isEmpty ? null : _birthDateCtrl.text.trim(),
-            'nik': _nikCtrl.text.trim().isEmpty ? null : _nikCtrl.text.trim(),
-            'ktp_image_path': _ktpImagePathCtrl.text.trim().isEmpty ? null : _ktpImagePathCtrl.text.trim(),
+            'nip': _nullIfEmpty(_nipCtrl.text),
+            'nuptk': _nullIfEmpty(_nuptkCtrl.text),
+            'phone_number': _nullIfEmpty(_phoneCtrl.text),
+            'address': _nullIfEmpty(_addressCtrl.text),
+            'gender': _selectedGender,
+            'religion': _nullIfEmpty(_religionCtrl.text),
+            'birth_place': _nullIfEmpty(_birthPlaceCtrl.text),
+            'birth_date': _nullIfEmpty(_birthDateCtrl.text),
+            'nik': _nullIfEmpty(_nikCtrl.text),
+            'ktp_image_path': _nullIfEmpty(_ktpImagePathCtrl.text),
+            'kewarganegaraan': _nullIfEmpty(_kewarganegaraanCtrl.text),
+            'golongan_darah': _nullIfEmpty(_golonganDarahCtrl.text),
+            'berat_badan': _nullIfEmpty(_beratBadanCtrl.text),
+            'tinggi_badan': _nullIfEmpty(_tinggiBadanCtrl.text),
+            'penyakit_yang_sering_kambuh': _nullIfEmpty(_penyakitYangSeringKambuhCtrl.text),
+            'kelainan_jasmani': _nullIfEmpty(_kelainanJasmaniCtrl.text),
+            'penyakit_kronis_yang_pernah_diderita': _nullIfEmpty(_penyakitKronisCtrl.text),
+            'rt_rw': _nullIfEmpty(_rtRwCtrl.text),
+            'kode_pos': _nullIfEmpty(_kodePosCtrl.text),
+            'pendidikan_terakhir': _nullIfEmpty(_pendidikanTerakhirCtrl.text),
+            'jurusan': _nullIfEmpty(_jurusanCtrl.text),
+            'tahun_lulus': _nullIfEmpty(_tahunLulusCtrl.text),
+            'tahun_masuk': _nullIfEmpty(_tahunMasukCtrl.text),
           },
         )).future,
       );
@@ -137,9 +215,7 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -198,104 +274,70 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final oneColumn = constraints.maxWidth < 620;
-                    final fieldWidth = oneColumn
+                    final fw = oneColumn
                         ? constraints.maxWidth
                         : (constraints.maxWidth - AppSpacing.md) / 2;
 
-                    return Wrap(
-                      spacing: AppSpacing.md,
-                      runSpacing: AppSpacing.md,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: _requiredLabel('Nama Guru'),
-                            hint: 'Masukkan nama guru',
-                            controller: _nameCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: _requiredLabel('Email'),
-                            hint: 'Masukkan email',
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: _requiredLabel('Username'),
-                            hint: 'Masukkan username',
-                            controller: _usernameCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'NIP',
-                            hint: 'Masukkan NIP',
-                            controller: _nipCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'No. Telepon',
-                            hint: 'Masukkan nomor telepon',
-                            controller: _phoneCtrl,
-                            keyboardType: TextInputType.phone,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'Tempat Lahir',
-                            hint: 'Masukkan tempat lahir',
-                            controller: _birthPlaceCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
+                        // ── Akun ─────────────────────────────────
+                        _sectionLabel('Akun'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.md, children: [
+                          _field(fw, AppTextField(label: _requiredLabel('Nama Guru'), hint: 'Masukkan nama guru', controller: _nameCtrl)),
+                          _field(fw, AppTextField(label: _requiredLabel('Email'), hint: 'Masukkan email', controller: _emailCtrl, keyboardType: TextInputType.emailAddress)),
+                          _field(fw, AppTextField(label: _requiredLabel('Username'), hint: 'Masukkan username', controller: _usernameCtrl)),
+                        ]),
+                        const SizedBox(height: AppSpacing.md),
+                        // ── Data Guru ─────────────────────────────
+                        _sectionLabel('Data Guru'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.md, children: [
+                          _field(fw, AppTextField(label: 'NIP', hint: 'Masukkan NIP', controller: _nipCtrl, keyboardType: TextInputType.number)),
+                          _field(fw, AppTextField(label: 'NUPTK', hint: 'Masukkan NUPTK', controller: _nuptkCtrl)),
+                          _field(fw, AppTextField(label: 'No. Telepon', hint: 'Masukkan nomor telepon', controller: _phoneCtrl, keyboardType: TextInputType.phone)),
+                          _field(fw, AppDropdown<String?>(
+                            label: 'Jenis Kelamin',
+                            hint: 'Pilih jenis kelamin',
+                            value: _selectedGender,
+                            items: _genderOptions.map((o) => AppDropdownItem<String?>(value: o.value, label: o.label)).toList(),
+                            onChanged: (v) => setState(() => _selectedGender = v),
+                          )),
+                          _field(fw, AppTextField(label: 'Agama', hint: 'Masukkan agama', controller: _religionCtrl)),
+                          _field(fw, AppTextField(label: 'Tempat Lahir', hint: 'Masukkan tempat lahir', controller: _birthPlaceCtrl)),
+                          _field(fw, AppTextField(
                             label: 'Tanggal Lahir',
                             hint: 'YYYY-MM-DD',
                             controller: _birthDateCtrl,
                             readOnly: true,
                             onTap: _pickBirthDate,
-                            suffix: IconButton(
-                              onPressed: _pickBirthDate,
-                              icon: const Icon(Icons.calendar_month_outlined),
-                              color: AppColors.neutral500,
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'NIK',
-                            hint: 'Masukkan NIK',
-                            controller: _nikCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: fieldWidth,
-                          child: AppTextField(
-                            label: 'Path Foto KTP',
-                            hint: 'Masukkan path gambar KTP',
-                            controller: _ktpImagePathCtrl,
-                          ),
-                        ),
-                        SizedBox(
-                          width: constraints.maxWidth,
-                          child: AppTextField(
-                            label: 'Alamat',
-                            hint: 'Masukkan alamat',
-                            controller: _addressCtrl,
-                            maxLines: 3,
-                          ),
-                        ),
+                            suffix: IconButton(onPressed: _pickBirthDate, icon: const Icon(Icons.calendar_month_outlined), color: AppColors.neutral500),
+                          )),
+                          _field(fw, AppTextField(label: 'NIK', hint: 'Masukkan NIK', controller: _nikCtrl)),
+                          _field(fw, AppTextField(label: 'Path Foto KTP', hint: 'Masukkan path gambar KTP', controller: _ktpImagePathCtrl)),
+                          _field(fw, AppTextField(label: 'Kewarganegaraan', hint: 'Masukkan kewarganegaraan', controller: _kewarganegaraanCtrl)),
+                          _field(fw, AppTextField(label: 'Golongan Darah', hint: 'Contoh: A, B, O, AB', controller: _golonganDarahCtrl)),
+                          _field(fw, AppTextField(label: 'Berat Badan (kg)', hint: 'Masukkan berat badan', controller: _beratBadanCtrl)),
+                          _field(fw, AppTextField(label: 'Tinggi Badan (cm)', hint: 'Masukkan tinggi badan', controller: _tinggiBadanCtrl)),
+                          _field(fw, AppTextField(label: 'RT/RW', hint: 'Contoh: 001/002', controller: _rtRwCtrl)),
+                          _field(fw, AppTextField(label: 'Kode Pos', hint: 'Masukkan kode pos', controller: _kodePosCtrl)),
+                          _field(fw, AppTextField(label: 'Penyakit Sering Kambuh', hint: 'Masukkan penyakit yang sering kambuh', controller: _penyakitYangSeringKambuhCtrl)),
+                          _field(fw, AppTextField(label: 'Kelainan Jasmani', hint: 'Masukkan kelainan jasmani', controller: _kelainanJasmaniCtrl)),
+                          _field(fw, AppTextField(label: 'Penyakit Kronis', hint: 'Penyakit kronis yang pernah diderita', controller: _penyakitKronisCtrl)),
+                          SizedBox(width: constraints.maxWidth, child: AppTextField(label: 'Alamat', hint: 'Masukkan alamat', controller: _addressCtrl, maxLines: 3)),
+                        ]),
+                        const SizedBox(height: AppSpacing.md),
+                        // ── Pendidikan ────────────────────────────
+                        _sectionLabel('Pendidikan'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Wrap(spacing: AppSpacing.md, runSpacing: AppSpacing.md, children: [
+                          _field(fw, AppTextField(label: 'Pendidikan Terakhir', hint: 'Masukkan pendidikan terakhir', controller: _pendidikanTerakhirCtrl)),
+                          _field(fw, AppTextField(label: 'Jurusan', hint: 'Masukkan jurusan', controller: _jurusanCtrl)),
+                          _field(fw, AppTextField(label: 'Tahun Masuk', hint: 'Contoh: 2010', controller: _tahunMasukCtrl, keyboardType: TextInputType.number)),
+                          _field(fw, AppTextField(label: 'Tahun Lulus', hint: 'Contoh: 2014', controller: _tahunLulusCtrl, keyboardType: TextInputType.number)),
+                        ]),
                       ],
                     );
                   },
@@ -322,4 +364,17 @@ class _TeacherEditModalState extends ConsumerState<TeacherEditModal> {
       ),
     );
   }
+
+  Widget _sectionLabel(String title) {
+    return Text(
+      title.toUpperCase(),
+      style: AppTextStyles.label.copyWith(
+        color: AppColors.neutral500,
+        letterSpacing: 1.2,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
+  Widget _field(double width, Widget child) => SizedBox(width: width, child: child);
 }

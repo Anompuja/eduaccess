@@ -238,14 +238,6 @@ class TeachersScreen extends ConsumerWidget {
                                   ),
                                   DataColumn(
                                     label: _tableHeader(
-                                      TeachersScreenConstants.statusHeader,
-                                      width: isSmallScreen
-                                          ? TeachersScreenConstants.statusColumnWidthMobile
-                                          : TeachersScreenConstants.statusColumnWidthDesktop,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: _tableHeader(
                                       TeachersScreenConstants.actionsHeader,
                                       width: isSmallScreen
                                           ? TeachersScreenConstants.actionsColumnWidthMobile
@@ -312,22 +304,22 @@ class TeachersScreen extends ConsumerWidget {
                                           child: Text(row.username.isEmpty ? '-' : row.username),
                                         ),
                                       ),
-                                      DataCell(
-                                        SizedBox(
-                                          width: isSmallScreen
-                                              ? TeachersScreenConstants.statusColumnWidthMobile
-                                              : TeachersScreenConstants.statusColumnWidthDesktop,
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: AppBadge(
-                                              label: row.status.toUpperCase(),
-                                              status: row.isActive
-                                                  ? BadgeStatus.info
-                                                  : BadgeStatus.muted,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                      // DataCell(
+                                      //   SizedBox(
+                                      //     width: isSmallScreen
+                                      //         ? TeachersScreenConstants.statusColumnWidthMobile
+                                      //         : TeachersScreenConstants.statusColumnWidthDesktop,
+                                      //     child: Align(
+                                      //       alignment: Alignment.centerLeft,
+                                      //       child: AppBadge(
+                                      //         label: row.status.toUpperCase(),
+                                      //         status: row.isActive
+                                      //             ? BadgeStatus.info
+                                      //             : BadgeStatus.muted,
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // ),
                                       DataCell(
                                         SizedBox(
                                           width: isSmallScreen
