@@ -42,7 +42,12 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _addressCtrl;
+  late final TextEditingController _genderCtrl;
+  late final TextEditingController _religionCtrl;
+  late final TextEditingController _birthPlaceCtrl;
+  late final TextEditingController _birthDateCtrl;
   late final TextEditingController _nikCtrl;
+  late final TextEditingController _ktpImagePathCtrl;
   bool _isLoading = false;
   String? _selectedSchoolId;
 
@@ -54,7 +59,12 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
     _usernameCtrl = TextEditingController(text: widget.data.username);
     _phoneCtrl = TextEditingController(text: widget.data.phoneNumber);
     _addressCtrl = TextEditingController(text: widget.data.address);
+    _genderCtrl = TextEditingController(text: widget.data.gender);
+    _religionCtrl = TextEditingController(text: widget.data.religion);
+    _birthPlaceCtrl = TextEditingController(text: widget.data.birthPlace);
+    _birthDateCtrl = TextEditingController(text: widget.data.birthDate);
     _nikCtrl = TextEditingController(text: widget.data.nik);
+    _ktpImagePathCtrl = TextEditingController(text: widget.data.ktpImagePath);
     _selectedSchoolId = widget.data.schoolId.isEmpty
         ? null
         : widget.data.schoolId;
@@ -67,7 +77,12 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
     _usernameCtrl.dispose();
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
+    _genderCtrl.dispose();
+    _religionCtrl.dispose();
+    _birthPlaceCtrl.dispose();
+    _birthDateCtrl.dispose();
     _nikCtrl.dispose();
+    _ktpImagePathCtrl.dispose();
     super.dispose();
   }
 
@@ -97,7 +112,22 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
         'address': _addressCtrl.text.trim().isEmpty
             ? null
             : _addressCtrl.text.trim(),
+        'gender': _genderCtrl.text.trim().isEmpty
+            ? null
+            : _genderCtrl.text.trim(),
+        'religion': _religionCtrl.text.trim().isEmpty
+            ? null
+            : _religionCtrl.text.trim(),
+        'birth_place': _birthPlaceCtrl.text.trim().isEmpty
+            ? null
+            : _birthPlaceCtrl.text.trim(),
+        'birth_date': _birthDateCtrl.text.trim().isEmpty
+            ? null
+            : _birthDateCtrl.text.trim(),
         'nik': _nikCtrl.text.trim().isEmpty ? null : _nikCtrl.text.trim(),
+        'ktp_image_path': _ktpImagePathCtrl.text.trim().isEmpty
+            ? null
+            : _ktpImagePathCtrl.text.trim(),
       };
 
       if (_selectedSchoolId != null && _selectedSchoolId!.isNotEmpty) {
@@ -268,7 +298,39 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
                                 hint: 'Masukkan alamat',
                                 controller: _addressCtrl,
                                 keyboardType: TextInputType.streetAddress,
-                                maxLines: 3,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Jenis Kelamin ',
+                                hint: 'Masukkan jenis kelamin (L/P)',
+                                controller: _genderCtrl,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Agama',
+                                hint: 'Masukkan agama',
+                                controller: _religionCtrl,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Tempat Lahir',
+                                hint: 'Masukkan tempat lahir',
+                                controller: _birthPlaceCtrl,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Tanggal Lahir',
+                                hint: 'Masukkan tanggal lahir',
+                                controller: _birthDateCtrl,
+                                keyboardType: TextInputType.datetime,
                               ),
                             ),
                             SizedBox(
@@ -278,6 +340,14 @@ class _AdminEditModalState extends ConsumerState<AdminEditModal> {
                                 hint: 'Masukkan NIK',
                                 controller: _nikCtrl,
                                 keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            SizedBox(
+                              width: fieldWidth,
+                              child: AppTextField(
+                                label: 'Foto KTP',
+                                hint: 'Upload Link Foto KTP',
+                                controller: _ktpImagePathCtrl,
                               ),
                             ),
                           ],

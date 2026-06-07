@@ -124,7 +124,7 @@ class _AppTextFieldState extends State<AppTextField> {
                 ? Icon(widget.prefixIcon,
                     size: 18, color: AppColors.neutral500)
                 : null,
-            suffix: widget.suffix,
+            suffixIcon: widget.suffix,
             counterText: '',
           ),
         ),
