@@ -13,14 +13,4 @@ class SubscriptionRepositoryImpl {
   Future<SchoolSubscription> getSchoolSubscription(String schoolId) {
     return _remoteDataSource.getSchoolSubscription(schoolId);
   }
-
-  Future<SchoolSubscription> updateSchoolSubscription({
-    required String schoolId,
-    required SubscriptionPlan plan,
-  }) {
-    return _remoteDataSource.updateSchoolSubscription(
-      schoolId: schoolId,
-      plan: plan,
-    );
-  }
 }

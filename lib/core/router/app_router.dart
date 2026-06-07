@@ -20,6 +20,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/payment/data/models/payment_entities.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
@@ -239,7 +240,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.payment,
-            builder: (_, _) => const PaymentScreen(),
+            builder: (_, state) => PaymentScreen(
+              initialPayment: state.extra is SubscriptionPayment
+                  ? state.extra! as SubscriptionPayment
+                  : null,
+            ),
           ),
           GoRoute(
             path: RouteNames.reports,

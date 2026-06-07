@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
+import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/external_url_launcher.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -16,6 +19,8 @@ import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/widgets/school_filter.dart';
+import '../../../payment/data/models/payment_entities.dart';
+import '../../../payment/presentation/providers/payment_provider.dart';
 import '../../data/models/subscription_entities.dart';
 import '../providers/subscription_provider.dart';
 
@@ -27,7 +32,8 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 }
 
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
-  String? _changingPlanId;
+  final Map<String, BillingCycle> _selectedCycles = {};
+  String? _processingPlanId;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +45,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       currentSchoolSubscriptionOverviewProvider,
     );
     final plansAsync = ref.watch(schoolPlansProvider);
+    final trackedPayment = ref.watch(activeSubscriptionPaymentProvider);
 
     return SingleChildScrollView(
       padding: isCompact
@@ -48,18 +55,18 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Subscription',
+            'Paket Sekolah',
             style: AppTextStyles.h2.copyWith(color: AppColors.neutral900),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Kelola paket sekolah dan pantau kuota jumlah siswa berdasarkan plan aktif.',
+            'Kelola paket sekolah dan pantau kuota siswa sesuai paket yang sedang aktif.',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
           if (user?.role == UserRole.superadmin) ...[
             const SizedBox(height: AppSpacing.md),
             const SchoolFilter(
-              label: 'Sekolah Subscription',
+              label: 'Sekolah Paket',
               allLabel: 'Pilih Sekolah',
             ),
           ],
@@ -70,7 +77,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 icon: Icons.apartment_outlined,
                 message: 'Pilih sekolah terlebih dahulu',
                 subtitle:
-                    'Subscription dikelola per sekolah. Pilih tenant aktif untuk melihat plan dan kuotanya.',
+                    'Pilih sekolah aktif untuk melihat paket, kuota siswa, dan pembayaran.',
               ),
             )
           else
@@ -79,7 +86,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.xl),
                   child: AppLoadingIndicator(
-                    message: 'Memuat subscription sekolah...',
+                    message: 'Memuat paket sekolah...',
                   ),
                 ),
               ),
@@ -100,6 +107,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 plansAsync: plansAsync,
                 schoolId: schoolId,
                 isCompact: isCompact,
+                trackedPayment: trackedPayment,
               ),
             ),
         ],
@@ -113,20 +121,28 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     required AsyncValue<List<SubscriptionPlan>> plansAsync,
     required String schoolId,
     required bool isCompact,
+    required SubscriptionPayment? trackedPayment,
   }) {
     if (overview == null) {
       return const AppCard(
         child: AppEmptyState(
           message: 'Subscription sekolah belum tersedia',
-          subtitle:
-              'Pastikan sekolah sudah memiliki subscription aktif atau trial dari backend.',
+          subtitle: 'Data paket sekolah belum dapat ditampilkan saat ini.',
         ),
       );
     }
 
+    final schoolPayment = trackedPayment?.schoolId == schoolId
+        ? trackedPayment
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (schoolPayment != null && schoolPayment.isPending) ...[
+          _buildPendingPaymentBanner(context, schoolPayment),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         _buildOverviewCard(overview, isCompact),
         const SizedBox(height: AppSpacing.lg),
         if (isCompact)
@@ -153,7 +169,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Plan baru akan langsung memengaruhi batas jumlah siswa yang dapat dikelola sekolah.',
+          'Pilih paket yang sesuai dengan kebutuhan sekolah dan jumlah siswa yang dikelola.',
           style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -179,9 +195,60 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             overview: overview,
             plans: plans,
             isCompact: isCompact,
+            trackedPayment: schoolPayment,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPendingPaymentBanner(
+    BuildContext context,
+    SubscriptionPayment payment,
+  ) {
+    return AppCard(
+      color: AppColors.accent100,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.75),
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: const Icon(
+              Icons.pending_actions_rounded,
+              color: AppColors.accent700,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Masih ada pembayaran yang berjalan',
+                  style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Selesaikan pembayaran yang sedang berjalan sebelum membuat pembayaran baru.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          AppButton.primary(
+            label: 'Lihat Pembayaran',
+            onPressed: () => context.push(RouteNames.payment, extra: payment),
+          ),
+        ],
+      ),
     );
   }
 
@@ -195,26 +262,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCompact)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subscription.plan.displayName,
-                  style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _statusBadge(subscription.status),
-                const SizedBox(height: AppSpacing.md),
-                _buildOverviewMeta(subscription),
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.primary100,
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: isCompact
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -223,22 +279,49 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           color: AppColors.neutral900,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
+                      const SizedBox(height: AppSpacing.sm),
+                      _statusBadge(subscription.status),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         subscription.schoolName.isEmpty
-                            ? 'Subscription aktif sekolah'
+                            ? 'Paket aktif sekolah'
                             : subscription.schoolName,
-                        style: AppTextStyles.bodyMd.copyWith(
-                          color: AppColors.neutral500,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.neutral700,
                         ),
                       ),
                     ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              subscription.plan.displayName,
+                              style: AppTextStyles.h4.copyWith(
+                                color: AppColors.neutral900,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              subscription.schoolName.isEmpty
+                                  ? 'Paket aktif sekolah'
+                                  : subscription.schoolName,
+                              style: AppTextStyles.bodyMd.copyWith(
+                                color: AppColors.neutral700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      _statusBadge(subscription.status),
+                    ],
                   ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                _statusBadge(subscription.status),
-              ],
-            ),
+          ),
           if (subscription.plan.description.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -247,46 +330,77 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
-          _buildOverviewMeta(subscription),
+          _buildOverviewMeta(subscription, isCompact),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewMeta(SchoolSubscription subscription) {
+  Widget _buildOverviewMeta(SchoolSubscription subscription, bool isCompact) {
     return Wrap(
       spacing: AppSpacing.lg,
       runSpacing: AppSpacing.md,
       children: [
-        _metaItem('Paket', subscription.plan.tier.label),
-        _metaItem('Siklus', subscription.plan.billingCycle.label),
-        _metaItem('Harga', _formatIdr(subscription.plan.price)),
-        _metaItem('Aktif Hingga', _formatDate(subscription.endDate)),
+        _metaItem(
+          'Paket',
+          subscription.plan.tier.label,
+          width: isCompact ? double.infinity : 150,
+        ),
+        _metaItem(
+          'Siklus',
+          subscription.cycle.label,
+          width: isCompact ? double.infinity : 150,
+        ),
+        _metaItem(
+          'Biaya',
+          _formatIdr(subscription.currentPrice),
+          width: isCompact ? double.infinity : 170,
+        ),
+        _metaItem(
+          'Aktif Hingga',
+          _formatDate(subscription.endDate),
+          width: isCompact ? double.infinity : 170,
+        ),
+        if (subscription.quantity > 0)
+          _metaItem(
+            'Jumlah',
+            '${subscription.quantity} paket',
+            width: isCompact ? double.infinity : 150,
+          ),
       ],
     );
   }
 
-  Widget _metaItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.caption.copyWith(
-            color: AppColors.neutral500,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+  Widget _metaItem(String label, String value, {required double width}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.neutral50,
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: AppColors.neutral100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.neutral500,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          value,
-          style: AppTextStyles.bodyMd.copyWith(
-            color: AppColors.neutral900,
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            value,
+            style: AppTextStyles.bodyMd.copyWith(
+              color: AppColors.neutral900,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -359,23 +473,23 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           _ruleItem(
-            'Basic',
-            'Direkomendasikan untuk sekolah dengan kebutuhan sampai 500 siswa.',
+            'Pilihan Paket',
+            'Pilih paket sesuai jumlah siswa dan kebutuhan sekolah saat ini.',
           ),
           const SizedBox(height: AppSpacing.sm),
           _ruleItem(
-            'Pro',
-            'Digunakan ketika kapasitas Basic sudah tidak cukup untuk pertumbuhan siswa.',
+            'Perubahan Paket',
+            'Perubahan paket dilakukan saat sekolah ingin beralih ke paket yang lebih sesuai.',
           ),
           const SizedBox(height: AppSpacing.sm),
           _ruleItem(
-            'Enterprise',
-            'Dipakai untuk sekolah besar dengan kapasitas siswa paling tinggi.',
+            'Pembayaran',
+            'Jika pembayaran sedang berjalan, selesaikan terlebih dahulu sebelum membuat pembayaran baru.',
           ),
           const SizedBox(height: AppSpacing.sm),
           _ruleItem(
-            'Batas Siswa',
-            'Jika jumlah siswa sudah mencapai batas paket, sekolah perlu upgrade paket untuk menambah siswa baru.',
+            'Kuota Siswa',
+            'Batas jumlah siswa mengikuti paket yang sedang aktif.',
           ),
         ],
       ),
@@ -425,6 +539,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     required SchoolSubscriptionOverview overview,
     required List<SubscriptionPlan> plans,
     required bool isCompact,
+    required SubscriptionPayment? trackedPayment,
   }) {
     if (plans.isEmpty) {
       return const AppCard(
@@ -435,15 +550,29 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       );
     }
 
+    final hasPendingPayment = trackedPayment?.isPending == true;
+
     return Wrap(
       spacing: AppSpacing.lg,
       runSpacing: AppSpacing.lg,
       children: plans.map((plan) {
+        final selectedCycle = _selectedCycleFor(plan);
         final isCurrentPlan = plan.matches(overview.plan);
-        final canDowngrade =
+        final isDowngrade =
+            overview.plan.tier != SubscriptionTier.trial &&
+            plan.tier.sortOrder < overview.plan.tier.sortOrder;
+        final canFitCurrentStudents =
             plan.maxStudents <= 0 || plan.maxStudents >= overview.studentsUsed;
-        final canChange = !isCurrentPlan && plan.isSelectable && canDowngrade;
-        final cardWidth = isCompact ? double.infinity : 320.0;
+        final cyclePrice = plan.priceForCycle(selectedCycle);
+        final canCheckout =
+            !isCurrentPlan &&
+            !hasPendingPayment &&
+            plan.isSelectable &&
+            !isDowngrade &&
+            canFitCurrentStudents &&
+            selectedCycle != BillingCycle.unknown &&
+            cyclePrice > 0;
+        final cardWidth = isCompact ? double.infinity : 340.0;
 
         return SizedBox(
           width: cardWidth,
@@ -451,60 +580,126 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        plan.displayName,
-                        style: AppTextStyles.h4.copyWith(
-                          color: AppColors.neutral900,
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: isCurrentPlan
+                        ? AppColors.primary100
+                        : AppColors.neutral50,
+                    borderRadius: AppRadius.lgAll,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          plan.displayName,
+                          style: AppTextStyles.h4.copyWith(
+                            color: AppColors.neutral900,
+                          ),
                         ),
                       ),
-                    ),
-                    if (isCurrentPlan)
-                      const AppBadge(
-                        label: 'PAKET AKTIF',
-                        status: BadgeStatus.active,
-                      ),
-                  ],
+                      if (isCurrentPlan)
+                        const AppBadge(
+                          label: 'PAKET AKTIF',
+                          status: BadgeStatus.active,
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   plan.description.isEmpty
-                      ? 'Batas utama paket ini ada pada kapasitas jumlah siswa.'
+                      ? 'Paket ini menentukan batas kapasitas siswa yang bisa dikelola sekolah.'
                       : plan.description,
                   style: AppTextStyles.bodySm.copyWith(
                     color: AppColors.neutral500,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                _planMetric(
-                  'Maks. siswa',
-                  plan.maxStudents <= 0
-                      ? 'Tidak diketahui'
-                      : '${plan.maxStudents}',
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.neutral50,
+                    borderRadius: AppRadius.lgAll,
+                    border: Border.all(color: AppColors.neutral100),
+                  ),
+                  child: Column(
+                    children: [
+                      _planMetric(
+                        'Maks. siswa',
+                        plan.maxStudents <= 0
+                            ? 'Tidak diketahui'
+                            : '${plan.maxStudents}',
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      _planMetric('Bulanan', _formatIdr(plan.monthlyPrice)),
+                      const SizedBox(height: AppSpacing.sm),
+                      _planMetric('Tahunan', _formatIdr(plan.yearlyPrice)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                _planMetric('Harga', _formatIdr(plan.price)),
-                const SizedBox(height: AppSpacing.sm),
-                _planMetric('Siklus', plan.billingCycle.label),
+                if (plan.features.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Keunggulan Paket',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.neutral500,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  ...plan.features.take(4).map(_featureItem),
+                ],
                 const SizedBox(height: AppSpacing.lg),
+                if (plan.availableCycles.isNotEmpty) ...[
+                  Text(
+                    'Pilih Periode',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.neutral500,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: plan.availableCycles
+                        .map(
+                          (cycle) => _cycleChip(
+                            cycle: cycle,
+                            price: plan.priceForCycle(cycle),
+                            isSelected: selectedCycle == cycle,
+                            onTap: isCurrentPlan || hasPendingPayment
+                                ? null
+                                : () => setState(() {
+                                    _selectedCycles[plan.id] = cycle;
+                                  }),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
                 SizedBox(
                   width: double.infinity,
                   child: AppButton.primary(
                     label: _planActionLabel(
                       plan: plan,
-                      overview: overview,
                       isCurrentPlan: isCurrentPlan,
-                      canDowngrade: canDowngrade,
+                      isDowngrade: isDowngrade,
+                      canFitCurrentStudents: canFitCurrentStudents,
+                      hasPendingPayment: hasPendingPayment,
                     ),
-                    isLoading: _changingPlanId == plan.id,
-                    onPressed: canChange
-                        ? () => _changePlan(
+                    isLoading: _processingPlanId == plan.id,
+                    onPressed: canCheckout
+                        ? () => _startCheckout(
                             context: context,
                             schoolId: schoolId,
                             currentOverview: overview,
                             nextPlan: plan,
+                            cycle: selectedCycle,
                           )
                         : null,
                   ),
@@ -514,6 +709,28 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _featureItem(String feature) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Icon(Icons.circle, size: 8, color: AppColors.primary500),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              feature,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -536,62 +753,128 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     );
   }
 
-  String _planActionLabel({
-    required SubscriptionPlan plan,
-    required SchoolSubscriptionOverview overview,
-    required bool isCurrentPlan,
-    required bool canDowngrade,
+  Widget _cycleChip({
+    required BillingCycle cycle,
+    required int price,
+    required bool isSelected,
+    required VoidCallback? onTap,
   }) {
-    if (isCurrentPlan) return 'Paket Aktif';
-    if (!plan.isSelectable) return 'Tidak Dapat Dipilih';
-    if (!canDowngrade) return 'Siswa Melebihi Limit Paket';
-    if (plan.maxStudents > overview.plan.maxStudents) {
-      return 'Upgrade ke ${plan.tier.label}';
-    }
-    return 'Aktifkan ${plan.tier.label}';
+    final fgColor = isSelected ? AppColors.primary700 : AppColors.neutral700;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.lgAll,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary100 : AppColors.neutral50,
+          borderRadius: AppRadius.lgAll,
+          border: Border.all(
+            color: isSelected ? AppColors.primary500 : AppColors.neutral100,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              cycle.label,
+              style: AppTextStyles.bodySm.copyWith(
+                color: fgColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatIdr(price),
+              style: AppTextStyles.bodySm.copyWith(color: fgColor),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Future<void> _changePlan({
+  String _planActionLabel({
+    required SubscriptionPlan plan,
+    required bool isCurrentPlan,
+    required bool isDowngrade,
+    required bool canFitCurrentStudents,
+    required bool hasPendingPayment,
+  }) {
+    if (isCurrentPlan) return 'Paket Aktif';
+    if (hasPendingPayment) return 'Selesaikan Pembayaran Sebelumnya';
+    if (!plan.isSelectable) return 'Paket Tidak Tersedia';
+    if (isDowngrade) return 'Belum Tersedia';
+    if (!canFitCurrentStudents) return 'Jumlah Siswa Melebihi Batas';
+    return 'Pilih Paket ${plan.tier.label}';
+  }
+
+  BillingCycle _selectedCycleFor(SubscriptionPlan plan) {
+    final stored = _selectedCycles[plan.id];
+    if (stored != null && plan.supportsCycle(stored)) return stored;
+    final first = plan.availableCycles.isNotEmpty
+        ? plan.availableCycles.first
+        : BillingCycle.unknown;
+    _selectedCycles[plan.id] = first;
+    return first;
+  }
+
+  Future<void> _startCheckout({
     required BuildContext context,
     required String schoolId,
     required SchoolSubscriptionOverview currentOverview,
     required SubscriptionPlan nextPlan,
+    required BillingCycle cycle,
   }) async {
+    final price = nextPlan.priceForCycle(cycle);
     final confirmed = await AppConfirmDialog.show(
       context: context,
-      title: 'Ubah Subscription',
+      title: 'Konfirmasi Paket',
       message:
-          'Paket sekolah akan diubah ke ${nextPlan.displayName} dengan limit ${nextPlan.maxStudents} siswa.',
-      confirmLabel: 'Ubah Paket',
+          'Lanjutkan pembayaran untuk paket ${nextPlan.displayName} dengan periode ${cycle.label.toLowerCase()} sebesar ${_formatIdr(price)}?',
+      confirmLabel: 'Lanjut',
     );
 
     if (confirmed != true) return;
 
-    setState(() => _changingPlanId = nextPlan.id);
+    setState(() => _processingPlanId = nextPlan.id);
     try {
-      await ref.read(
-        changeSchoolSubscriptionProvider((
+      final payment = await ref.read(
+        createSubscriptionCheckoutProvider((
           schoolId: schoolId,
-          plan: nextPlan,
+          planId: nextPlan.id,
+          cycle: cycle,
         )).future,
+      );
+
+      final opened = await ExternalUrlLauncher.open(
+        payment.providerRedirectUrl,
       );
 
       if (!context.mounted) return;
 
       final wasUpgrade =
           nextPlan.maxStudents > currentOverview.plan.maxStudents;
-      AppToast.show(
-        context,
-        message: wasUpgrade
-            ? 'Paket berhasil di-upgrade ke ${nextPlan.displayName}.'
-            : 'Paket sekolah berhasil diubah ke ${nextPlan.displayName}.',
-      );
+      final toastMessage = !opened && payment.providerRedirectUrl.isEmpty
+          ? 'Pembayaran berhasil dibuat, tetapi halaman pembayaran belum tersedia saat ini.'
+          : opened
+          ? wasUpgrade
+                ? 'Paket ${nextPlan.displayName} siap diproses. Halaman pembayaran sudah dibuka.'
+                : 'Pembayaran berhasil dibuat dan halaman pembayaran sudah dibuka.'
+          : 'Pembayaran berhasil dibuat. Silakan buka kembali dari halaman pembayaran.';
+      final toastType = !opened ? ToastType.warning : ToastType.info;
+      AppToast.show(context, message: toastMessage, type: toastType);
+
+      context.push(RouteNames.payment, extra: payment);
     } catch (e) {
       if (!context.mounted) return;
       AppToast.show(context, message: e.toString(), type: ToastType.error);
     } finally {
       if (mounted) {
-        setState(() => _changingPlanId = null);
+        setState(() => _processingPlanId = null);
       }
     }
   }
@@ -626,7 +909,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   }
 
   String _formatIdr(int value) {
-    if (value <= 0) return 'Rp 0';
+    if (value <= 0) return '-';
 
     final source = value.toString();
     final buffer = StringBuffer();

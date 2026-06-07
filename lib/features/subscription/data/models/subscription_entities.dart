@@ -29,22 +29,25 @@ enum SubscriptionStatus {
 enum BillingCycle {
   monthly,
   yearly,
-  oneTime,
   unknown;
 
   static BillingCycle fromString(String raw) =>
       switch (raw.trim().toLowerCase()) {
         'monthly' || 'month' => BillingCycle.monthly,
         'yearly' || 'annual' || 'annually' || 'year' => BillingCycle.yearly,
-        'one_time' || 'one-time' || 'lifetime' => BillingCycle.oneTime,
         _ => BillingCycle.unknown,
       };
 
   String get label => switch (this) {
     BillingCycle.monthly => 'Bulanan',
     BillingCycle.yearly => 'Tahunan',
-    BillingCycle.oneTime => 'Sekali Bayar',
     BillingCycle.unknown => 'Belum diketahui',
+  };
+
+  String get apiValue => switch (this) {
+    BillingCycle.monthly => 'month',
+    BillingCycle.yearly => 'year',
+    BillingCycle.unknown => '',
   };
 }
 
@@ -89,8 +92,9 @@ class SubscriptionPlan {
   final String code;
   final String name;
   final String description;
-  final BillingCycle billingCycle;
-  final int price;
+  final List<String> features;
+  final int monthlyPrice;
+  final int yearlyPrice;
   final int maxStudents;
   final bool isActive;
   final SubscriptionTier tier;
@@ -100,8 +104,9 @@ class SubscriptionPlan {
     required this.code,
     required this.name,
     required this.description,
-    required this.billingCycle,
-    required this.price,
+    required this.features,
+    required this.monthlyPrice,
+    required this.yearlyPrice,
     required this.maxStudents,
     required this.isActive,
     required this.tier,
@@ -117,7 +122,22 @@ class SubscriptionPlan {
 
   String get displayName => name.isNotEmpty ? name : tier.label;
 
-  bool get isSelectable => tier != SubscriptionTier.trial;
+  List<BillingCycle> get availableCycles => [
+    if (monthlyPrice > 0) BillingCycle.monthly,
+    if (yearlyPrice > 0) BillingCycle.yearly,
+  ];
+
+  bool supportsCycle(BillingCycle cycle) => availableCycles.contains(cycle);
+
+  int priceForCycle(BillingCycle cycle) => switch (cycle) {
+    BillingCycle.monthly => monthlyPrice,
+    BillingCycle.yearly => yearlyPrice,
+    BillingCycle.unknown => 0,
+  };
+
+  bool get hasPaidCycle => availableCycles.isNotEmpty;
+
+  bool get isSelectable => tier != SubscriptionTier.trial && hasPaidCycle;
 
   String get _normalizedIdentity =>
       '${name.trim().toLowerCase()}::${code.trim().toLowerCase()}';
@@ -130,6 +150,9 @@ class SchoolSubscription {
   final SubscriptionStatus status;
   final DateTime? startDate;
   final DateTime? endDate;
+  final BillingCycle cycle;
+  final int price;
+  final int quantity;
   final SubscriptionPlan plan;
 
   const SchoolSubscription({
@@ -139,8 +162,16 @@ class SchoolSubscription {
     required this.status,
     required this.startDate,
     required this.endDate,
+    required this.cycle,
+    required this.price,
+    required this.quantity,
     required this.plan,
   });
+
+  int get currentPrice {
+    if (price > 0) return price;
+    return plan.priceForCycle(cycle);
+  }
 }
 
 class SchoolSubscriptionOverview {
