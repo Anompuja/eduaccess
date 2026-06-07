@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/academic/presentation/screens/academic_screen.dart';
+import '../../features/attendance/presentation/screens/attendance_screen.dart';
+import '../../features/attendance/presentation/screens/attendance_qr_display_screen.dart';
+import '../../features/attendance/presentation/screens/attendance_scan_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_screen.dart';
 import '../../features/class_schedule/presentation/screens/class_schedule_detail_screen.dart';
 import '../../features/headmasters/presentation/screens/headmasters_screen.dart';
@@ -236,8 +239,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.attendance,
-            builder: (_, _) =>
-                const PlaceholderScreen(title: 'Absensi', assignedTo: 'Dev 3'),
+            builder: (_, _) => const AttendanceScreen(),
+          ),
+          GoRoute(
+            path: '/attendance/display/:id',
+            builder: (_, state) => AttendanceQrDisplayScreen(
+              scheduleId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.attendanceScan,
+            builder: (_, state) => AttendanceScanScreen(
+              token: state.uri.queryParameters['token'],
+            ),
           ),
           GoRoute(
             path: RouteNames.subscription,

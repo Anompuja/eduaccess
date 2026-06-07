@@ -88,6 +88,8 @@ abstract final class ApiEndpoints {
 
   // ── Attendance ────────────────────────────────────────────────────────────
   static const String attendance = '/attendance';
+  static String classScheduleQRToken(String id) => '/class-schedules/$id/qr';
+  static const String attendanceScan = '/attendance/scan';
 
   // ── Subscription ─────────────────────────────────────────────────────────
   static const String subscription = '/subscription';
