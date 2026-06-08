@@ -25,6 +25,7 @@ import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../../core/widgets/app_pagination.dart';
 import '../../../../core/widgets/app_search_bar.dart';
+import '../../../../core/widgets/school_filter.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../providers/payment_provider.dart';
@@ -155,10 +156,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (activeSchool != null) ...[
-          _buildDashboardContextCard(activeSchool.name),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        _buildSuperadminScopeSection(
+          context: context,
+          activeSchoolName: activeSchool?.name,
+          isCompact: isCompact,
+        ),
+        const SizedBox(height: AppSpacing.lg),
         _buildHistorySection(
           context: context,
           paymentsAsync: historyAsync,
@@ -166,7 +169,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           selectedPayment: null,
           openDetailOnView: true,
           trackPaymentOnView: false,
-          showToolbar: activeSchool == null,
+          showToolbar: true,
         ),
       ],
     );
@@ -212,45 +215,50 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildDashboardContextCard(String schoolName) {
-    return AppCard(
-      color: AppColors.primary100,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.75),
-              borderRadius: AppRadius.lgAll,
-            ),
-            child: const Icon(
-              Icons.school_outlined,
-              color: AppColors.primary700,
-            ),
+  Widget _buildSuperadminScopeSection({
+    required BuildContext context,
+    required String? activeSchoolName,
+    required bool isCompact,
+  }) {
+    final scopeText = activeSchoolName == null
+        ? 'Menampilkan riwayat pembayaran dari semua sekolah'
+        : 'Riwayat pembayaran untuk: $activeSchoolName';
+    final dashboardButton = AppButton.secondary(
+      label: 'Dashboard',
+      onPressed: () => context.go(RouteNames.dashboard),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isCompact) ...[
+          Text(
+            scopeText,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Context sekolah mengikuti dashboard',
-                  style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Daftar pembayaran sedang difokuskan ke $schoolName. Pilih "Semua Sekolah" dari dashboard jika ingin melihat transaksi seluruh tenant.',
+          const SizedBox(height: AppSpacing.md),
+          dashboardButton,
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  scopeText,
                   style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.neutral700,
+                    color: AppColors.neutral500,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              dashboardButton,
+            ],
           ),
-        ],
-      ),
+        const SizedBox(height: AppSpacing.md),
+        const SchoolFilter(
+          label: 'Sekolah Pembayaran',
+          allLabel: 'Semua Sekolah',
+        ),
+      ],
     );
   }
 

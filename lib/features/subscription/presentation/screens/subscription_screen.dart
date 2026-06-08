@@ -22,8 +22,10 @@ import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
 import '../../../../core/widgets/app_pagination.dart';
 import '../../../../core/widgets/app_search_bar.dart';
+import '../../../../core/widgets/school_filter.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../dashboard/domain/entities/dashboard_school.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../payment/data/models/payment_entities.dart';
 import '../../../payment/presentation/providers/payment_provider.dart';
 import '../../data/models/subscription_entities.dart';
@@ -88,49 +90,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (activeSchool != null)
-          AppCard(
-            color: AppColors.primary100,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.75),
-                    borderRadius: AppRadius.lgAll,
-                  ),
-                  child: const Icon(
-                    Icons.school_outlined,
-                    color: AppColors.primary700,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Context sekolah mengikuti dashboard',
-                        style: AppTextStyles.h4.copyWith(
-                          color: AppColors.neutral900,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Halaman ini sedang menampilkan subscription untuk ${activeSchool.name}. Pilih "Semua Sekolah" dari dashboard jika ingin melihat seluruh tenant.',
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.neutral700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        if (activeSchool != null) const SizedBox(height: AppSpacing.lg),
+        _buildSuperadminScopeSection(
+          context: context,
+          activeSchoolName: activeSchool?.name,
+          isCompact: isCompact,
+        ),
+        const SizedBox(height: AppSpacing.lg),
         if (activeSchool == null) ...[
           _buildSuperadminToolbar(isCompact),
           const SizedBox(height: AppSpacing.lg),
@@ -160,6 +125,53 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             plansAsync: plansAsync,
             isCompact: isCompact,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuperadminScopeSection({
+    required BuildContext context,
+    required String? activeSchoolName,
+    required bool isCompact,
+  }) {
+    final scopeText = activeSchoolName == null
+        ? 'Menampilkan subscription dari semua sekolah'
+        : 'Subscription untuk: $activeSchoolName';
+    final dashboardButton = AppButton.secondary(
+      label: 'Dashboard',
+      onPressed: () => context.go(RouteNames.dashboard),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isCompact) ...[
+          Text(
+            scopeText,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          dashboardButton,
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  scopeText,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              dashboardButton,
+            ],
+          ),
+        const SizedBox(height: AppSpacing.md),
+        const SchoolFilter(
+          label: 'Sekolah Subscription',
+          allLabel: 'Semua Sekolah',
         ),
       ],
     );
@@ -831,16 +843,57 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     }
   }
 
-  void _openSchoolPaymentHistory(
+  Future<void> _openSchoolPaymentHistory(
     BuildContext context,
     SchoolSubscriptionRecord record,
-  ) {
-    ref.read(activeSchoolProvider.notifier).state = DashboardSchool(
+  ) async {
+    final school = await _resolveDashboardSchool(record);
+    if (!context.mounted) return;
+
+    ref.read(activeSchoolProvider.notifier).state = school;
+    _resetPaymentHistoryState();
+    context.go(RouteNames.payment);
+  }
+
+  Future<DashboardSchool> _resolveDashboardSchool(
+    SchoolSubscriptionRecord record,
+  ) async {
+    final currentSchool = ref.read(activeSchoolProvider);
+    if (currentSchool != null && currentSchool.id == record.id) {
+      return currentSchool;
+    }
+
+    final cachedSchools = ref.read(dashboardSchoolsProvider).valueOrNull;
+    final cachedMatch = cachedSchools
+        ?.where((school) => school.id == record.id)
+        .firstOrNull;
+    if (cachedMatch != null) {
+      return cachedMatch;
+    }
+
+    try {
+      final schools = await ref.read(dashboardSchoolsProvider.future);
+      final match = schools
+          .where((school) => school.id == record.id)
+          .firstOrNull;
+      if (match != null) {
+        return match;
+      }
+    } catch (_) {
+      // Keep the flow working even if the school directory is not ready yet.
+    }
+
+    return DashboardSchool(
       id: record.id,
       name: record.displayName,
       status: record.status.apiValue,
     );
-    context.go(RouteNames.payment);
+  }
+
+  void _resetPaymentHistoryState() {
+    ref.read(paymentHistoryCurrentPageProvider.notifier).state = 1;
+    ref.read(paymentHistorySearchQueryProvider.notifier).state = '';
+    ref.read(paymentHistoryStatusFilterProvider.notifier).state = null;
   }
 
   Widget _buildPendingPaymentBanner(
