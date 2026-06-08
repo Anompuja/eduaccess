@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/paginated.dart';
@@ -6,14 +7,22 @@ import '../models/staff_row_data.dart';
 
 class StaffRemoteDataSource {
   final Dio _dio;
+  final CacheOptions _staffListCacheOptions;
+  final CacheOptions _bypassCacheOptions;
 
-  StaffRemoteDataSource(this._dio);
+  StaffRemoteDataSource(
+    this._dio, {
+    required CacheOptions staffListCacheOptions,
+    required CacheOptions bypassCacheOptions,
+  }) : _staffListCacheOptions = staffListCacheOptions,
+       _bypassCacheOptions = bypassCacheOptions;
 
   Future<Paginated<StaffRowData>> getStaffs({
     required int page,
     int perPage = 10,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) async {
     try {
       final params = <String, dynamic>{'page': page, 'per_page': perPage};
@@ -23,10 +32,14 @@ class StaffRemoteDataSource {
       if (schoolId != null && schoolId.isNotEmpty) {
         params['school_id'] = schoolId;
       }
+      if (refreshTrigger != null) {
+        params['_t'] = refreshTrigger;
+      }
 
       final response = await _dio.get(
         ApiEndpoints.staff,
         queryParameters: params,
+        options: _staffListCacheOptions.toOptions(),
       );
       final data = response.data;
       if (data is! Map) {
@@ -44,7 +57,11 @@ class StaffRemoteDataSource {
 
   Future<StaffRowData> createStaff(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(ApiEndpoints.staff, data: data);
+      final response = await _dio.post(
+        ApiEndpoints.staff,
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
       final staffJson = payload is Map ? (payload['data'] ?? payload) : payload;
       return StaffRowData.fromJson(Map<String, dynamic>.from(staffJson as Map));
@@ -55,7 +72,11 @@ class StaffRemoteDataSource {
 
   Future<StaffRowData> updateStaff(String id, Map<String, dynamic> data) async {
     try {
-      final response = await _dio.put(ApiEndpoints.staffById(id), data: data);
+      final response = await _dio.put(
+        ApiEndpoints.staffById(id),
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
       final staffJson = payload is Map ? (payload['data'] ?? payload) : payload;
       return StaffRowData.fromJson(Map<String, dynamic>.from(staffJson as Map));
@@ -66,7 +87,10 @@ class StaffRemoteDataSource {
 
   Future<void> deleteStaff(String id) async {
     try {
-      await _dio.delete(ApiEndpoints.staffById(id));
+      await _dio.delete(
+        ApiEndpoints.staffById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }

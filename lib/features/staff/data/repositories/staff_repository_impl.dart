@@ -12,12 +12,14 @@ class StaffRepositoryImpl {
     int perPage = 10,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) {
     return _remoteDataSource.getStaffs(
       page: page,
       perPage: perPage,
       query: query,
       schoolId: schoolId,
+      refreshTrigger: refreshTrigger,
     );
   }
 
