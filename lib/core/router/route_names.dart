@@ -12,7 +12,6 @@ abstract final class RouteNames {
   static const String dashboard = '/dashboard';
   static const String profile = '/profile';
   static const String settings = '/settings';
-  static const String notifications = '/notifications';
 
   // ── Protected — Dev 2 (people management) ────────────────────────────────
   static const String admins = '/admins';

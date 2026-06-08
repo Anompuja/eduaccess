@@ -16,7 +16,6 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/class_promotion/presentation/screens/class_promotion_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/admin/presentation/screens/admins_screen.dart';
-import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/parents/presentation/screens/parents_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
@@ -24,6 +23,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/school/presentation/screens/school_screen.dart';
 import '../../features/staff/presentation/screens/staff_screen.dart';
 import '../../features/students/presentation/screens/students_screen.dart';
+import '../../features/payment/data/models/payment_entities.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
@@ -58,7 +58,6 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.dashboard,
     RouteNames.profile,
     RouteNames.settings,
-    RouteNames.notifications,
     RouteNames.help,
   };
 
@@ -142,10 +141,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.settings,
             builder: (_, _) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: RouteNames.notifications,
-            builder: (_, _) => const NotificationsScreen(),
           ),
           GoRoute(
             path: RouteNames.students,
@@ -258,7 +253,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RouteNames.payment,
-            builder: (_, _) => const PaymentScreen(),
+            builder: (_, state) => PaymentScreen(
+              initialPayment: state.extra is SubscriptionPayment
+                  ? state.extra! as SubscriptionPayment
+                  : null,
+            ),
           ),
           GoRoute(
             path: RouteNames.reports,

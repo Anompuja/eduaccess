@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/api/paginated.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
 import '../../../../core/providers/active_school_provider.dart';
-import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../students/presentation/providers/students_data_provider.dart';
 import '../../data/datasources/subscription_remote_data_source.dart';
 import '../../data/models/subscription_entities.dart';
@@ -15,6 +15,8 @@ final subscriptionRepositoryProvider = Provider((ref) {
   return SubscriptionRepositoryImpl(SubscriptionRemoteDataSource(dio));
 });
 
+const subscriptionSchoolsPerPage = 10;
+
 final currentSubscriptionSchoolIdProvider = Provider<String?>((ref) {
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
@@ -24,6 +26,15 @@ final currentSubscriptionSchoolIdProvider = Provider<String?>((ref) {
     _ => user?.schoolId,
   };
 });
+
+final subscriptionSchoolsCurrentPageProvider = StateProvider<int>((ref) => 1);
+
+final subscriptionSchoolsSearchQueryProvider = StateProvider<String>(
+  (ref) => '',
+);
+
+final subscriptionSchoolsStatusFilterProvider =
+    StateProvider<SchoolDirectoryStatus?>((ref) => null);
 
 final schoolPlansProvider = FutureProvider.autoDispose<List<SubscriptionPlan>>((
   ref,
@@ -74,15 +85,61 @@ final currentSchoolSubscriptionOverviewProvider =
       );
     });
 
-final changeSchoolSubscriptionProvider = FutureProvider.autoDispose
-    .family<SchoolSubscription, ({String schoolId, SubscriptionPlan plan})>((
+final schoolSubscriptionRecordsProvider =
+    FutureProvider.autoDispose<Paginated<SchoolSubscriptionRecord>>((
+      ref,
+    ) async {
+      final repository = ref.watch(subscriptionRepositoryProvider);
+      final user = ref.watch(currentUserProvider);
+      final activeSchool = ref.watch(activeSchoolProvider);
+      final page = ref.watch(subscriptionSchoolsCurrentPageProvider);
+      final search = ref.watch(subscriptionSchoolsSearchQueryProvider);
+      final status = ref.watch(subscriptionSchoolsStatusFilterProvider);
+
+      if (user?.role == UserRole.superadmin && activeSchool != null) {
+        final subscription = await repository.getSchoolSubscription(
+          activeSchool.id,
+        );
+        return Paginated(
+          items: [
+            SchoolSubscriptionRecord(
+              id: activeSchool.id,
+              name: activeSchool.name,
+              status: SchoolDirectoryStatus.fromString(activeSchool.status),
+              subscription: subscription,
+            ),
+          ],
+          page: 1,
+          perPage: 1,
+          total: 1,
+          totalPages: 1,
+        );
+      }
+
+      return repository.getSchoolsWithSubscription(
+        page: page,
+        perPage: subscriptionSchoolsPerPage,
+        search: search.isNotEmpty ? search : null,
+        status: status,
+      );
+    });
+
+typedef UpdateSchoolSubscriptionParams = ({
+  String schoolId,
+  String planId,
+  BillingCycle cycle,
+});
+
+final updateSchoolSubscriptionProvider = FutureProvider.autoDispose
+    .family<SchoolSubscription, UpdateSchoolSubscriptionParams>((
       ref,
       params,
     ) async {
       final repository = ref.watch(subscriptionRepositoryProvider);
-      final updated = await repository.updateSchoolSubscription(
+      final subscription = await repository.updateSchoolSubscription(
         schoolId: params.schoolId,
-        plan: params.plan,
+        planId: params.planId,
+        cycle: params.cycle,
       );
 
       ref.invalidate(schoolSubscriptionProvider(params.schoolId));
@@ -99,7 +156,7 @@ final changeSchoolSubscriptionProvider = FutureProvider.autoDispose
         )),
       );
       ref.invalidate(currentSchoolSubscriptionOverviewProvider);
-      ref.invalidate(dashboardStatsProvider);
+      ref.invalidate(schoolSubscriptionRecordsProvider);
 
-      return updated;
+      return subscription;
     });

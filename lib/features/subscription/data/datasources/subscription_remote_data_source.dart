@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/api/api_endpoints.dart';
+import '../../../../core/api/paginated.dart';
 import '../models/subscription_entities.dart';
 
 class SubscriptionRemoteDataSource {
@@ -42,19 +43,52 @@ class SubscriptionRemoteDataSource {
     }
   }
 
+  Future<Paginated<SchoolSubscriptionRecord>> getSchoolsWithSubscription({
+    required int page,
+    required int perPage,
+    String? search,
+    SchoolDirectoryStatus? status,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'per_page': perPage};
+      if (search != null && search.trim().isNotEmpty) {
+        params['search'] = search.trim();
+      }
+      if (status != null && status != SchoolDirectoryStatus.unknown) {
+        params['status'] = status.apiValue;
+      }
+
+      final response = await _dio.get(
+        ApiEndpoints.schools,
+        queryParameters: params,
+      );
+
+      final data = response.data;
+      if (data is! Map) {
+        return Paginated.empty<SchoolSubscriptionRecord>();
+      }
+
+      return Paginated<SchoolSubscriptionRecord>.fromResponseBody(
+        data.cast<String, dynamic>(),
+        _parseSchoolSubscriptionRecord,
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(
+        e,
+        fallback: 'Gagal memuat daftar subscription sekolah.',
+      );
+    }
+  }
+
   Future<SchoolSubscription> updateSchoolSubscription({
     required String schoolId,
-    required SubscriptionPlan plan,
+    required String planId,
+    required BillingCycle cycle,
   }) async {
     try {
       final response = await _dio.put(
         ApiEndpoints.schoolSubscription(schoolId),
-        data: {
-          if (plan.id.isNotEmpty)
-            'plan_id': plan.id
-          else
-            'plan_name': plan.name,
-        },
+        data: {'plan_id': planId, 'cycle': cycle.apiValue},
       );
       return _parseSubscription(
         _readMapData(response.data),
@@ -63,7 +97,7 @@ class SubscriptionRemoteDataSource {
     } on DioException catch (e) {
       throw _handleDioException(
         e,
-        fallback: 'Gagal mengubah subscription sekolah.',
+        fallback: 'Gagal memperbarui subscription sekolah.',
       );
     }
   }
@@ -81,6 +115,7 @@ class SubscriptionRemoteDataSource {
     final schoolMap = _firstNonEmptyMap([
       payload['school'],
       subscriptionMap['school'],
+      payload,
     ]);
 
     final planMap = _firstNonEmptyMap([
@@ -110,7 +145,34 @@ class SubscriptionRemoteDataSource {
         'ends_at',
         'expired_at',
       ]),
+      cycle: BillingCycle.fromString(
+        _readString(subscriptionMap, const ['cycle', 'billing_cycle']) ?? '',
+      ),
+      price: _readInt(subscriptionMap, const ['price', 'amount']),
+      quantity: _readInt(subscriptionMap, const ['quantity']),
       plan: _parsePlan(planMap),
+    );
+  }
+
+  SchoolSubscriptionRecord _parseSchoolSubscriptionRecord(
+    Map<String, dynamic> json,
+  ) {
+    final schoolId = _readString(json, const ['id', 'school_id']) ?? '';
+    final subscriptionMap = _firstNonEmptyMap([
+      json['subscription'],
+      json['current_subscription'],
+      json['active_subscription'],
+    ]);
+
+    return SchoolSubscriptionRecord(
+      id: schoolId,
+      name: _readString(json, const ['name', 'school_name']) ?? '',
+      status: SchoolDirectoryStatus.fromString(
+        _readString(json, const ['status']) ?? '',
+      ),
+      subscription: subscriptionMap.isEmpty
+          ? null
+          : _parseSubscription(json, fallbackSchoolId: schoolId),
     );
   }
 
@@ -127,10 +189,11 @@ class SubscriptionRemoteDataSource {
       code: code,
       name: name,
       description: _readString(json, const ['description']) ?? '',
-      billingCycle: BillingCycle.fromString(
-        _readString(json, const ['billing_cycle', 'cycle']) ?? '',
-      ),
-      price: _readInt(json, const ['price', 'amount']),
+      features: _readStringList(json, const ['features']),
+      monthlyPrice: _readInt(json, const ['monthly_price']) != 0
+          ? _readInt(json, const ['monthly_price'])
+          : _readInt(json, const ['price', 'amount']),
+      yearlyPrice: _readInt(json, const ['yearly_price']),
       maxStudents: _readInt(json, const ['max_students', 'student_limit']),
       isActive: _readBool(json, const [
         'is_active',
@@ -214,6 +277,19 @@ class SubscriptionRemoteDataSource {
     return defaultValue;
   }
 
+  List<String> _readStringList(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value is List) {
+        return value
+            .map((item) => item?.toString().trim() ?? '')
+            .where((item) => item.isNotEmpty)
+            .toList();
+      }
+    }
+    return const [];
+  }
+
   DateTime? _readDate(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {
       final value = json[key];
@@ -241,7 +317,7 @@ class SubscriptionRemoteDataSource {
       401 => 'Unauthorized.',
       403 => 'Anda tidak memiliki akses ke subscription sekolah ini.',
       404 => 'Data subscription sekolah tidak ditemukan.',
-      409 => 'Perubahan subscription konflik dengan data saat ini.',
+      409 => 'Subscription sekolah konflik dengan data saat ini.',
       422 => 'Data subscription tidak dapat diproses.',
       500 => 'Server error. Please try again later.',
       _ => e.message ?? fallback,

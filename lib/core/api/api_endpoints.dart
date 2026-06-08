@@ -23,6 +23,11 @@ abstract final class ApiEndpoints {
   static const String schoolPlans = '/schools/plans';
   static String schoolSubscription(String schoolId) =>
       '/schools/$schoolId/subscription';
+  static String schoolSubscriptionCheckout(String schoolId) =>
+      '/schools/$schoolId/subscription/checkout';
+  static String schoolSubscriptionPayment(String schoolId, String paymentId) =>
+      '/schools/$schoolId/subscription/payments/$paymentId';
+  static const String billingPayments = '/billing/payments';
 
   // ── Students ──────────────────────────────────────────────────────────────
   static const String students = '/students';
@@ -100,9 +105,4 @@ abstract final class ApiEndpoints {
   // ── Profile ───────────────────────────────────────────────────────────────
   static const String profile = '/profile';
   static String userPassword(String id) => '/users/$id/password';
-
-  // ── Notifications ─────────────────────────────────────────────────────────
-  static const String notifications = '/notifications';
-  static String notificationRead(String id) => '/notifications/$id/read';
-  static const String notificationsReadAll = '/notifications/read-all';
 }

@@ -807,7 +807,7 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
     primaryLabel: 'Buka Jadwal Kelas',
     primaryRoute: RouteNames.classSchedule,
     issueHint: 'Pembelajaran dan kelas',
-    supportAreas: ['Jadwal kelas', 'Data siswa', 'Notifikasi'],
+    supportAreas: ['Jadwal kelas', 'Data siswa', 'Pengaturan'],
     steps: [
       (
         'Periksa jadwal lebih dulu',
@@ -840,10 +840,10 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
         foregroundColor: AppColors.neutral700,
       ),
       _HelpShortcut(
-        title: 'Notifikasi',
-        subtitle: 'Lihat pembaruan terbaru',
-        route: RouteNames.notifications,
-        icon: Icons.notifications_outlined,
+        title: 'Pengaturan',
+        subtitle: 'Tinjau preferensi aplikasi',
+        route: RouteNames.settings,
+        icon: Icons.settings_outlined,
         backgroundColor: AppColors.accent100,
         foregroundColor: AppColors.accent700,
       ),
@@ -852,16 +852,16 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
   UserRole.siswa => const _HelpBlueprint(
     title: 'Panduan Siswa',
     subtitle:
-        'Gunakan layar ini untuk mengecek notifikasi, akses akun, dan informasi dasar saat mengalami kendala penggunaan.',
+        'Gunakan layar ini untuk mengecek akses akun, jadwal belajar, dan informasi dasar saat mengalami kendala penggunaan.',
     focusLabel: 'Akses belajar',
-    primaryLabel: 'Buka Notifikasi',
-    primaryRoute: RouteNames.notifications,
+    primaryLabel: 'Buka Dashboard',
+    primaryRoute: RouteNames.dashboard,
     issueHint: 'Akses belajar',
-    supportAreas: ['Notifikasi', 'Akun', 'Hak akses'],
+    supportAreas: ['Dashboard', 'Akun', 'Hak akses'],
     steps: [
       (
-        'Lihat notifikasi terbaru',
-        'Cek apakah ada perubahan jadwal, ujian, atau pengumuman yang memengaruhi akses Anda.',
+        'Lihat dashboard lebih dulu',
+        'Cek ringkasan akses belajar, menu yang tersedia, dan konteks penggunaan akun Anda.',
       ),
       (
         'Periksa akun yang dipakai',
@@ -874,10 +874,10 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
     ],
     shortcuts: [
       _HelpShortcut(
-        title: 'Notifikasi',
-        subtitle: 'Cek update kelas dan ujian',
-        route: RouteNames.notifications,
-        icon: Icons.notifications_outlined,
+        title: 'Dashboard',
+        subtitle: 'Cek akses belajar yang tersedia',
+        route: RouteNames.dashboard,
+        icon: Icons.space_dashboard_outlined,
         backgroundColor: AppColors.primary100,
         foregroundColor: AppColors.primary700,
       ),
@@ -902,20 +902,20 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
   UserRole.orangtua => const _HelpBlueprint(
     title: 'Panduan Orang Tua',
     subtitle:
-        'Bantuan diarahkan ke pemantauan informasi anak, notifikasi, dan akses akun pendamping secara singkat.',
+        'Bantuan diarahkan ke pemantauan informasi anak, dashboard ringkas, dan akses akun pendamping secara singkat.',
     focusLabel: 'Pendampingan',
     primaryLabel: 'Buka Dashboard',
     primaryRoute: RouteNames.dashboard,
     issueHint: 'Pendampingan orang tua',
-    supportAreas: ['Dashboard anak', 'Notifikasi', 'Akun pendamping'],
+    supportAreas: ['Dashboard anak', 'Akun pendamping', 'Pengaturan'],
     steps: [
       (
         'Mulai dari dashboard',
         'Gunakan ringkasan dashboard untuk melihat kondisi umum yang berkaitan dengan anak Anda.',
       ),
       (
-        'Periksa notifikasi',
-        'Lihat apakah ada update absensi, ujian, atau pengumuman yang baru masuk.',
+        'Periksa pengaturan akun',
+        'Pastikan akun pendamping dan preferensi aplikasi tidak menghambat penggunaan dasar.',
       ),
       (
         'Konfirmasi data akun',
@@ -932,10 +932,10 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
         foregroundColor: AppColors.primary700,
       ),
       _HelpShortcut(
-        title: 'Notifikasi',
-        subtitle: 'Lihat update terbaru',
-        route: RouteNames.notifications,
-        icon: Icons.notifications_outlined,
+        title: 'Pengaturan',
+        subtitle: 'Tinjau preferensi akun',
+        route: RouteNames.settings,
+        icon: Icons.settings_outlined,
         backgroundColor: AppColors.neutral100,
         foregroundColor: AppColors.neutral700,
       ),
@@ -957,11 +957,11 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
     primaryLabel: 'Buka Pengaturan',
     primaryRoute: RouteNames.settings,
     issueHint: 'Akses internal',
-    supportAreas: ['Pengaturan', 'Profil akun', 'Notifikasi'],
+    supportAreas: ['Pengaturan', 'Profil akun', 'Hak akses'],
     steps: [
       (
         'Periksa pengaturan dasar',
-        'Mulai dari preferensi aplikasi dan notifikasi untuk memastikan tidak ada pengaturan yang mengganggu.',
+        'Mulai dari preferensi aplikasi untuk memastikan tidak ada pengaturan dasar yang mengganggu.',
       ),
       (
         'Tinjau profil akun',
@@ -990,10 +990,10 @@ _HelpBlueprint _helpBlueprintForRole(UserRole role) => switch (role) {
         foregroundColor: AppColors.neutral700,
       ),
       _HelpShortcut(
-        title: 'Notifikasi',
-        subtitle: 'Lihat pesan sistem terbaru',
-        route: RouteNames.notifications,
-        icon: Icons.notifications_outlined,
+        title: 'Dashboard',
+        subtitle: 'Lihat konteks akses saat ini',
+        route: RouteNames.dashboard,
+        icon: Icons.space_dashboard_outlined,
         backgroundColor: AppColors.accent100,
         foregroundColor: AppColors.accent700,
       ),
@@ -1062,16 +1062,16 @@ List<_HelpFaq> _faqsForRole(UserRole role) {
     ],
     UserRole.siswa || UserRole.orangtua => const [
       _HelpFaq(
-        tag: 'Notifikasi',
-        question: 'Mengapa notifikasi saya kosong?',
-        answer:
-            'Cek akun yang digunakan lebih dulu. Jika role dan akun sudah benar, kemungkinan backend notifikasi belum mengirim data untuk akun tersebut.',
-      ),
-      _HelpFaq(
         tag: 'Akses',
-        question: 'Apa yang harus dilakukan jika modul tidak bisa dibuka?',
+        question: 'Apa yang harus dilakukan jika menu yang saya butuhkan tidak tersedia?',
         answer:
             'Biasanya ini terkait pembatasan role. Catat modul yang tertolak lalu minta admin sekolah memeriksa hak akses akun Anda.',
+      ),
+      _HelpFaq(
+        tag: 'Akun',
+        question: 'Bagaimana jika data akun atau pendamping tidak sesuai?',
+        answer:
+            'Periksa dulu halaman profil. Jika masih berbeda, minta admin sekolah memeriksa keterkaitan akun dan data pengguna di backend.',
       ),
     ],
     UserRole.staff => const [
