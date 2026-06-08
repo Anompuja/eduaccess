@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/api/paginated.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
+import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -14,11 +16,14 @@ import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dialog.dart';
+import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/school_filter.dart';
+import '../../../dashboard/domain/entities/dashboard_school.dart';
 import '../../../payment/data/models/payment_entities.dart';
 import '../../../payment/presentation/providers/payment_provider.dart';
 import '../../data/models/subscription_entities.dart';
@@ -34,18 +39,14 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   final Map<String, BillingCycle> _selectedCycles = {};
   String? _processingPlanId;
+  String? _updatingSchoolId;
 
   @override
   Widget build(BuildContext context) {
     final isCompact =
         Responsive.isMobile(context) || Responsive.isTablet(context);
     final user = ref.watch(currentUserProvider);
-    final schoolId = ref.watch(currentSubscriptionSchoolIdProvider);
-    final subscriptionAsync = ref.watch(
-      currentSchoolSubscriptionOverviewProvider,
-    );
-    final plansAsync = ref.watch(schoolPlansProvider);
-    final trackedPayment = ref.watch(activeSubscriptionPaymentProvider);
+    final isSuperadmin = user?.role == UserRole.superadmin;
 
     return SingleChildScrollView(
       padding: isCompact
@@ -60,62 +61,486 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Kelola paket sekolah dan pantau kuota siswa sesuai paket yang sedang aktif.',
+            isSuperadmin
+                ? 'Kelola paket langganan seluruh sekolah dari daftar tenant yang tersedia.'
+                : 'Kelola paket sekolah dan pantau kuota siswa sesuai paket yang sedang aktif.',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
-          if (user?.role == UserRole.superadmin) ...[
-            const SizedBox(height: AppSpacing.md),
-            const SchoolFilter(
-              label: 'Sekolah Paket',
-              allLabel: 'Pilih Sekolah',
-            ),
-          ],
           const SizedBox(height: AppSpacing.lg),
-          if (schoolId == null || schoolId.isEmpty)
-            const AppCard(
-              child: AppEmptyState(
-                icon: Icons.apartment_outlined,
-                message: 'Pilih sekolah terlebih dahulu',
-                subtitle:
-                    'Pilih sekolah aktif untuk melihat paket, kuota siswa, dan pembayaran.',
-              ),
-            )
+          if (isSuperadmin)
+            _buildSuperadminContent(context, isCompact)
           else
-            subscriptionAsync.when(
-              loading: () => const AppCard(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.xl),
-                  child: AppLoadingIndicator(
-                    message: 'Memuat paket sekolah...',
-                  ),
-                ),
-              ),
-              error: (error, _) => AppCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: AppErrorState(
-                    message: error.toString(),
-                    onRetry: () {
-                      ref.invalidate(currentSchoolSubscriptionOverviewProvider);
-                    },
-                  ),
-                ),
-              ),
-              data: (overview) => _buildSubscriptionContent(
-                context: context,
-                overview: overview,
-                plansAsync: plansAsync,
-                schoolId: schoolId,
-                isCompact: isCompact,
-                trackedPayment: trackedPayment,
-              ),
-            ),
+            _buildSchoolAdminContent(context, isCompact),
         ],
       ),
     );
   }
 
-  Widget _buildSubscriptionContent({
+  Widget _buildSuperadminContent(BuildContext context, bool isCompact) {
+    final activeSchool = ref.watch(activeSchoolProvider);
+    final plansAsync = ref.watch(schoolPlansProvider);
+    final recordsAsync = ref.watch(schoolSubscriptionRecordsProvider);
+
+    ref.listen(activeSchoolProvider, (_, _) {
+      ref.read(subscriptionSchoolsCurrentPageProvider.notifier).state = 1;
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (activeSchool != null)
+          AppCard(
+            color: AppColors.primary100,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withValues(alpha: 0.75),
+                    borderRadius: AppRadius.lgAll,
+                  ),
+                  child: const Icon(
+                    Icons.school_outlined,
+                    color: AppColors.primary700,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Context sekolah mengikuti dashboard',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.neutral900,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Halaman ini sedang menampilkan subscription untuk ${activeSchool.name}. Pilih "Semua Sekolah" dari dashboard jika ingin melihat seluruh tenant.',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.neutral700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (activeSchool != null) const SizedBox(height: AppSpacing.lg),
+        if (activeSchool == null) ...[
+          _buildSuperadminToolbar(isCompact),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        recordsAsync.when(
+          loading: () => const AppCard(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: AppLoadingIndicator(
+                message: 'Memuat daftar subscription sekolah...',
+              ),
+            ),
+          ),
+          error: (error, _) => AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: AppErrorState(
+                message: error.toString(),
+                onRetry: () =>
+                    ref.invalidate(schoolSubscriptionRecordsProvider),
+              ),
+            ),
+          ),
+          data: (result) => _buildSuperadminTable(
+            context: context,
+            result: result,
+            plansAsync: plansAsync,
+            isCompact: isCompact,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuperadminToolbar(bool isCompact) {
+    final status = ref.watch(subscriptionSchoolsStatusFilterProvider);
+    final dropdown = AppDropdown<SchoolDirectoryStatus?>(
+      label: 'Status Sekolah',
+      value: status,
+      hint: 'Semua Status',
+      items: const [
+        AppDropdownItem<SchoolDirectoryStatus?>(
+          value: null,
+          label: 'Semua Status',
+        ),
+        AppDropdownItem<SchoolDirectoryStatus?>(
+          value: SchoolDirectoryStatus.active,
+          label: 'Active',
+        ),
+        AppDropdownItem<SchoolDirectoryStatus?>(
+          value: SchoolDirectoryStatus.nonactive,
+          label: 'Nonactive',
+        ),
+      ],
+      onChanged: (value) {
+        ref.read(subscriptionSchoolsStatusFilterProvider.notifier).state =
+            value;
+        ref.read(subscriptionSchoolsCurrentPageProvider.notifier).state = 1;
+      },
+    );
+
+    if (isCompact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppSearchBar(
+            hint: 'Cari nama sekolah...',
+            width: double.infinity,
+            onSearch: (value) {
+              ref.read(subscriptionSchoolsSearchQueryProvider.notifier).state =
+                  value.trim().toLowerCase();
+              ref.read(subscriptionSchoolsCurrentPageProvider.notifier).state =
+                  1;
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          dropdown,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SizedBox(
+          width: 320,
+          child: AppSearchBar(
+            hint: 'Cari nama sekolah...',
+            width: 320,
+            onSearch: (value) {
+              ref.read(subscriptionSchoolsSearchQueryProvider.notifier).state =
+                  value.trim().toLowerCase();
+              ref.read(subscriptionSchoolsCurrentPageProvider.notifier).state =
+                  1;
+            },
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: dropdown),
+      ],
+    );
+  }
+
+  Widget _buildSuperadminTable({
+    required BuildContext context,
+    required Paginated<SchoolSubscriptionRecord> result,
+    required AsyncValue<List<SubscriptionPlan>> plansAsync,
+    required bool isCompact,
+  }) {
+    if (result.items.isEmpty) {
+      final search = ref.read(subscriptionSchoolsSearchQueryProvider);
+      final status = ref.read(subscriptionSchoolsStatusFilterProvider);
+      final hasFilter = search.isNotEmpty || status != null;
+
+      return AppCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: AppEmptyState(
+            icon: Icons.apartment_outlined,
+            message: hasFilter
+                ? 'Tidak ada sekolah yang sesuai filter'
+                : 'Belum ada data subscription sekolah',
+            subtitle: hasFilter
+                ? 'Ubah kata kunci pencarian atau status sekolah.'
+                : 'Data sekolah dengan subscription akan tampil di halaman ini.',
+          ),
+        ),
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: AppColors.neutral100),
+                    child: DataTable(
+                      columnSpacing: isCompact ? 12 : 24,
+                      horizontalMargin: AppSpacing.md,
+                      headingRowHeight: isCompact ? 42 : 48,
+                      dataRowMinHeight: isCompact ? 60 : 64,
+                      dataRowMaxHeight: isCompact ? 60 : 64,
+                      dividerThickness: 1,
+                      headingTextStyle: AppTextStyles.label.copyWith(
+                        color: AppColors.neutral700,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                      dataTextStyle: AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.neutral900,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      columns: [
+                        DataColumn(label: _tableHeader('No', width: 64)),
+                        DataColumn(label: _tableHeader('Sekolah', width: 220)),
+                        DataColumn(label: _tableHeader('Status', width: 120)),
+                        DataColumn(label: _tableHeader('Paket', width: 180)),
+                        DataColumn(label: _tableHeader('Siklus', width: 120)),
+                        DataColumn(
+                          label: _tableHeader('Aktif Hingga', width: 150),
+                        ),
+                        DataColumn(
+                          label: _tableHeader('Maks. Siswa', width: 120),
+                        ),
+                        DataColumn(label: _tableHeader('Aksi', width: 140)),
+                      ],
+                      rows: result.items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final record = entry.value;
+                        final subscription = record.subscription;
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              SizedBox(
+                                width: 64,
+                                child: Text(
+                                  '${(result.page - 1) * subscriptionSchoolsPerPage + index + 1}',
+                                  style: AppTextStyles.bodyMdSemiBold.copyWith(
+                                    color: AppColors.neutral700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 220,
+                                child: Text(
+                                  record.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 120,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _schoolStatusBadge(record.status),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 180,
+                                child: Text(
+                                  subscription?.plan.displayName ?? '-',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 120,
+                                child: Text(subscription?.cycle.label ?? '-'),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 150,
+                                child: Text(_formatDate(subscription?.endDate)),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 120,
+                                child: Text(
+                                  subscription == null
+                                      ? '-'
+                                      : subscription.plan.maxStudents <= 0
+                                      ? 'Tidak diketahui'
+                                      : '${subscription.plan.maxStudents}',
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 140,
+                                child: Row(
+                                  children: [
+                                    _actionIconButton(
+                                      icon: Icons.visibility_outlined,
+                                      backgroundColor: AppColors.info,
+                                      onTap: () =>
+                                          _showSubscriptionDetailDialog(
+                                            context,
+                                            record,
+                                          ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    _actionIconButton(
+                                      icon: Icons.edit_outlined,
+                                      backgroundColor: AppColors.warning,
+                                      onTap: plansAsync.maybeWhen(
+                                        data: (plans) =>
+                                            () => _showEditSubscriptionDialog(
+                                              context,
+                                              record,
+                                              plans,
+                                            ),
+                                        orElse: () => () {
+                                          AppToast.show(
+                                            context,
+                                            message:
+                                                'Daftar paket belum siap. Coba lagi sebentar.',
+                                            type: ToastType.warning,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    _actionIconButton(
+                                      icon: Icons.payments_outlined,
+                                      backgroundColor: AppColors.primary700,
+                                      onTap: () => _openSchoolPaymentHistory(
+                                        context,
+                                        record,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (result.totalPages > 1)
+            if (isCompact)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Halaman ${result.page} dari ${result.totalPages}',
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: AppColors.neutral700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Center(
+                    child: AppPagination(
+                      currentPage: result.page,
+                      totalPages: result.totalPages,
+                      onPageChanged: (page) {
+                        ref
+                                .read(
+                                  subscriptionSchoolsCurrentPageProvider
+                                      .notifier,
+                                )
+                                .state =
+                            page;
+                      },
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Halaman ${result.page} dari ${result.totalPages}',
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: AppColors.neutral700,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  AppPagination(
+                    currentPage: result.page,
+                    totalPages: result.totalPages,
+                    onPageChanged: (page) {
+                      ref
+                              .read(
+                                subscriptionSchoolsCurrentPageProvider.notifier,
+                              )
+                              .state =
+                          page;
+                    },
+                  ),
+                ],
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSchoolAdminContent(BuildContext context, bool isCompact) {
+    final schoolId = ref.watch(currentSubscriptionSchoolIdProvider);
+    final subscriptionAsync = ref.watch(
+      currentSchoolSubscriptionOverviewProvider,
+    );
+    final plansAsync = ref.watch(schoolPlansProvider);
+    final trackedPayment = ref.watch(activeSubscriptionPaymentProvider);
+
+    if (schoolId == null || schoolId.isEmpty) {
+      return const AppCard(
+        child: AppEmptyState(
+          icon: Icons.apartment_outlined,
+          message: 'Data sekolah belum tersedia',
+          subtitle:
+              'Akun ini belum memiliki konteks sekolah untuk memuat subscription.',
+        ),
+      );
+    }
+
+    return subscriptionAsync.when(
+      loading: () => const AppCard(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.xl),
+          child: AppLoadingIndicator(message: 'Memuat paket sekolah...'),
+        ),
+      ),
+      error: (error, _) => AppCard(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: AppErrorState(
+            message: error.toString(),
+            onRetry: () =>
+                ref.invalidate(currentSchoolSubscriptionOverviewProvider),
+          ),
+        ),
+      ),
+      data: (overview) => _buildSchoolAdminSubscriptionContent(
+        context: context,
+        overview: overview,
+        plansAsync: plansAsync,
+        schoolId: schoolId,
+        isCompact: isCompact,
+        trackedPayment: trackedPayment,
+      ),
+    );
+  }
+
+  Widget _buildSchoolAdminSubscriptionContent({
     required BuildContext context,
     required SchoolSubscriptionOverview? overview,
     required AsyncValue<List<SubscriptionPlan>> plansAsync,
@@ -200,6 +625,222 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _showSubscriptionDetailDialog(
+    BuildContext context,
+    SchoolSubscriptionRecord record,
+  ) async {
+    final subscription = record.subscription;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AppDialog(
+        title: 'Detail Subscription',
+        subtitle: record.displayName,
+        content: Column(
+          children: [
+            _detailRow('Sekolah', record.displayName),
+            _detailRow('Status Sekolah', record.status.label),
+            _detailRow(
+              'Paket',
+              subscription?.plan.displayName ?? 'Belum ada subscription',
+            ),
+            _detailRow('Siklus', subscription?.cycle.label ?? '-'),
+            _detailRow(
+              'Biaya',
+              subscription == null
+                  ? '-'
+                  : _formatIdr(subscription.currentPrice),
+            ),
+            _detailRow('Aktif Hingga', _formatDate(subscription?.endDate)),
+            _detailRow(
+              'Maks. Siswa',
+              subscription == null
+                  ? '-'
+                  : subscription.plan.maxStudents <= 0
+                  ? 'Tidak diketahui'
+                  : '${subscription.plan.maxStudents}',
+            ),
+            if (subscription?.plan.description.isNotEmpty == true)
+              _detailRow('Deskripsi', subscription!.plan.description),
+          ],
+        ),
+        actions: [
+          AppButton.secondary(
+            label: 'Tutup',
+            onPressed: () => Navigator.of(dialogContext).pop(),
+          ),
+          AppButton.primary(
+            label: 'Buka Payment',
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _openSchoolPaymentHistory(context, record);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showEditSubscriptionDialog(
+    BuildContext context,
+    SchoolSubscriptionRecord record,
+    List<SubscriptionPlan> plans,
+  ) async {
+    if (plans.isEmpty) {
+      AppToast.show(
+        context,
+        message: 'Belum ada paket aktif yang bisa dipilih.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    final currentPlan = record.subscription?.plan;
+    final currentCycle = record.subscription?.cycle;
+    SubscriptionPlan selectedPlan = plans.firstWhere(
+      (plan) => currentPlan != null && plan.matches(currentPlan),
+      orElse: () => plans.first,
+    );
+    BillingCycle selectedCycle =
+        currentCycle != null &&
+            currentCycle != BillingCycle.unknown &&
+            selectedPlan.supportsCycle(currentCycle)
+        ? currentCycle
+        : selectedPlan.availableCycles.isNotEmpty
+        ? selectedPlan.availableCycles.first
+        : BillingCycle.unknown;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AppDialog(
+            title: 'Ubah Paket Sekolah',
+            subtitle: record.displayName,
+            content: Column(
+              children: [
+                _detailRow(
+                  'Paket Saat Ini',
+                  record.subscription?.plan.displayName ?? '-',
+                ),
+                _detailRow(
+                  'Siklus Saat Ini',
+                  record.subscription?.cycle.label ?? '-',
+                ),
+                AppDropdown<SubscriptionPlan>(
+                  label: 'Paket Baru',
+                  value: selectedPlan,
+                  items: plans
+                      .map(
+                        (plan) => AppDropdownItem<SubscriptionPlan>(
+                          value: plan,
+                          label: plan.displayName,
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (plan) {
+                    if (plan == null) return;
+                    setDialogState(() {
+                      selectedPlan = plan;
+                      selectedCycle = plan.availableCycles.isNotEmpty
+                          ? plan.availableCycles.first
+                          : BillingCycle.unknown;
+                    });
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+                AppDropdown<BillingCycle>(
+                  label: 'Siklus Billing',
+                  value: selectedCycle == BillingCycle.unknown
+                      ? null
+                      : selectedCycle,
+                  items: selectedPlan.availableCycles
+                      .map(
+                        (cycle) => AppDropdownItem<BillingCycle>(
+                          value: cycle,
+                          label:
+                              '${cycle.label} • ${_formatIdr(selectedPlan.priceForCycle(cycle))}',
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (cycle) {
+                    if (cycle == null) return;
+                    setDialogState(() => selectedCycle = cycle);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              AppButton.secondary(
+                label: 'Batal',
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+              AppButton.primary(
+                label: 'Simpan',
+                isLoading: _updatingSchoolId == record.id,
+                onPressed: selectedCycle == BillingCycle.unknown
+                    ? null
+                    : () => _submitDirectSubscriptionUpdate(
+                        context: context,
+                        dialogContext: dialogContext,
+                        record: record,
+                        selectedPlan: selectedPlan,
+                        selectedCycle: selectedCycle,
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitDirectSubscriptionUpdate({
+    required BuildContext context,
+    required BuildContext dialogContext,
+    required SchoolSubscriptionRecord record,
+    required SubscriptionPlan selectedPlan,
+    required BillingCycle selectedCycle,
+  }) async {
+    setState(() => _updatingSchoolId = record.id);
+    try {
+      await ref.read(
+        updateSchoolSubscriptionProvider((
+          schoolId: record.id,
+          planId: selectedPlan.id,
+          cycle: selectedCycle,
+        )).future,
+      );
+
+      if (!mounted || !dialogContext.mounted) return;
+      Navigator.of(dialogContext).pop();
+      AppToast.show(
+        this.context,
+        message:
+            'Paket ${record.displayName} berhasil diubah ke ${selectedPlan.displayName}.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppToast.show(this.context, message: e.toString(), type: ToastType.error);
+    } finally {
+      if (mounted) {
+        setState(() => _updatingSchoolId = null);
+      }
+    }
+  }
+
+  void _openSchoolPaymentHistory(
+    BuildContext context,
+    SchoolSubscriptionRecord record,
+  ) {
+    ref.read(activeSchoolProvider.notifier).state = DashboardSchool(
+      id: record.id,
+      name: record.displayName,
+      status: record.status.apiValue,
+    );
+    context.go(RouteNames.payment);
   }
 
   Widget _buildPendingPaymentBanner(
@@ -906,6 +1547,77 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         status: BadgeStatus.muted,
       ),
     };
+  }
+
+  Widget _schoolStatusBadge(SchoolDirectoryStatus status) {
+    return switch (status) {
+      SchoolDirectoryStatus.active => const AppBadge(
+        label: 'ACTIVE',
+        status: BadgeStatus.success,
+      ),
+      SchoolDirectoryStatus.nonactive => const AppBadge(
+        label: 'NONACTIVE',
+        status: BadgeStatus.muted,
+      ),
+      SchoolDirectoryStatus.unknown => const AppBadge(
+        label: 'UNKNOWN',
+        status: BadgeStatus.muted,
+      ),
+    };
+  }
+
+  Widget _tableHeader(String label, {double? width}) {
+    final header = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
+    if (width == null) return header;
+    return SizedBox(width: width, child: header);
+  }
+
+  Widget _actionIconButton({
+    required IconData icon,
+    required Color backgroundColor,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: AppRadius.mdAll,
+        child: InkWell(
+          borderRadius: AppRadius.mdAll,
+          onTap: onTap,
+          child: Icon(icon, color: AppColors.white, size: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.neutral500),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.bodyMd.copyWith(
+                color: AppColors.neutral900,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatIdr(int value) {

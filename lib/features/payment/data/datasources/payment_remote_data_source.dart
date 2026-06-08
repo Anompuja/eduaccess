@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../../core/api/paginated.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../subscription/data/models/subscription_entities.dart';
 import '../models/payment_entities.dart';
@@ -45,6 +46,47 @@ class PaymentRemoteDataSource {
     }
   }
 
+  Future<Paginated<SubscriptionPayment>> getPaymentHistory({
+    required int page,
+    required int perPage,
+    String? schoolId,
+    String? search,
+    PaymentStatus? status,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'per_page': perPage};
+      if (schoolId != null && schoolId.isNotEmpty) {
+        params['school_id'] = schoolId;
+      }
+      if (search != null && search.trim().isNotEmpty) {
+        params['search'] = search.trim();
+      }
+      if (status != null && status != PaymentStatus.unknown) {
+        params['status'] = status.apiValue;
+      }
+
+      final response = await _dio.get(
+        ApiEndpoints.billingPayments,
+        queryParameters: params,
+      );
+
+      final data = response.data;
+      if (data is! Map) {
+        return Paginated.empty<SubscriptionPayment>();
+      }
+
+      return Paginated<SubscriptionPayment>.fromResponseBody(
+        data.cast<String, dynamic>(),
+        (json) => _parsePayment(json, fallbackSchoolId: schoolId ?? ''),
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(
+        e,
+        fallback: 'Gagal memuat riwayat pembayaran.',
+      );
+    }
+  }
+
   SubscriptionPayment _parsePayment(
     Map<String, dynamic> payload, {
     required String fallbackSchoolId,
@@ -59,7 +101,9 @@ class PaymentRemoteDataSource {
       id: _readString(paymentMap, const ['id', 'payment_id']) ?? '',
       schoolId:
           _readString(paymentMap, const ['school_id']) ?? fallbackSchoolId,
+      schoolName: _readString(paymentMap, const ['school_name']) ?? '',
       planId: _readString(paymentMap, const ['plan_id']) ?? '',
+      planName: _readString(paymentMap, const ['plan_name']) ?? '',
       createdByUserId:
           _readString(paymentMap, const ['created_by_user_id']) ?? '',
       activatedSubscriptionId:

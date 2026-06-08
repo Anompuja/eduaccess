@@ -27,6 +27,15 @@ enum PaymentStatus {
     PaymentStatus.unknown => 'UNKNOWN',
   };
 
+  String get apiValue => switch (this) {
+    PaymentStatus.pending => 'pending',
+    PaymentStatus.paid => 'paid',
+    PaymentStatus.failed => 'failed',
+    PaymentStatus.expired => 'expired',
+    PaymentStatus.cancelled => 'cancelled',
+    PaymentStatus.unknown => '',
+  };
+
   bool get isFinal => switch (this) {
     PaymentStatus.pending => false,
     PaymentStatus.paid ||
@@ -40,7 +49,9 @@ enum PaymentStatus {
 class SubscriptionPayment {
   final String id;
   final String schoolId;
+  final String schoolName;
   final String planId;
+  final String planName;
   final String createdByUserId;
   final String activatedSubscriptionId;
   final PaymentStatus status;
@@ -63,7 +74,9 @@ class SubscriptionPayment {
   const SubscriptionPayment({
     required this.id,
     required this.schoolId,
+    required this.schoolName,
     required this.planId,
+    required this.planName,
     required this.createdByUserId,
     required this.activatedSubscriptionId,
     required this.status,
@@ -89,6 +102,11 @@ class SubscriptionPayment {
   bool get isPending => status == PaymentStatus.pending;
 
   bool get isPaid => status == PaymentStatus.paid;
+
+  String get displaySchoolName =>
+      schoolName.trim().isNotEmpty ? schoolName : schoolId;
+
+  String get displayPlanName => planName.trim().isNotEmpty ? planName : planId;
 
   bool get canResumeCheckout =>
       isPending && providerRedirectUrl.trim().isNotEmpty && !isExpired;

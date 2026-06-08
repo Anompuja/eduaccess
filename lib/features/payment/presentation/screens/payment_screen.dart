@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/api/paginated.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
+import '../../../../core/providers/active_school_provider.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -16,13 +18,15 @@ import '../../../../core/utils/responsive.dart';
 import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_dialog.dart';
+import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_indicator.dart';
+import '../../../../core/widgets/app_pagination.dart';
+import '../../../../core/widgets/app_search_bar.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../../core/widgets/school_filter.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
-import '../../../subscription/data/models/subscription_entities.dart';
 import '../providers/payment_provider.dart';
 import '../../data/models/payment_entities.dart';
 
@@ -70,19 +74,46 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final isCompact =
         Responsive.isMobile(context) || Responsive.isTablet(context);
     final user = ref.watch(currentUserProvider);
-    final schoolId = ref.watch(currentSubscriptionSchoolIdProvider);
-    final trackedPayment =
-        _payment ?? ref.watch(activeSubscriptionPaymentProvider);
-    final plansAsync = ref.watch(schoolPlansProvider);
+    final isSuperadmin = user?.role == UserRole.superadmin;
 
-    if (_payment == null && trackedPayment != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _payment != null) return;
-        _trackPayment(
-          trackedPayment,
-          refreshImmediately: !_hasLoadedInitialStatus,
-        );
+    if (!isSuperadmin) {
+      final trackedPayment =
+          _payment ?? ref.watch(activeSubscriptionPaymentProvider);
+
+      ref.listen<String?>(currentSubscriptionSchoolIdProvider, (
+        previous,
+        next,
+      ) {
+        if (previous == next) return;
+        ref.read(paymentHistoryCurrentPageProvider.notifier).state = 1;
+
+        if (next == null || next.isEmpty) return;
+
+        final current = ref.read(activeSubscriptionPaymentProvider);
+        if (current == null || current.schoolId == next) return;
+
+        _pollTimer?.cancel();
+        ref.read(activeSubscriptionPaymentProvider.notifier).state = null;
+        if (!mounted) return;
+        setState(() {
+          _payment = null;
+          _pollingElapsed = Duration.zero;
+          _pollingTimedOut = false;
+          _isRefreshing = false;
+          _hasLoadedInitialStatus = false;
+          _errorMessage = null;
+        });
       });
+
+      if (_payment == null && trackedPayment != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _payment != null) return;
+          _trackPayment(
+            trackedPayment,
+            refreshImmediately: !_hasLoadedInitialStatus,
+          );
+        });
+      }
     }
 
     return SingleChildScrollView(
@@ -98,46 +129,145 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Pantau proses pembayaran paket sekolah dan lihat perkembangan statusnya secara berkala.',
+            isSuperadmin
+                ? 'Pantau daftar pembayaran seluruh sekolah dan buka detail transaksi saat diperlukan.'
+                : 'Pantau proses pembayaran paket sekolah dan lihat perkembangan statusnya secara berkala.',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
           ),
-          if (user?.role == UserRole.superadmin) ...[
-            const SizedBox(height: AppSpacing.md),
-            const SchoolFilter(
-              label: 'Sekolah Pembayaran',
-              allLabel: 'Pilih Sekolah',
-            ),
-          ],
           const SizedBox(height: AppSpacing.lg),
-          if (trackedPayment == null)
-            AppCard(
-              child: AppEmptyState(
-                icon: Icons.payments_outlined,
-                message: 'Belum ada pembayaran',
-                subtitle: schoolId == null || schoolId.isEmpty
-                    ? 'Pilih sekolah lalu lanjutkan dari halaman paket.'
-                    : 'Buat pembayaran dari halaman paket untuk mulai memantau statusnya.',
-                ctaLabel: 'Buka Paket',
-                onCta: () => context.go(RouteNames.subscription),
-              ),
-            )
-          else if (!_hasLoadedInitialStatus && _isRefreshing)
-            const AppCard(
-              child: Padding(
-                padding: EdgeInsets.all(AppSpacing.xl),
-                child: AppLoadingIndicator(
-                  message: 'Mengecek status pembayaran terbaru...',
-                ),
-              ),
-            )
+          if (isSuperadmin)
+            _buildSuperadminContent(context, isCompact)
           else
-            _buildPaymentContent(
-              context: context,
-              payment: trackedPayment,
-              plansAsync: plansAsync,
-              isCompact: isCompact,
-            ),
+            _buildSchoolAdminContent(context, isCompact),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuperadminContent(BuildContext context, bool isCompact) {
+    final activeSchool = ref.watch(activeSchoolProvider);
+    final historyAsync = ref.watch(paymentHistoryProvider);
+
+    ref.listen(activeSchoolProvider, (_, _) {
+      ref.read(paymentHistoryCurrentPageProvider.notifier).state = 1;
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (activeSchool != null) ...[
+          _buildDashboardContextCard(activeSchool.name),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        _buildHistorySection(
+          context: context,
+          paymentsAsync: historyAsync,
+          isCompact: isCompact,
+          selectedPayment: null,
+          openDetailOnView: true,
+          trackPaymentOnView: false,
+          showToolbar: activeSchool == null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSchoolAdminContent(BuildContext context, bool isCompact) {
+    final schoolId = ref.watch(currentSubscriptionSchoolIdProvider);
+    final historyAsync = ref.watch(paymentHistoryProvider);
+    final trackedPayment =
+        _payment ?? ref.watch(activeSubscriptionPaymentProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (trackedPayment == null)
+          _buildNoSelectionCard(context, schoolId)
+        else if (!_hasLoadedInitialStatus && _isRefreshing)
+          const AppCard(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: AppLoadingIndicator(
+                message: 'Mengecek status pembayaran terbaru...',
+              ),
+            ),
+          )
+        else
+          _buildPaymentContent(
+            context: context,
+            payment: trackedPayment,
+            isCompact: isCompact,
+          ),
+        const SizedBox(height: AppSpacing.xl),
+        _buildHistorySection(
+          context: context,
+          paymentsAsync: historyAsync,
+          isCompact: isCompact,
+          selectedPayment: trackedPayment,
+          openDetailOnView: true,
+          trackPaymentOnView: true,
+          showToolbar: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashboardContextCard(String schoolName) {
+    return AppCard(
+      color: AppColors.primary100,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.75),
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: const Icon(
+              Icons.school_outlined,
+              color: AppColors.primary700,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Context sekolah mengikuti dashboard',
+                  style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Daftar pembayaran sedang difokuskan ke $schoolName. Pilih "Semua Sekolah" dari dashboard jika ingin melihat transaksi seluruh tenant.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.neutral700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSelectionCard(BuildContext context, String? schoolId) {
+    final canOpenSubscription = schoolId != null && schoolId.isNotEmpty;
+
+    return AppCard(
+      child: AppEmptyState(
+        icon: Icons.payments_outlined,
+        message: 'Belum ada pembayaran yang dipantau',
+        subtitle: canOpenSubscription
+            ? 'Pilih transaksi dari riwayat di bawah atau buat pembayaran baru dari halaman paket.'
+            : 'Pilih transaksi dari riwayat di bawah untuk melihat detail pembayaran.',
+        ctaLabel: canOpenSubscription ? 'Buka Paket' : null,
+        onCta: canOpenSubscription
+            ? () => context.go(RouteNames.subscription)
+            : null,
       ),
     );
   }
@@ -145,23 +275,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget _buildPaymentContent({
     required BuildContext context,
     required SubscriptionPayment payment,
-    required AsyncValue<List<SubscriptionPlan>> plansAsync,
     required bool isCompact,
   }) {
-    final planName = plansAsync.maybeWhen(
-      data: (plans) {
-        SubscriptionPlan? plan;
-        for (final entry in plans) {
-          if (entry.id == payment.planId) {
-            plan = entry;
-            break;
-          }
-        }
-        return plan?.displayName ?? payment.planId;
-      },
-      orElse: () => payment.planId,
-    );
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -177,7 +292,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         ],
         _buildStatusSummary(payment),
         const SizedBox(height: AppSpacing.lg),
-        _buildPaymentDetailCard(payment, planName, isCompact),
+        _buildPaymentDetailCard(payment, isCompact),
         const SizedBox(height: AppSpacing.lg),
         _buildActionCard(context, payment, isCompact),
       ],
@@ -239,10 +354,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             spacing: AppSpacing.lg,
             runSpacing: AppSpacing.md,
             children: [
+              _summaryMetric('Sekolah', _displaySchool(payment)),
               _summaryMetric('Nominal', _formatIdr(payment.amount)),
+              _summaryMetric('Paket', _displayPlan(payment)),
               _summaryMetric('Siklus', payment.cycle.label),
               if (payment.paymentType.isNotEmpty)
-                _summaryMetric('Metode', payment.paymentType),
+                _summaryMetric('Metode', _humanizeToken(payment.paymentType)),
               _summaryMetric('Kadaluarsa', _formatDateTime(payment.expiresAt)),
             ],
           ),
@@ -269,11 +386,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildPaymentDetailCard(
-    SubscriptionPayment payment,
-    String planName,
-    bool isCompact,
-  ) {
+  Widget _buildPaymentDetailCard(SubscriptionPayment payment, bool isCompact) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,8 +399,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           if (isCompact)
             Column(
               children: [
-                _detailRow('Paket', planName.isEmpty ? '-' : planName),
+                _detailRow('Sekolah', _displaySchool(payment)),
+                _detailRow('Paket', _displayPlan(payment)),
                 _detailRow('Periode', payment.cycle.label),
+                _detailRow('Provider', _displayProvider(payment)),
+                _detailRow('Order ID', _orDash(payment.providerOrderId)),
+                _detailRow(
+                  'Status Gateway',
+                  _displayTransactionStatus(payment),
+                ),
                 _detailRow('Dibuat', _formatDateTime(payment.createdAt)),
                 _detailRow('Dibayar', _formatDateTime(payment.paidAt)),
               ],
@@ -299,8 +419,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      _detailRow('Paket', planName.isEmpty ? '-' : planName),
+                      _detailRow('Sekolah', _displaySchool(payment)),
+                      _detailRow('Paket', _displayPlan(payment)),
                       _detailRow('Periode', payment.cycle.label),
+                      _detailRow('Provider', _displayProvider(payment)),
                     ],
                   ),
                 ),
@@ -308,6 +430,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 Expanded(
                   child: Column(
                     children: [
+                      _detailRow('Order ID', _orDash(payment.providerOrderId)),
+                      _detailRow(
+                        'Status Gateway',
+                        _displayTransactionStatus(payment),
+                      ),
                       _detailRow('Dibuat', _formatDateTime(payment.createdAt)),
                       _detailRow('Dibayar', _formatDateTime(payment.paidAt)),
                     ],
@@ -417,6 +544,457 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
+  Widget _buildHistorySection({
+    required BuildContext context,
+    required AsyncValue<Paginated<SubscriptionPayment>> paymentsAsync,
+    required bool isCompact,
+    required SubscriptionPayment? selectedPayment,
+    required bool openDetailOnView,
+    required bool trackPaymentOnView,
+    required bool showToolbar,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Riwayat Pembayaran',
+          style: AppTextStyles.h4.copyWith(color: AppColors.neutral900),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Lihat histori pembayaran sekolah, filter berdasarkan status, lalu pilih transaksi untuk dipantau.',
+          style: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral500),
+        ),
+        if (showToolbar) ...[
+          const SizedBox(height: AppSpacing.md),
+          _buildHistoryToolbar(isCompact),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        paymentsAsync.when(
+          loading: () => const AppCard(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: AppLoadingIndicator(
+                message: 'Memuat riwayat pembayaran...',
+              ),
+            ),
+          ),
+          error: (error, _) => AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: AppErrorState(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(paymentHistoryProvider),
+              ),
+            ),
+          ),
+          data: (result) => _buildHistoryTable(
+            context: context,
+            result: result,
+            isCompact: isCompact,
+            selectedPayment: selectedPayment,
+            openDetailOnView: openDetailOnView,
+            trackPaymentOnView: trackPaymentOnView,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryToolbar(bool isCompact) {
+    final status = ref.watch(paymentHistoryStatusFilterProvider);
+    final dropdown = AppDropdown<PaymentStatus?>(
+      label: 'Status Pembayaran',
+      value: status,
+      hint: 'Semua Status',
+      items: const [
+        AppDropdownItem<PaymentStatus?>(value: null, label: 'Semua Status'),
+        AppDropdownItem<PaymentStatus?>(
+          value: PaymentStatus.pending,
+          label: 'Pending',
+        ),
+        AppDropdownItem<PaymentStatus?>(
+          value: PaymentStatus.paid,
+          label: 'Paid',
+        ),
+        AppDropdownItem<PaymentStatus?>(
+          value: PaymentStatus.failed,
+          label: 'Failed',
+        ),
+        AppDropdownItem<PaymentStatus?>(
+          value: PaymentStatus.expired,
+          label: 'Expired',
+        ),
+        AppDropdownItem<PaymentStatus?>(
+          value: PaymentStatus.cancelled,
+          label: 'Cancelled',
+        ),
+      ],
+      onChanged: _setHistoryStatusFilter,
+    );
+
+    if (isCompact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppSearchBar(
+            hint: 'Cari sekolah, paket, atau order ID...',
+            width: double.infinity,
+            onSearch: _setHistorySearchQuery,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          dropdown,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SizedBox(
+          width: 320,
+          child: AppSearchBar(
+            hint: 'Cari sekolah, paket, atau order ID...',
+            width: 320,
+            onSearch: _setHistorySearchQuery,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: dropdown),
+      ],
+    );
+  }
+
+  Widget _buildHistoryTable({
+    required BuildContext context,
+    required Paginated<SubscriptionPayment> result,
+    required bool isCompact,
+    required SubscriptionPayment? selectedPayment,
+    required bool openDetailOnView,
+    required bool trackPaymentOnView,
+  }) {
+    if (result.items.isEmpty) {
+      final search = ref.read(paymentHistorySearchQueryProvider);
+      final status = ref.read(paymentHistoryStatusFilterProvider);
+      final hasFilter = search.isNotEmpty || status != null;
+
+      return AppCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+          child: AppEmptyState(
+            icon: Icons.receipt_long_outlined,
+            message: hasFilter
+                ? 'Tidak ada pembayaran yang sesuai filter'
+                : 'Belum ada riwayat pembayaran',
+            subtitle: hasFilter
+                ? 'Ubah kata kunci pencarian atau status untuk melihat data lain.'
+                : 'Riwayat pembayaran sekolah akan muncul di halaman ini setelah transaksi dibuat.',
+          ),
+        ),
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: AppColors.neutral100),
+                    child: DataTable(
+                      columnSpacing: isCompact ? 12 : 24,
+                      horizontalMargin: AppSpacing.md,
+                      headingRowHeight: isCompact ? 42 : 48,
+                      dataRowMinHeight: isCompact ? 60 : 64,
+                      dataRowMaxHeight: isCompact ? 60 : 64,
+                      dividerThickness: 1,
+                      headingTextStyle: AppTextStyles.label.copyWith(
+                        color: AppColors.neutral700,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                      dataTextStyle: AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.neutral900,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      columns: [
+                        DataColumn(label: _tableHeader('No', width: 64)),
+                        DataColumn(label: _tableHeader('Sekolah', width: 220)),
+                        DataColumn(
+                          label: _tableHeader('Paket / Order', width: 220),
+                        ),
+                        DataColumn(label: _tableHeader('Nominal', width: 140)),
+                        DataColumn(label: _tableHeader('Status', width: 120)),
+                        DataColumn(label: _tableHeader('Dibuat', width: 160)),
+                        DataColumn(label: _tableHeader('Aksi', width: 110)),
+                      ],
+                      rows: result.items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final payment = entry.value;
+                        final isSelected =
+                            selectedPayment?.id == payment.id &&
+                            selectedPayment?.schoolId == payment.schoolId;
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              SizedBox(
+                                width: 64,
+                                child: Text(
+                                  '${(result.page - 1) * paymentHistoryPerPage + index + 1}',
+                                  style: AppTextStyles.bodyMdSemiBold.copyWith(
+                                    color: AppColors.neutral700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 220,
+                                child: Text(
+                                  _displaySchool(payment),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 220,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _displayPlan(payment),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _orDash(payment.providerOrderId),
+                                      style: AppTextStyles.bodySm.copyWith(
+                                        color: AppColors.neutral500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 140,
+                                child: Text(_formatIdr(payment.amount)),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 120,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _statusBadge(payment.status),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 160,
+                                child: Text(_formatDateTime(payment.createdAt)),
+                              ),
+                            ),
+                            DataCell(
+                              SizedBox(
+                                width: 110,
+                                child: Row(
+                                  children: [
+                                    _actionIconButton(
+                                      icon: isSelected
+                                          ? Icons.radio_button_checked_rounded
+                                          : Icons.visibility_outlined,
+                                      backgroundColor: isSelected
+                                          ? AppColors.primary700
+                                          : AppColors.info,
+                                      onTap: () async {
+                                        if (trackPaymentOnView) {
+                                          _trackPayment(
+                                            payment,
+                                            refreshImmediately:
+                                                !payment.isFinal,
+                                          );
+                                        }
+                                        if (!openDetailOnView) return;
+                                        await _showPaymentDetailDialog(
+                                          context,
+                                          payment,
+                                        );
+                                      },
+                                    ),
+                                    if (payment.canResumeCheckout) ...[
+                                      const SizedBox(width: AppSpacing.sm),
+                                      _actionIconButton(
+                                        icon: Icons.open_in_new_rounded,
+                                        backgroundColor: AppColors.warning,
+                                        onTap: () => _openPaymentPage(payment),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (isCompact)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Halaman ${result.page} dari ${result.totalPages}',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.neutral700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: AppPagination(
+                    currentPage: result.page,
+                    totalPages: result.totalPages,
+                    onPageChanged: _setHistoryPage,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  'Halaman ${result.page} dari ${result.totalPages}',
+                  style: AppTextStyles.bodyMd.copyWith(
+                    color: AppColors.neutral700,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                AppPagination(
+                  currentPage: result.page,
+                  totalPages: result.totalPages,
+                  onPageChanged: _setHistoryPage,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPaymentDetailDialog(
+    BuildContext context,
+    SubscriptionPayment payment,
+  ) async {
+    var current = payment;
+    var refreshing = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AppDialog(
+            title: 'Detail Pembayaran',
+            subtitle: _displaySchool(current),
+            content: Column(
+              children: [
+                _detailRow('Sekolah', _displaySchool(current)),
+                _detailRow('Paket', _displayPlan(current)),
+                _detailRow('Status', current.status.label),
+                _detailRow('Siklus', current.cycle.label),
+                _detailRow('Nominal', _formatIdr(current.amount)),
+                _detailRow('Provider', _displayProvider(current)),
+                _detailRow('Order ID', _orDash(current.providerOrderId)),
+                _detailRow(
+                  'Status Gateway',
+                  _displayTransactionStatus(current),
+                ),
+                _detailRow('Dibayar', _formatDateTime(current.paidAt)),
+                _detailRow('Kadaluarsa', _formatDateTime(current.expiresAt)),
+                _detailRow('Dibuat', _formatDateTime(current.createdAt)),
+              ],
+            ),
+            actions: [
+              AppButton.secondary(
+                label: 'Tutup',
+                onPressed: () => Navigator.of(dialogContext).pop(),
+              ),
+              AppButton.secondary(
+                label: 'Salin Link',
+                onPressed: current.providerRedirectUrl.isEmpty
+                    ? null
+                    : () => _copyPaymentLink(current.providerRedirectUrl),
+              ),
+              AppButton.secondary(
+                label: 'Refresh Status',
+                isLoading: refreshing,
+                onPressed: () async {
+                  setDialogState(() => refreshing = true);
+                  try {
+                    final latest = await ref.refresh(
+                      subscriptionPaymentStatusProvider((
+                        schoolId: current.schoolId,
+                        paymentId: current.id,
+                      )).future,
+                    );
+
+                    if (!mounted) return;
+                    setDialogState(() => current = latest);
+
+                    final tracked = ref.read(activeSubscriptionPaymentProvider);
+                    if (tracked != null &&
+                        tracked.id == latest.id &&
+                        tracked.schoolId == latest.schoolId) {
+                      _trackPayment(latest, refreshImmediately: false);
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    AppToast.show(
+                      this.context,
+                      message: e.toString(),
+                      type: ToastType.error,
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      setDialogState(() => refreshing = false);
+                    }
+                  }
+                },
+              ),
+              AppButton.primary(
+                label: 'Buka Pembayaran',
+                onPressed: current.canResumeCheckout
+                    ? () => _openPaymentPage(current)
+                    : null,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _summaryMetric(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,6 +1015,86 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         ),
       ],
     );
+  }
+
+  Widget _tableHeader(String label, {double? width}) {
+    final header = Text(label, maxLines: 1, overflow: TextOverflow.ellipsis);
+    if (width == null) return header;
+    return SizedBox(width: width, child: header);
+  }
+
+  Widget _actionIconButton({
+    required IconData icon,
+    required Color backgroundColor,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Material(
+        color: backgroundColor,
+        borderRadius: AppRadius.mdAll,
+        child: InkWell(
+          borderRadius: AppRadius.mdAll,
+          onTap: onTap,
+          child: Icon(icon, color: AppColors.white, size: 18),
+        ),
+      ),
+    );
+  }
+
+  void _setHistorySearchQuery(String value) {
+    ref.read(paymentHistorySearchQueryProvider.notifier).state = value
+        .trim()
+        .toLowerCase();
+    ref.read(paymentHistoryCurrentPageProvider.notifier).state = 1;
+  }
+
+  void _setHistoryStatusFilter(PaymentStatus? status) {
+    ref.read(paymentHistoryStatusFilterProvider.notifier).state = status;
+    ref.read(paymentHistoryCurrentPageProvider.notifier).state = 1;
+  }
+
+  void _setHistoryPage(int page) {
+    ref.read(paymentHistoryCurrentPageProvider.notifier).state = page;
+  }
+
+  String _displaySchool(SubscriptionPayment payment) =>
+      _orDash(payment.displaySchoolName);
+
+  String _displayPlan(SubscriptionPayment payment) =>
+      _orDash(payment.displayPlanName);
+
+  String _displayProvider(SubscriptionPayment payment) =>
+      _orDash(_humanizeToken(payment.provider));
+
+  String _displayTransactionStatus(SubscriptionPayment payment) {
+    if (payment.transactionStatus.trim().isNotEmpty) {
+      return _humanizeToken(payment.transactionStatus);
+    }
+    return _orDash(payment.status.label);
+  }
+
+  String _humanizeToken(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '-';
+
+    final words = trimmed
+        .split(RegExp(r'[_\s-]+'))
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .map(
+          (part) =>
+              '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        );
+
+    final result = words.join(' ');
+    return result.isEmpty ? '-' : result;
+  }
+
+  String _orDash(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? '-' : trimmed;
   }
 
   Widget _detailRow(String label, String value) {

@@ -26,6 +26,31 @@ enum SubscriptionStatus {
   };
 }
 
+enum SchoolDirectoryStatus {
+  active,
+  nonactive,
+  unknown;
+
+  static SchoolDirectoryStatus fromString(String raw) =>
+      switch (raw.trim().toLowerCase()) {
+        'active' => SchoolDirectoryStatus.active,
+        'nonactive' || 'inactive' => SchoolDirectoryStatus.nonactive,
+        _ => SchoolDirectoryStatus.unknown,
+      };
+
+  String get label => switch (this) {
+    SchoolDirectoryStatus.active => 'ACTIVE',
+    SchoolDirectoryStatus.nonactive => 'NONACTIVE',
+    SchoolDirectoryStatus.unknown => 'UNKNOWN',
+  };
+
+  String get apiValue => switch (this) {
+    SchoolDirectoryStatus.active => 'active',
+    SchoolDirectoryStatus.nonactive => 'nonactive',
+    SchoolDirectoryStatus.unknown => '',
+  };
+}
+
 enum BillingCycle {
   monthly,
   yearly,
@@ -172,6 +197,28 @@ class SchoolSubscription {
     if (price > 0) return price;
     return plan.priceForCycle(cycle);
   }
+}
+
+class SchoolSubscriptionRecord {
+  final String id;
+  final String name;
+  final SchoolDirectoryStatus status;
+  final SchoolSubscription? subscription;
+
+  const SchoolSubscriptionRecord({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.subscription,
+  });
+
+  bool get hasSubscription =>
+      subscription != null &&
+      (subscription!.id.isNotEmpty ||
+          subscription!.plan.id.isNotEmpty ||
+          subscription!.plan.name.isNotEmpty);
+
+  String get displayName => name.trim().isNotEmpty ? name : id;
 }
 
 class SchoolSubscriptionOverview {

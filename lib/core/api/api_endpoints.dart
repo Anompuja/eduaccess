@@ -27,6 +27,7 @@ abstract final class ApiEndpoints {
       '/schools/$schoolId/subscription/checkout';
   static String schoolSubscriptionPayment(String schoolId, String paymentId) =>
       '/schools/$schoolId/subscription/payments/$paymentId';
+  static const String billingPayments = '/billing/payments';
 
   // ── Students ──────────────────────────────────────────────────────────────
   static const String students = '/students';
@@ -102,5 +103,4 @@ abstract final class ApiEndpoints {
   // ── Profile ───────────────────────────────────────────────────────────────
   static const String profile = '/profile';
   static String userPassword(String id) => '/users/$id/password';
-
 }
