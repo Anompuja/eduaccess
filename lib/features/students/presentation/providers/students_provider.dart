@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/api/api_client.dart';
 import '../../../../core/api/paginated.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
@@ -9,15 +10,13 @@ import '../../../academic/presentation/providers/academic_providers.dart';
 import '../../../class_schedule/presentation/providers/class_schedule_providers.dart';
 import '../../data/datasources/students_remote_data_source.dart';
 import '../../data/models/student_row_data.dart';
+import '../../data/repositories/students_repository_impl.dart';
 import '../constants/students_screen_constants.dart';
-import 'students_data_provider.dart';
 
 final studentsRepositoryProvider = Provider((ref) {
   final dio = ref.watch(dioProvider);
   final studentListCacheOptions = ref.watch(studentListCacheOptionsProvider);
-  final nonCacheableRequestOptions = ref.watch(
-    nonCacheableRequestOptionsProvider,
-  );
+  final nonCacheableRequestOptions = ref.watch(nonCacheableRequestOptionsProvider);
   return StudentsRepositoryImpl(
     StudentsRemoteDataSource(
       dio,
@@ -26,6 +25,17 @@ final studentsRepositoryProvider = Provider((ref) {
     ),
   );
 });
+
+final schoolStudentCountProvider = FutureProvider.autoDispose
+    .family<int, ({String schoolId, bool includeSchoolIdQuery})>((
+      ref,
+      params,
+    ) async {
+      final repository = ref.watch(studentsRepositoryProvider);
+      return repository.getStudentCount(
+        schoolId: params.includeSchoolIdQuery ? params.schoolId : '',
+      );
+    });
 
 final studentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 
@@ -106,7 +116,6 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     educationLevelId: levelFilter,
     classId: classFilter,
     subClassId: effectiveSubClassId,
-    subClassId: subClassFilter,
     refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
   );
 });

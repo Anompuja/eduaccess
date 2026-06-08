@@ -5,7 +5,7 @@ import '../../../../core/api/api_client.dart';
 import '../../../../core/auth/auth_notifier.dart';
 import '../../../../core/auth/auth_state.dart';
 import '../../../../core/providers/active_school_provider.dart';
-import '../../../students/presentation/providers/students_data_provider.dart';
+import '../../../students/presentation/providers/students_provider.dart';
 import '../../data/datasources/subscription_remote_data_source.dart';
 import '../../data/models/subscription_entities.dart';
 import '../../data/repositories/subscription_repository_impl.dart';
