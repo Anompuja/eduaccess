@@ -6,7 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -31,7 +30,7 @@ class StaffScreen extends ConsumerWidget {
     final activeSchool = ref.watch(activeSchoolProvider);
     final staffAsync = ref.watch(staffProvider);
 
-    ref.listen(activeSchoolProvider, (_, __) {
+    ref.listen(activeSchoolProvider, (_, _) {
       ref.read(staffCurrentPageProvider.notifier).state = 1;
       ref.invalidate(staffProvider);
     });
