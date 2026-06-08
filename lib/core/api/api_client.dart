@@ -3,6 +3,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/token_storage.dart';
+import 'cache_policies.dart';
 
 // ── Environment config ────────────────────────────────────────────────────────
 // Set EDUACCESS_BASE_URL via --dart-define at build time.
@@ -24,14 +25,53 @@ String _resolveBaseUrl() {
 /// preventing one user's cached data from leaking to the next on a shared device.
 final cacheStoreProvider = Provider<CacheStore>((ref) => MemCacheStore());
 
+final httpCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.interceptor(cacheStore);
+});
+
+final staffListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.staffList(store: cacheStore);
+});
+
+final teacherListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.teacherList(store: cacheStore);
+});
+
+final adminListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.adminList(store: cacheStore);
+});
+
+final studentListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.studentList(store: cacheStore);
+});
+
+final headmasterListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.headmasterList(store: cacheStore);
+});
+
+final dashboardStatsCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.dashboardStats(store: cacheStore);
+});
+
+final nonCacheableRequestOptionsProvider = Provider<CacheOptions>((ref) {
+  return EduAccessCachePolicies.bypass();
+});
+
 final dioProvider = Provider<Dio>((ref) {
   final tokenStorage = ref.read(tokenStorageProvider);
-  final cacheStore = ref.read(cacheStoreProvider);
-  return _buildDio(tokenStorage, cacheStore);
+  final cacheOptions = ref.read(httpCacheOptionsProvider);
+  return _buildDio(tokenStorage, cacheOptions);
 });
 
 // ── Factory ───────────────────────────────────────────────────────────────────
-Dio _buildDio(TokenStorage tokenStorage, CacheStore cacheStore) {
+Dio _buildDio(TokenStorage tokenStorage, CacheOptions cacheOptions) {
   final dio = Dio(
     BaseOptions(
       baseUrl: _resolveBaseUrl(),
@@ -44,15 +84,10 @@ Dio _buildDio(TokenStorage tokenStorage, CacheStore cacheStore) {
     ),
   );
 
-  // CachePolicy.request defers entirely to the server's HTTP cache directives:
-  // it reuses fresh responses within max-age, and revalidates with If-None-Match
-  // (turning 304s into cache hits) for no-cache/expired entries.
-  final cacheOptions = CacheOptions(
-    store: cacheStore,
-    policy: CachePolicy.request,
-    priority: CachePriority.normal,
-    allowPostMethod: false,
-  );
+  // The interceptor is kept global for consistent request handling, but the
+  // default policy is no-cache. Features must opt in explicitly per request,
+  // which lets staff list caching roll out without changing the behaviour of
+  // every other endpoint.
 
   dio.interceptors.addAll([
     // Auth runs first so the Authorization header is attached before the cache
