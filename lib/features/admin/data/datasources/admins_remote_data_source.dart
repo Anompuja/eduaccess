@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/paginated.dart';
@@ -6,14 +7,22 @@ import '../models/admin_row_data.dart';
 
 class AdminsRemoteDataSource {
   final Dio _dio;
+  final CacheOptions _adminListCacheOptions;
+  final CacheOptions _bypassCacheOptions;
 
-  AdminsRemoteDataSource(this._dio);
+  AdminsRemoteDataSource(
+    this._dio, {
+    required CacheOptions adminListCacheOptions,
+    required CacheOptions bypassCacheOptions,
+  }) : _adminListCacheOptions = adminListCacheOptions,
+       _bypassCacheOptions = bypassCacheOptions;
 
   Future<Paginated<AdminRowData>> getAdmins({
     required int page,
     int perPage = 10,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) async {
     try {
       final params = <String, dynamic>{'page': page, 'per_page': perPage};
@@ -23,10 +32,14 @@ class AdminsRemoteDataSource {
       if (schoolId != null && schoolId.isNotEmpty) {
         params['school_id'] = schoolId;
       }
+      if (refreshTrigger != null) {
+        params['_t'] = refreshTrigger;
+      }
 
       final response = await _dio.get(
         ApiEndpoints.admins,
         queryParameters: params,
+        options: _adminListCacheOptions.toOptions(),
       );
 
       final data = response.data;
@@ -45,7 +58,11 @@ class AdminsRemoteDataSource {
 
   Future<AdminRowData> createAdmin(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(ApiEndpoints.admins, data: data);
+      final response = await _dio.post(
+        ApiEndpoints.admins,
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
       final adminJson = payload is Map ? (payload['data'] ?? payload) : payload;
       return AdminRowData.fromJson(Map<String, dynamic>.from(adminJson as Map));
@@ -56,7 +73,11 @@ class AdminsRemoteDataSource {
 
   Future<AdminRowData> updateAdmin(String id, Map<String, dynamic> data) async {
     try {
-      final response = await _dio.put(ApiEndpoints.adminById(id), data: data);
+      final response = await _dio.put(
+        ApiEndpoints.adminById(id),
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
       final adminJson = payload is Map ? (payload['data'] ?? payload) : payload;
       return AdminRowData.fromJson(Map<String, dynamic>.from(adminJson as Map));
@@ -67,7 +88,10 @@ class AdminsRemoteDataSource {
 
   Future<void> deleteAdmin(String id) async {
     try {
-      await _dio.delete(ApiEndpoints.adminById(id));
+      await _dio.delete(
+        ApiEndpoints.adminById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
