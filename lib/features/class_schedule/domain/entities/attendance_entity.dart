@@ -2,6 +2,7 @@ class AttendanceEntity {
   final String id;
   final String classScheduleId;
   final String studentId;
+  final String studentName;
   final String status; // present, sick, permission, absent, scheduled
   final String type;
   final String note;
@@ -14,6 +15,7 @@ class AttendanceEntity {
     required this.id,
     required this.classScheduleId,
     required this.studentId,
+    required this.studentName,
     required this.status,
     required this.type,
     required this.note,

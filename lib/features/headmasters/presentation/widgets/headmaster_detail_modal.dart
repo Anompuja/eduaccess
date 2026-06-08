@@ -72,9 +72,6 @@ class HeadmasterDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.account_balance_outlined,
                 children: [
-                  _DetailItem(label: 'Headmaster ID', value: data.headmasterId),
-                  _DetailItem(label: 'User ID', value: data.userId),
-                  _DetailItem(label: 'School ID', value: data.schoolId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'NIP', value: data.nip),
                   _DetailItem(label: 'Username', value: data.username),

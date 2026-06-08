@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:eduaccess/core/router/route_names.dart';
 import 'package:eduaccess/core/theme/app_colors.dart';
 import 'package:eduaccess/core/theme/app_spacing.dart';
 import 'package:eduaccess/core/theme/app_text_styles.dart';
@@ -144,6 +146,17 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
         const SizedBox(height: AppSpacing.md),
         _infoRow('Tanggal', cs.date),
         _infoRow('Waktu', '${cs.startTime} – ${cs.endTime}'),
+        if (cs.status == 'ongoing') ...[
+          const SizedBox(height: AppSpacing.md),
+          const Divider(),
+          const SizedBox(height: AppSpacing.md),
+          AppButton.accent(
+            label: 'Tampilkan QR Absensi',
+            prefixIcon: const Icon(Icons.qr_code_rounded, size: 18, color: AppColors.white),
+            isFullWidth: true,
+            onPressed: () => context.push(RouteNames.attendanceDisplay(widget.scheduleId)),
+          ),
+        ],
       ]),
     );
   }
@@ -181,7 +194,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
               dataTextStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.neutral900, fontWeight: FontWeight.w500),
               columns: [
                 const DataColumn(label: SizedBox(width: 40, child: Text('No'))),
-                const DataColumn(label: SizedBox(width: 200, child: Text('ID Siswa'))),
+                const DataColumn(label: SizedBox(width: 200, child: Text('Siswa'))),
                 const DataColumn(label: SizedBox(width: 110, child: Text('Status'))),
                 const DataColumn(label: SizedBox(width: 140, child: Text('Catatan'))),
                 if (canEdit) const DataColumn(label: SizedBox(width: 70, child: Text('Aksi'))),
@@ -191,7 +204,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
                 final att = entry.value;
                 return DataRow(cells: [
                   DataCell(SizedBox(width: 40, child: Text('${i + 1}'))),
-                  DataCell(SizedBox(width: 200, child: Text(att.studentId, overflow: TextOverflow.ellipsis))),
+                  DataCell(SizedBox(width: 200, child: Text(att.studentName.isEmpty ? '-' : att.studentName, overflow: TextOverflow.ellipsis))),
                   DataCell(SizedBox(width: 110, child: _attendanceBadge(att.status))),
                   DataCell(SizedBox(width: 140, child: Text(att.note.isEmpty ? '-' : att.note, overflow: TextOverflow.ellipsis))),
                   if (canEdit)
@@ -225,6 +238,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
   Widget _attendanceBadge(String status) => AppBadge(
     label: switch (status) {
       'present' => 'Hadir',
+      'late' => 'Terlambat',
       'sick' => 'Sakit',
       'permission' => 'Izin',
       'absent' => 'Alpha',
@@ -233,6 +247,7 @@ class _ClassScheduleDetailScreenState extends ConsumerState<ClassScheduleDetailS
     },
     status: switch (status) {
       'present' => BadgeStatus.success,
+      'late' => BadgeStatus.warning,
       'sick' => BadgeStatus.warning,
       'permission' => BadgeStatus.info,
       'absent' => BadgeStatus.error,

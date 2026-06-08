@@ -43,6 +43,7 @@ class StudentsScreen extends ConsumerWidget {
     final subClassFilter = ref.watch(studentsSubClassFilterProvider);
 
     final user = ref.watch(currentUserProvider);
+    final isGuru = user?.role == UserRole.guru;
     final schoolId = user?.role == UserRole.superadmin
         ? activeSchool?.id
         : user?.schoolId;
@@ -59,8 +60,14 @@ class StudentsScreen extends ConsumerWidget {
         ref.watch(levelsBySchoolProvider(schoolId)).valueOrNull ?? [];
     final classes =
         ref.watch(classesBySchoolProvider(schoolId)).valueOrNull ?? [];
-    final subClasses =
+    final allSubClasses =
         ref.watch(subClassesBySchoolProvider(schoolId)).valueOrNull ?? [];
+    final teacherSubClassIds = isGuru
+        ? (ref.watch(teacherSubClassIdsProvider).valueOrNull ?? <String>{})
+        : <String>{};
+    final subClasses = isGuru
+        ? allSubClasses.where((s) => teacherSubClassIds.contains(s.id)).toList()
+        : allSubClasses;
 
     ref.listen(activeSchoolProvider, (_, next) {
       ref.read(studentsCurrentPageProvider.notifier).state = 1;
@@ -187,18 +194,20 @@ class StudentsScreen extends ConsumerWidget {
                     ref.read(studentsCurrentPageProvider.notifier).state = 1;
                   },
                 ),
-                const SizedBox(height: AppSpacing.md),
-                AppButton.accent(
-                  height: StudentsScreenConstants.addButtonHeight,
-                  isFullWidth: true,
-                  label: StudentsScreenConstants.addButtonLabel,
-                  prefixIcon: const Icon(
-                    StudentsScreenConstants.addIcon,
-                    size: StudentsScreenConstants.actionIconSize,
-                    color: AppColors.white,
+                if (!isGuru) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton.accent(
+                    height: StudentsScreenConstants.addButtonHeight,
+                    isFullWidth: true,
+                    label: StudentsScreenConstants.addButtonLabel,
+                    prefixIcon: const Icon(
+                      StudentsScreenConstants.addIcon,
+                      size: StudentsScreenConstants.actionIconSize,
+                      color: AppColors.white,
+                    ),
+                    onPressed: () => _openStudentCreateModal(context),
                   ),
-                  onPressed: () => _openStudentCreateModal(context),
-                ),
+                ],
               ],
             )
           else

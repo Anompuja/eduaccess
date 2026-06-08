@@ -1,9 +1,13 @@
 class ClassroomEntity {
   final String id;
   final String schoolId;
+  final String? classId;
+  final String? subClassId;
+  final String? academicYearId;
+  final String? homeroomTeacherId;
   final String name;
   final int capacity;
-  final int floor;
+  final String floor;
   final String building;
   final String roomType;
   final String status;
@@ -14,6 +18,10 @@ class ClassroomEntity {
   const ClassroomEntity({
     required this.id,
     required this.schoolId,
+    this.classId,
+    this.subClassId,
+    this.academicYearId,
+    this.homeroomTeacherId,
     required this.name,
     required this.capacity,
     required this.floor,

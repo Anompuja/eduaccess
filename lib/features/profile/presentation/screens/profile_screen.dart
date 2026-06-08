@@ -178,11 +178,6 @@ class _AvatarCard extends StatelessWidget {
               textAlign: TextAlign.center),
           const SizedBox(height: AppSpacing.md),
           AppBadge(label: roleLabel, status: BadgeStatus.active),
-          if (user.schoolId != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text('ID Sekolah: ${user.schoolId}',
-                style: AppTextStyles.caption.copyWith(color: AppColors.neutral500)),
-          ],
         ],
       ),
     );

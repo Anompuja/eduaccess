@@ -9,6 +9,8 @@ import 'package:eduaccess/core/widgets/app_button.dart';
 import 'package:eduaccess/core/widgets/app_card.dart';
 import 'package:eduaccess/core/widgets/app_dialog.dart';
 import 'package:eduaccess/core/widgets/app_text_field.dart';
+import 'package:eduaccess/core/api/api_client.dart';
+import 'package:eduaccess/core/widgets/app_refresh_button.dart';
 import 'package:eduaccess/core/auth/auth_notifier.dart';
 import 'package:eduaccess/core/auth/auth_state.dart';
 import 'package:eduaccess/core/providers/active_school_provider.dart';
@@ -73,13 +75,19 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
         ),
       ),
     );
-    controller.dispose();
-
     final name = resultName;
-    if (name == null || !mounted) return;
+    if (name == null || !mounted) {
+      controller.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
+    controller.dispose();
+    if (!mounted) return;
+
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).createLevel(name, schoolId: resultSchoolId);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -95,12 +103,18 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
       content: AppTextField(label: 'Nama Jenjang', controller: controller, hint: 'Contoh: SD, SMP, SMA'),
     );
     final name = controller.text.trim();
+    if (!saved || name.isEmpty || !mounted) {
+      controller.dispose();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 300));
     controller.dispose();
+    if (!mounted) return;
 
-    if (!saved || name.isEmpty || !mounted) return;
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).updateLevel(level.id, name);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -128,6 +142,7 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(academicRepositoryProvider).deleteLevel(level.id);
+      await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -184,13 +199,23 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: AppButton.accent(
-              label: 'Tambah Jenjang',
-              prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
-              onPressed: _isSubmitting ? null : _create,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppRefreshButton(
+                onRefresh: () async {
+                  await ref.read(cacheStoreProvider).clean();
+                  ref.invalidate(levelsProvider);
+                  ref.invalidate(classesProvider);
+                },
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              AppButton.accent(
+                label: 'Tambah Jenjang',
+                prefixIcon: const Icon(Icons.add_rounded, size: 18, color: AppColors.white),
+                onPressed: _isSubmitting ? null : _create,
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.md),
           levelsAsync.when(

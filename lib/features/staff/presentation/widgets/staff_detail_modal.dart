@@ -72,9 +72,6 @@ class StaffDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.badge_outlined,
                 children: [
-                  _DetailItem(label: 'Staff ID', value: data.staffId),
-                  _DetailItem(label: 'User ID', value: data.userId),
-                  _DetailItem(label: 'School ID', value: data.schoolId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'Email', value: data.email),
                   _DetailItem(

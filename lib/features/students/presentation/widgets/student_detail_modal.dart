@@ -72,7 +72,6 @@ class StudentDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.badge_outlined,
                 children: [
-                  _DetailItem(label: 'Student ID', value: data.studentId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'NIS', value: data.nis),
                   _DetailItem(label: 'NISN', value: data.nisn),

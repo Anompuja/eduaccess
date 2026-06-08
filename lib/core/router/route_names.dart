@@ -31,6 +31,9 @@ abstract final class RouteNames {
   static const String school = '/school';
   static const String cbt = '/cbt';
   static const String attendance = '/attendance';
+  static String attendanceDisplay(String id) => '/attendance/display/$id';
+  static const String attendanceScan = '/attendance/scan';
+  static const String attendanceScanner = '/attendance/scanner';
   static const String subscription = '/subscription';
   static const String payment = '/payment';
   static const String reports = '/reports';

@@ -11,7 +11,8 @@ Thumbs.db
 .svn/
 .swiftpm/
 .claude/
-
+pubspec.lock
+graphify-out
 # ── VS Code (optional — uncomment to ignore launch configs) ──────────────────
 # .vscode/
 
@@ -23,6 +24,8 @@ Thumbs.db
 
 # ── Flutter / Dart / Pub ─────────────────────────────────────────────────────
 .dart_tool/
+.dart_tool/package_config.json
+.dart_tool/package_graph.json
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
@@ -67,3 +70,7 @@ android/.gradle/
 # ── Dart build / migration artifacts ─────────────────────────────────────────
 migrate_working_dir/
 *.orig
+.dart_tool/package_config.json
+.dart_tool/package_graph.json
+.dart_tool/package_config.json
+.dart_tool/package_graph.json

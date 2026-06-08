@@ -72,9 +72,6 @@ class TeacherDetailModal extends StatelessWidget {
                 title: 'Profil',
                 icon: Icons.badge_outlined,
                 children: [
-                  _DetailItem(label: 'Teacher ID', value: data.teacherId),
-                  _DetailItem(label: 'User ID', value: data.userId),
-                  _DetailItem(label: 'School ID', value: data.schoolId),
                   _DetailItem(label: 'Nama', value: data.name),
                   _DetailItem(label: 'NIP', value: data.nip),
                   _DetailItem(label: 'Username', value: data.username),
