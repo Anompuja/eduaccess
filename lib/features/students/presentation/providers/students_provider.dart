@@ -10,11 +10,31 @@ import '../../../class_schedule/presentation/providers/class_schedule_providers.
 import '../../data/datasources/students_remote_data_source.dart';
 import '../../data/models/student_row_data.dart';
 import '../constants/students_screen_constants.dart';
+<<<<<<< HEAD
 import 'students_data_provider.dart';
+=======
+
+final studentsRepositoryProvider = Provider((ref) {
+  final dio = ref.watch(dioProvider);
+  final studentListCacheOptions = ref.watch(studentListCacheOptionsProvider);
+  final nonCacheableRequestOptions = ref.watch(
+    nonCacheableRequestOptionsProvider,
+  );
+  return StudentsRepositoryImpl(
+    StudentsRemoteDataSource(
+      dio,
+      studentListCacheOptions: studentListCacheOptions,
+      bypassCacheOptions: nonCacheableRequestOptions,
+    ),
+  );
+});
+>>>>>>> dev-vedo
 
 final studentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 
 final studentsSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final studentsRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
 // These are for dropdown filters in the UI
 final studentsLevelFilterProvider = StateProvider<String?>((ref) => null);
@@ -54,6 +74,10 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   final query = ref.watch(studentsSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
+<<<<<<< HEAD
+=======
+  final refreshTrigger = ref.watch(studentsRefreshTriggerProvider);
+>>>>>>> dev-vedo
 
   // Custom API filters
   final levelFilter = ref.watch(studentsLevelFilterProvider);
@@ -87,7 +111,12 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     schoolId: schoolId,
     educationLevelId: levelFilter,
     classId: classFilter,
+<<<<<<< HEAD
     subClassId: effectiveSubClassId,
+=======
+    subClassId: subClassFilter,
+    refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
+>>>>>>> dev-vedo
   );
 });
 
@@ -95,6 +124,8 @@ final createStudentProvider = FutureProvider.autoDispose
     .family<StudentRowData, Map<String, dynamic>>((ref, data) async {
       final repository = ref.watch(studentsRepositoryProvider);
       final student = await repository.createStudent(data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(studentsRefreshTriggerProvider.notifier).state++;
       ref.invalidate(studentsProvider);
       ref.invalidate(currentSchoolSubscriptionOverviewProvider);
 
@@ -127,6 +158,8 @@ final updateStudentProvider = FutureProvider.autoDispose
     ) async {
       final repository = ref.watch(studentsRepositoryProvider);
       final student = await repository.updateStudent(params.id, params.data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(studentsRefreshTriggerProvider.notifier).state++;
       ref.invalidate(studentsProvider);
       return student;
     });
@@ -137,6 +170,8 @@ final deleteStudentProvider = FutureProvider.autoDispose.family<void, String>((
 ) async {
   final repository = ref.watch(studentsRepositoryProvider);
   await repository.deleteStudent(studentId);
+  await ref.read(cacheStoreProvider).clean();
+  ref.read(studentsRefreshTriggerProvider.notifier).state++;
   ref.invalidate(studentsProvider);
 
   final currentSchoolId = ref.read(currentSubscriptionSchoolIdProvider);

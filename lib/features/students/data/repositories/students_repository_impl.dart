@@ -15,6 +15,7 @@ class StudentsRepositoryImpl {
     String? educationLevelId,
     String? classId,
     String? subClassId,
+    int? refreshTrigger,
   }) {
     return _remoteDataSource.getStudents(
       page: page,
@@ -24,6 +25,7 @@ class StudentsRepositoryImpl {
       educationLevelId: educationLevelId,
       classId: classId,
       subClassId: subClassId,
+      refreshTrigger: refreshTrigger,
     );
   }
 

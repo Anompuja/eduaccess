@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/api/api_client.dart';
@@ -31,20 +32,31 @@ final dashboardStatsProvider =
       DashboardStatsNotifier.new,
     );
 
+final dashboardStatsRefreshTriggerProvider = StateProvider<int>((ref) => 0);
+
 class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
   @override
   Future<DashboardStats> build() {
     final user = ref.watch(currentUserProvider);
     final activeSchool = ref.watch(activeSchoolProvider);
-    return _fetch(user: user, activeSchool: activeSchool);
+    final refreshTrigger = ref.watch(dashboardStatsRefreshTriggerProvider);
+    return _fetch(
+      user: user,
+      activeSchool: activeSchool,
+      refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
+    );
   }
 
   Future<DashboardStats> _fetch({
     required AuthUser? user,
     required DashboardSchool? activeSchool,
+    int? refreshTrigger,
   }) async {
     try {
       final dio = ref.read(dioProvider);
+      final dashboardStatsCacheOptions = ref.read(
+        dashboardStatsCacheOptionsProvider,
+      );
       final role = user?.role ?? UserRole.staff;
 
       // Superadmin: optionally scope by activeSchool. Null = aggregate
@@ -55,9 +67,18 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
         schoolId = activeSchool?.id;
       }
 
+      final params = <String, dynamic>{};
+      if (schoolId != null) {
+        params['school_id'] = schoolId;
+      }
+      if (refreshTrigger != null) {
+        params['_t'] = refreshTrigger;
+      }
+
       final resp = await dio.get(
         ApiEndpoints.dashboardStats,
-        queryParameters: schoolId == null ? null : {'school_id': schoolId},
+        queryParameters: params.isEmpty ? null : params,
+        options: dashboardStatsCacheOptions.toOptions(),
       );
       final data = _readMapData(resp.data);
       return DashboardStatsModel.fromJson(data);
@@ -71,9 +92,16 @@ class DashboardStatsNotifier extends AsyncNotifier<DashboardStats> {
   Future<void> refresh() async {
     final user = ref.read(currentUserProvider);
     final activeSchool = ref.read(activeSchoolProvider);
+    await ref.read(cacheStoreProvider).clean();
+    ref.read(dashboardStatsRefreshTriggerProvider.notifier).state++;
+    final refreshTrigger = ref.read(dashboardStatsRefreshTriggerProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _fetch(user: user, activeSchool: activeSchool),
+      () => _fetch(
+        user: user,
+        activeSchool: activeSchool,
+        refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
+      ),
     );
   }
 }

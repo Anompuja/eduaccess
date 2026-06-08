@@ -6,7 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -449,6 +448,7 @@ class StudentsScreen extends ConsumerWidget {
                                                 .classColumnWidthDesktop,
                                     ),
                                   ),
+<<<<<<< HEAD
                                   DataColumn(
                                     label: _tableHeader(
                                       StudentsScreenConstants.statusHeader,
@@ -459,6 +459,16 @@ class StudentsScreen extends ConsumerWidget {
                                                 .statusColumnWidthDesktop,
                                     ),
                                   ),
+=======
+                                  // DataColumn(
+                                  //   label: _tableHeader(
+                                  //     StudentsScreenConstants.statusHeader,
+                                  //     width: isSmallScreen
+                                  //         ? StudentsScreenConstants.statusColumnWidthMobile
+                                  //         : StudentsScreenConstants.statusColumnWidthDesktop,
+                                  //   ),
+                                  // ),
+>>>>>>> dev-vedo
                                   DataColumn(
                                     label: _tableHeader(
                                       StudentsScreenConstants.actionsHeader,
@@ -551,6 +561,7 @@ class StudentsScreen extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
+<<<<<<< HEAD
                                       DataCell(
                                         SizedBox(
                                           width: isSmallScreen
@@ -572,6 +583,24 @@ class StudentsScreen extends ConsumerWidget {
                                           ),
                                         ),
                                       ),
+=======
+                                      // DataCell(
+                                      //   SizedBox(
+                                      //     width: isSmallScreen
+                                      //         ? StudentsScreenConstants.statusColumnWidthMobile
+                                      //         : StudentsScreenConstants.statusColumnWidthDesktop,
+                                      //     child: Align(
+                                      //       alignment: Alignment.centerLeft,
+                                      //       child: AppBadge(
+                                      //         label: e.status.toUpperCase(),
+                                      //         status: e.status == StudentsScreenConstants.activeStatus
+                                      //             ? BadgeStatus.info
+                                      //             : BadgeStatus.muted,
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // ),
+>>>>>>> dev-vedo
                                       DataCell(
                                         SizedBox(
                                           width: isSmallScreen

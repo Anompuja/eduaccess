@@ -6,7 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive.dart';
-import '../../../../core/widgets/app_badge.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -238,14 +237,6 @@ class TeachersScreen extends ConsumerWidget {
                                   ),
                                   DataColumn(
                                     label: _tableHeader(
-                                      TeachersScreenConstants.statusHeader,
-                                      width: isSmallScreen
-                                          ? TeachersScreenConstants.statusColumnWidthMobile
-                                          : TeachersScreenConstants.statusColumnWidthDesktop,
-                                    ),
-                                  ),
-                                  DataColumn(
-                                    label: _tableHeader(
                                       TeachersScreenConstants.actionsHeader,
                                       width: isSmallScreen
                                           ? TeachersScreenConstants.actionsColumnWidthMobile
@@ -312,22 +303,22 @@ class TeachersScreen extends ConsumerWidget {
                                           child: Text(row.username.isEmpty ? '-' : row.username),
                                         ),
                                       ),
-                                      DataCell(
-                                        SizedBox(
-                                          width: isSmallScreen
-                                              ? TeachersScreenConstants.statusColumnWidthMobile
-                                              : TeachersScreenConstants.statusColumnWidthDesktop,
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: AppBadge(
-                                              label: row.status.toUpperCase(),
-                                              status: row.isActive
-                                                  ? BadgeStatus.info
-                                                  : BadgeStatus.muted,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                      // DataCell(
+                                      //   SizedBox(
+                                      //     width: isSmallScreen
+                                      //         ? TeachersScreenConstants.statusColumnWidthMobile
+                                      //         : TeachersScreenConstants.statusColumnWidthDesktop,
+                                      //     child: Align(
+                                      //       alignment: Alignment.centerLeft,
+                                      //       child: AppBadge(
+                                      //         label: row.status.toUpperCase(),
+                                      //         status: row.isActive
+                                      //             ? BadgeStatus.info
+                                      //             : BadgeStatus.muted,
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // ),
                                       DataCell(
                                         SizedBox(
                                           width: isSmallScreen

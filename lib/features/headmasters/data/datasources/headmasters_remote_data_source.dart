@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/paginated.dart';
@@ -6,14 +7,22 @@ import '../models/headmaster_row_data.dart';
 
 class HeadmastersRemoteDataSource {
   final Dio _dio;
+  final CacheOptions _headmasterListCacheOptions;
+  final CacheOptions _bypassCacheOptions;
 
-  HeadmastersRemoteDataSource(this._dio);
+  HeadmastersRemoteDataSource(
+    this._dio, {
+    required CacheOptions headmasterListCacheOptions,
+    required CacheOptions bypassCacheOptions,
+  }) : _headmasterListCacheOptions = headmasterListCacheOptions,
+       _bypassCacheOptions = bypassCacheOptions;
 
   Future<Paginated<HeadmasterRowData>> getHeadmasters({
     required int page,
     int perPage = 10,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) async {
     try {
       final params = <String, dynamic>{'page': page, 'per_page': perPage};
@@ -23,10 +32,14 @@ class HeadmastersRemoteDataSource {
       if (schoolId != null && schoolId.isNotEmpty) {
         params['school_id'] = schoolId;
       }
+      if (refreshTrigger != null) {
+        params['_t'] = refreshTrigger;
+      }
 
       final response = await _dio.get(
         ApiEndpoints.headmasters,
         queryParameters: params,
+        options: _headmasterListCacheOptions.toOptions(),
       );
 
       final data = response.data;
@@ -45,7 +58,11 @@ class HeadmastersRemoteDataSource {
 
   Future<HeadmasterRowData> createHeadmaster(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(ApiEndpoints.headmasters, data: data);
+      final response = await _dio.post(
+        ApiEndpoints.headmasters,
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
       final headmasterJson = payload is Map
           ? (payload['data'] ?? payload)
@@ -66,6 +83,7 @@ class HeadmastersRemoteDataSource {
       final response = await _dio.put(
         ApiEndpoints.headmasterById(id),
         data: data,
+        options: _bypassCacheOptions.toOptions(),
       );
       final payload = response.data;
       final headmasterJson = payload is Map
@@ -81,7 +99,10 @@ class HeadmastersRemoteDataSource {
 
   Future<void> deleteHeadmaster(String id) async {
     try {
-      await _dio.delete(ApiEndpoints.headmasterById(id));
+      await _dio.delete(
+        ApiEndpoints.headmasterById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }

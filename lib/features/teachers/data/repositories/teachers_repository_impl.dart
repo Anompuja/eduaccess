@@ -12,12 +12,14 @@ class TeachersRepositoryImpl {
     int perPage = 5,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) {
     return _remoteDataSource.getTeachers(
       page: page,
       perPage: perPage,
       query: query,
       schoolId: schoolId,
+      refreshTrigger: refreshTrigger,
     );
   }
 

@@ -12,12 +12,24 @@ import '../constants/teachers_screen_constants.dart';
 
 final teachersRepositoryProvider = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return TeachersRepositoryImpl(TeachersRemoteDataSource(dio));
+  final teacherListCacheOptions = ref.watch(teacherListCacheOptionsProvider);
+  final nonCacheableRequestOptions = ref.watch(
+    nonCacheableRequestOptionsProvider,
+  );
+  return TeachersRepositoryImpl(
+    TeachersRemoteDataSource(
+      dio,
+      teacherListCacheOptions: teacherListCacheOptions,
+      bypassCacheOptions: nonCacheableRequestOptions,
+    ),
+  );
 });
 
 final teachersCurrentPageProvider = StateProvider<int>((ref) => 1);
 
 final teachersSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final teachersRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
 final teachersProvider = FutureProvider.autoDispose<Paginated<TeacherRowData>>((
   ref,
@@ -27,6 +39,7 @@ final teachersProvider = FutureProvider.autoDispose<Paginated<TeacherRowData>>((
   final query = ref.watch(teachersSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
+  final refreshTrigger = ref.watch(teachersRefreshTriggerProvider);
 
   final schoolId = switch (user?.role) {
     UserRole.superadmin => activeSchool?.id,
@@ -38,6 +51,7 @@ final teachersProvider = FutureProvider.autoDispose<Paginated<TeacherRowData>>((
     perPage: TeachersScreenConstants.rowsPerPage,
     query: query.isNotEmpty ? query : null,
     schoolId: schoolId,
+    refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
   );
 });
 
@@ -45,6 +59,8 @@ final createTeacherProvider = FutureProvider.autoDispose
     .family<TeacherRowData, Map<String, dynamic>>((ref, data) async {
       final repository = ref.watch(teachersRepositoryProvider);
       final teacher = await repository.createTeacher(data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(teachersRefreshTriggerProvider.notifier).state++;
       ref.invalidate(teachersProvider);
       return teacher;
     });
@@ -56,6 +72,8 @@ final updateTeacherProvider = FutureProvider.autoDispose
     ) async {
       final repository = ref.watch(teachersRepositoryProvider);
       final teacher = await repository.updateTeacher(params.id, params.data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(teachersRefreshTriggerProvider.notifier).state++;
       ref.invalidate(teachersProvider);
       return teacher;
     });
@@ -66,5 +84,7 @@ final deleteTeacherProvider = FutureProvider.autoDispose.family<void, String>((
 ) async {
   final repository = ref.watch(teachersRepositoryProvider);
   await repository.deleteTeacher(teacherId);
+  await ref.read(cacheStoreProvider).clean();
+  ref.read(teachersRefreshTriggerProvider.notifier).state++;
   ref.invalidate(teachersProvider);
 });
