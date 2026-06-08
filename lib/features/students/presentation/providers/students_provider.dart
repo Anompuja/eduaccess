@@ -10,9 +10,7 @@ import '../../../class_schedule/presentation/providers/class_schedule_providers.
 import '../../data/datasources/students_remote_data_source.dart';
 import '../../data/models/student_row_data.dart';
 import '../constants/students_screen_constants.dart';
-<<<<<<< HEAD
 import 'students_data_provider.dart';
-=======
 
 final studentsRepositoryProvider = Provider((ref) {
   final dio = ref.watch(dioProvider);
@@ -28,7 +26,6 @@ final studentsRepositoryProvider = Provider((ref) {
     ),
   );
 });
->>>>>>> dev-vedo
 
 final studentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 
@@ -74,10 +71,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   final query = ref.watch(studentsSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
-<<<<<<< HEAD
-=======
   final refreshTrigger = ref.watch(studentsRefreshTriggerProvider);
->>>>>>> dev-vedo
 
   // Custom API filters
   final levelFilter = ref.watch(studentsLevelFilterProvider);
@@ -111,12 +105,9 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     schoolId: schoolId,
     educationLevelId: levelFilter,
     classId: classFilter,
-<<<<<<< HEAD
     subClassId: effectiveSubClassId,
-=======
     subClassId: subClassFilter,
     refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
->>>>>>> dev-vedo
   );
 });
 
