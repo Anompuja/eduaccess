@@ -12,12 +12,24 @@ import '../constants/students_screen_constants.dart';
 
 final studentsRepositoryProvider = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return StudentsRepositoryImpl(StudentsRemoteDataSource(dio));
+  final studentListCacheOptions = ref.watch(studentListCacheOptionsProvider);
+  final nonCacheableRequestOptions = ref.watch(
+    nonCacheableRequestOptionsProvider,
+  );
+  return StudentsRepositoryImpl(
+    StudentsRemoteDataSource(
+      dio,
+      studentListCacheOptions: studentListCacheOptions,
+      bypassCacheOptions: nonCacheableRequestOptions,
+    ),
+  );
 });
 
 final studentsCurrentPageProvider = StateProvider<int>((ref) => 1);
 
 final studentsSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final studentsRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
 // These are for dropdown filters in the UI
 final studentsLevelFilterProvider = StateProvider<String?>((ref) => null);
@@ -32,7 +44,8 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
   final query = ref.watch(studentsSearchQueryProvider);
   final user = ref.watch(currentUserProvider);
   final activeSchool = ref.watch(activeSchoolProvider);
-  
+  final refreshTrigger = ref.watch(studentsRefreshTriggerProvider);
+
   // Custom API filters
   final levelFilter = ref.watch(studentsLevelFilterProvider);
   final classFilter = ref.watch(studentsClassFilterProvider);
@@ -51,6 +64,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
     educationLevelId: levelFilter,
     classId: classFilter,
     subClassId: subClassFilter,
+    refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
   );
 });
 
@@ -58,6 +72,8 @@ final createStudentProvider = FutureProvider.autoDispose
     .family<StudentRowData, Map<String, dynamic>>((ref, data) async {
       final repository = ref.watch(studentsRepositoryProvider);
       final student = await repository.createStudent(data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(studentsRefreshTriggerProvider.notifier).state++;
       ref.invalidate(studentsProvider);
       return student;
     });
@@ -69,6 +85,8 @@ final updateStudentProvider = FutureProvider.autoDispose
     ) async {
       final repository = ref.watch(studentsRepositoryProvider);
       final student = await repository.updateStudent(params.id, params.data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(studentsRefreshTriggerProvider.notifier).state++;
       ref.invalidate(studentsProvider);
       return student;
     });
@@ -79,5 +97,7 @@ final deleteStudentProvider = FutureProvider.autoDispose.family<void, String>((
 ) async {
   final repository = ref.watch(studentsRepositoryProvider);
   await repository.deleteStudent(studentId);
+  await ref.read(cacheStoreProvider).clean();
+  ref.read(studentsRefreshTriggerProvider.notifier).state++;
   ref.invalidate(studentsProvider);
 });

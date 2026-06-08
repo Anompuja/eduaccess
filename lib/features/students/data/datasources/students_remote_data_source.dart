@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/paginated.dart';
@@ -6,8 +7,15 @@ import '../models/student_row_data.dart';
 
 class StudentsRemoteDataSource {
   final Dio _dio;
+  final CacheOptions _studentListCacheOptions;
+  final CacheOptions _bypassCacheOptions;
 
-  StudentsRemoteDataSource(this._dio);
+  StudentsRemoteDataSource(
+    this._dio, {
+    required CacheOptions studentListCacheOptions,
+    required CacheOptions bypassCacheOptions,
+  }) : _studentListCacheOptions = studentListCacheOptions,
+       _bypassCacheOptions = bypassCacheOptions;
 
   Future<Paginated<StudentRowData>> getStudents({
     required int page,
@@ -17,6 +25,7 @@ class StudentsRemoteDataSource {
     String? educationLevelId,
     String? classId,
     String? subClassId,
+    int? refreshTrigger,
   }) async {
     try {
       final params = <String, dynamic>{'page': page, 'per_page': perPage};
@@ -35,10 +44,14 @@ class StudentsRemoteDataSource {
       if (subClassId != null && subClassId.isNotEmpty) {
         params['sub_class_id'] = subClassId;
       }
+      if (refreshTrigger != null) {
+        params['_t'] = refreshTrigger;
+      }
 
       final response = await _dio.get(
         ApiEndpoints.students,
         queryParameters: params,
+        options: _studentListCacheOptions.toOptions(),
       );
 
       final data = response.data;
@@ -57,21 +70,40 @@ class StudentsRemoteDataSource {
 
   Future<StudentRowData> createStudent(Map<String, dynamic> data) async {
     try {
-      final response = await _dio.post(ApiEndpoints.students, data: data);
+      final response = await _dio.post(
+        ApiEndpoints.students,
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
-      final studentJson = payload is Map ? (payload['data'] ?? payload) : payload;
-      return StudentRowData.fromJson(Map<String, dynamic>.from(studentJson as Map));
+      final studentJson = payload is Map
+          ? (payload['data'] ?? payload)
+          : payload;
+      return StudentRowData.fromJson(
+        Map<String, dynamic>.from(studentJson as Map),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
   }
 
-  Future<StudentRowData> updateStudent(String id, Map<String, dynamic> data) async {
+  Future<StudentRowData> updateStudent(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     try {
-      final response = await _dio.put(ApiEndpoints.studentById(id), data: data);
+      final response = await _dio.put(
+        ApiEndpoints.studentById(id),
+        data: data,
+        options: _bypassCacheOptions.toOptions(),
+      );
       final payload = response.data;
-      final studentJson = payload is Map ? (payload['data'] ?? payload) : payload;
-      return StudentRowData.fromJson(Map<String, dynamic>.from(studentJson as Map));
+      final studentJson = payload is Map
+          ? (payload['data'] ?? payload)
+          : payload;
+      return StudentRowData.fromJson(
+        Map<String, dynamic>.from(studentJson as Map),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
@@ -79,7 +111,10 @@ class StudentsRemoteDataSource {
 
   Future<void> deleteStudent(String id) async {
     try {
-      await _dio.delete(ApiEndpoints.studentById(id));
+      await _dio.delete(
+        ApiEndpoints.studentById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw _handleDioException(e);
     }
