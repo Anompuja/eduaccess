@@ -12,12 +12,14 @@ class HeadmastersRepositoryImpl {
     int perPage = 10,
     String? query,
     String? schoolId,
+    int? refreshTrigger,
   }) {
     return _remoteDataSource.getHeadmasters(
       page: page,
       perPage: perPage,
       query: query,
       schoolId: schoolId,
+      refreshTrigger: refreshTrigger,
     );
   }
 

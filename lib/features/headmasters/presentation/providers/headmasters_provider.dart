@@ -12,12 +12,26 @@ import '../constants/headmasters_screen_constants.dart';
 
 final headmastersRepositoryProvider = Provider((ref) {
   final dio = ref.watch(dioProvider);
-  return HeadmastersRepositoryImpl(HeadmastersRemoteDataSource(dio));
+  final headmasterListCacheOptions = ref.watch(
+    headmasterListCacheOptionsProvider,
+  );
+  final nonCacheableRequestOptions = ref.watch(
+    nonCacheableRequestOptionsProvider,
+  );
+  return HeadmastersRepositoryImpl(
+    HeadmastersRemoteDataSource(
+      dio,
+      headmasterListCacheOptions: headmasterListCacheOptions,
+      bypassCacheOptions: nonCacheableRequestOptions,
+    ),
+  );
 });
 
 final headmastersCurrentPageProvider = StateProvider<int>((ref) => 1);
 
 final headmastersSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final headmastersRefreshTriggerProvider = StateProvider<int>((ref) => 0);
 
 final headmastersProvider =
     FutureProvider.autoDispose<Paginated<HeadmasterRowData>>((ref) async {
@@ -26,6 +40,7 @@ final headmastersProvider =
       final query = ref.watch(headmastersSearchQueryProvider);
       final user = ref.watch(currentUserProvider);
       final activeSchool = ref.watch(activeSchoolProvider);
+      final refreshTrigger = ref.watch(headmastersRefreshTriggerProvider);
 
       final schoolId = switch (user?.role) {
         UserRole.superadmin => activeSchool?.id,
@@ -37,6 +52,7 @@ final headmastersProvider =
         perPage: HeadmastersScreenConstants.rowsPerPage,
         query: query.isNotEmpty ? query : null,
         schoolId: schoolId,
+        refreshTrigger: refreshTrigger > 0 ? refreshTrigger : null,
       );
     });
 
@@ -44,6 +60,8 @@ final createHeadmasterProvider = FutureProvider.autoDispose
     .family<HeadmasterRowData, Map<String, dynamic>>((ref, data) async {
       final repository = ref.watch(headmastersRepositoryProvider);
       final headmaster = await repository.createHeadmaster(data);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(headmastersRefreshTriggerProvider.notifier).state++;
       ref.invalidate(headmastersProvider);
       return headmaster;
     });
@@ -58,6 +76,8 @@ final updateHeadmasterProvider = FutureProvider.autoDispose
         params.id,
         params.data,
       );
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(headmastersRefreshTriggerProvider.notifier).state++;
       ref.invalidate(headmastersProvider);
       return headmaster;
     });
@@ -66,5 +86,7 @@ final deleteHeadmasterProvider = FutureProvider.autoDispose
     .family<void, String>((ref, headmasterId) async {
       final repository = ref.watch(headmastersRepositoryProvider);
       await repository.deleteHeadmaster(headmasterId);
+      await ref.read(cacheStoreProvider).clean();
+      ref.read(headmastersRefreshTriggerProvider.notifier).state++;
       ref.invalidate(headmastersProvider);
     });
