@@ -3,6 +3,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/paginated.dart';
+import '../models/linked_parent_data.dart';
 import '../models/student_row_data.dart';
 
 class StudentsRemoteDataSource {
@@ -139,6 +140,58 @@ class StudentsRemoteDataSource {
     try {
       await _dio.delete(
         ApiEndpoints.studentById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  Future<List<LinkedParentData>> getStudentParents(String studentId) async {
+    try {
+      final response = await _dio.get(
+        ApiEndpoints.studentById(studentId),
+        options: _bypassCacheOptions.toOptions(),
+      );
+      final payload = response.data;
+      final studentJson = payload is Map
+          ? (payload['data'] ?? payload) as Map<String, dynamic>
+          : <String, dynamic>{};
+      final parentsList = studentJson['parents'] as List? ?? [];
+      return parentsList
+          .whereType<Map<String, dynamic>>()
+          .map(LinkedParentData.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  Future<void> linkParent(
+    String studentId,
+    String parentId,
+    String relationship,
+    bool isPrimary,
+  ) async {
+    try {
+      await _dio.post(
+        ApiEndpoints.studentParents(studentId),
+        data: {
+          'parent_id': parentId,
+          'relationship': relationship,
+          'is_primary': isPrimary,
+        },
+        options: _bypassCacheOptions.toOptions(),
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    }
+  }
+
+  Future<void> unlinkParent(String studentId, String parentId) async {
+    try {
+      await _dio.delete(
+        ApiEndpoints.studentParentById(studentId, parentId),
         options: _bypassCacheOptions.toOptions(),
       );
     } on DioException catch (e) {

@@ -1,5 +1,6 @@
 import '../../../../core/api/paginated.dart';
 import '../datasources/students_remote_data_source.dart';
+import '../models/linked_parent_data.dart';
 import '../models/student_row_data.dart';
 
 class StudentsRepositoryImpl {
@@ -43,5 +44,22 @@ class StudentsRepositoryImpl {
 
   Future<void> deleteStudent(String id) {
     return _remoteDataSource.deleteStudent(id);
+  }
+
+  Future<List<LinkedParentData>> getStudentParents(String studentId) {
+    return _remoteDataSource.getStudentParents(studentId);
+  }
+
+  Future<void> linkParent(
+    String studentId,
+    String parentId,
+    String relationship,
+    bool isPrimary,
+  ) {
+    return _remoteDataSource.linkParent(studentId, parentId, relationship, isPrimary);
+  }
+
+  Future<void> unlinkParent(String studentId, String parentId) {
+    return _remoteDataSource.unlinkParent(studentId, parentId);
   }
 }

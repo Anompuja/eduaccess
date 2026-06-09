@@ -9,6 +9,7 @@ import '../../../subscription/presentation/providers/subscription_provider.dart'
 import '../../../academic/presentation/providers/academic_providers.dart';
 import '../../../class_schedule/presentation/providers/class_schedule_providers.dart';
 import '../../data/datasources/students_remote_data_source.dart';
+import '../../data/models/linked_parent_data.dart';
 import '../../data/models/student_row_data.dart';
 import '../../data/repositories/students_repository_impl.dart';
 import '../constants/students_screen_constants.dart';
@@ -90,7 +91,7 @@ final studentsProvider = FutureProvider.autoDispose<Paginated<StudentRowData>>((
 
   final schoolId = switch (user?.role) {
     UserRole.superadmin => activeSchool?.id,
-    _ => null,
+    _ => user?.schoolId,
   };
 
   // For guru: restrict to sub-classes they teach. Auto-select first sub-class
@@ -163,6 +164,44 @@ final updateStudentProvider = FutureProvider.autoDispose
       ref.invalidate(studentsProvider);
       return student;
     });
+
+// ── Student parent links ──────────────────────────────────────────────────────
+final studentParentsProvider =
+    FutureProvider.autoDispose.family<List<LinkedParentData>, String>((
+  ref,
+  studentId,
+) async {
+  final repository = ref.watch(studentsRepositoryProvider);
+  return repository.getStudentParents(studentId);
+});
+
+final linkParentProvider = FutureProvider.autoDispose.family<
+    void,
+    ({
+      String studentId,
+      String parentId,
+      String relationship,
+      bool isPrimary,
+    })>((ref, params) async {
+  final repository = ref.watch(studentsRepositoryProvider);
+  await repository.linkParent(
+    params.studentId,
+    params.parentId,
+    params.relationship,
+    params.isPrimary,
+  );
+  ref.invalidate(studentParentsProvider(params.studentId));
+});
+
+final unlinkParentProvider =
+    FutureProvider.autoDispose.family<void, ({String studentId, String parentId})>((
+  ref,
+  params,
+) async {
+  final repository = ref.watch(studentsRepositoryProvider);
+  await repository.unlinkParent(params.studentId, params.parentId);
+  ref.invalidate(studentParentsProvider(params.studentId));
+});
 
 final deleteStudentProvider = FutureProvider.autoDispose.family<void, String>((
   ref,

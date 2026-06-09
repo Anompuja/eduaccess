@@ -9,6 +9,7 @@ import '../router/route_names.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
+import '../../features/notifications/presentation/providers/notifications_provider.dart';
 
 typedef _PageInfo = ({String title, String subtitle});
 
@@ -85,6 +86,10 @@ _PageInfo _infoForRoute(String location) => switch (location) {
     title: 'Profil',
     subtitle: 'Informasi akun Anda',
   ),
+  String l when l.startsWith(RouteNames.notifications) => (
+    title: 'Notifikasi',
+    subtitle: 'Pemberitahuan aktivitas terkini',
+  ),
   _ => (title: 'EduAccess', subtitle: ''),
 };
 
@@ -154,6 +159,8 @@ class AppTopbar extends ConsumerWidget {
         ),
         if (!isMobile) const _SchoolContextChip(),
         SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
+        const _NotificationBell(),
+        SizedBox(width: isMobile ? AppSpacing.xs : AppSpacing.md),
         GestureDetector(
           onTap: () => context.push(RouteNames.profile),
           child: CircleAvatar(
@@ -190,6 +197,53 @@ class AppTopbar extends ConsumerWidget {
     if (parts.isEmpty || parts[0].isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+}
+
+class _NotificationBell extends ConsumerWidget {
+  const _NotificationBell();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadAsync = ref.watch(unreadNotificationsProvider);
+    final unreadCount = unreadAsync.valueOrNull?.length ?? 0;
+
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.notifications),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(
+            Icons.notifications_outlined,
+            color: AppColors.neutral700,
+            size: 24,
+          ),
+          if (unreadCount > 0)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(
+                  unreadCount > 99 ? '99+' : '$unreadCount',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

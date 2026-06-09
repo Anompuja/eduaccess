@@ -27,6 +27,7 @@ import '../../features/payment/data/models/payment_entities.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/teachers/presentation/screens/teachers_screen.dart';
 import '../../features/student_tracking/presentation/screens/student_tracking_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/payment/presentation/screens/payment_screen.dart';
 import '../auth/auth_notifier.dart';
 import '../auth/auth_state.dart';
@@ -59,6 +60,7 @@ String? _roleGuard(UserRole role, String location) {
     RouteNames.profile,
     RouteNames.settings,
     RouteNames.help,
+    RouteNames.notifications,
   };
 
   const guruRoutes = {RouteNames.attendance, RouteNames.cbt, RouteNames.students};
@@ -264,6 +266,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const ReportsScreen(),
           ),
           GoRoute(path: RouteNames.help, builder: (_, _) => const HelpScreen()),
+          GoRoute(
+            path: RouteNames.notifications,
+            builder: (_, _) => const NotificationsScreen(),
+          ),
         ],
       ),
     ],

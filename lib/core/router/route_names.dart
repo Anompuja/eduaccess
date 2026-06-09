@@ -38,6 +38,9 @@ abstract final class RouteNames {
   static const String reports = '/reports';
   static const String help = '/help';
 
+  // ── Notifications ─────────────────────────────────────────────────────────
+  static const String notifications = '/notifications';
+
   // ── Dynamic path helpers ──────────────────────────────────────────────────
   static String adminDetail(String id) => '/admins/$id';
   static String headmasterDetail(String id) => '/headmasters/$id';

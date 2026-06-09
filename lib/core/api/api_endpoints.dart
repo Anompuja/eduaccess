@@ -102,6 +102,16 @@ abstract final class ApiEndpoints {
   // ── Subscription ─────────────────────────────────────────────────────────
   static const String subscription = '/subscription';
 
+  // ── Student Parent Links ──────────────────────────────────────────────────
+  static String studentParents(String studentId) => '/students/$studentId/parents';
+  static String studentParentById(String studentId, String parentId) =>
+      '/students/$studentId/parents/$parentId';
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  static const String notifications = '/notifications';
+  static String notificationMarkRead(String id) => '/notifications/$id/read';
+  static const String notificationsMarkAllRead = '/notifications/read-all';
+
   // ── Profile ───────────────────────────────────────────────────────────────
   static const String profile = '/profile';
   static String userPassword(String id) => '/users/$id/password';
