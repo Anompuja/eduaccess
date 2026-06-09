@@ -96,7 +96,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (_, setD) => AppDialog(
+        builder: (sCtx, setD) => AppDialog(
           title: 'Tambah Jam Pelajaran',
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -121,13 +121,13 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
               const SizedBox(height: AppSpacing.md),
               _textField(ctrl: labelCtrl, label: 'Label', hint: 'contoh: Jam 1 atau Istirahat'),
               const SizedBox(height: AppSpacing.md),
-              _timePicker(ctx: ctx, label: 'Jam Mulai', value: startTime, onTap: () async {
-                final t = await _pickTime(ctx, initial: startTime);
+              _timePicker(ctx: sCtx, label: 'Jam Mulai', value: startTime, onTap: () async {
+                final t = await _pickTime(sCtx, initial: startTime);
                 if (t != null) setD(() => startTime = t);
               }),
               const SizedBox(height: AppSpacing.md),
-              _timePicker(ctx: ctx, label: 'Jam Selesai', value: endTime, onTap: () async {
-                final t = await _pickTime(ctx, initial: endTime ?? startTime);
+              _timePicker(ctx: sCtx, label: 'Jam Selesai', value: endTime, onTap: () async {
+                final t = await _pickTime(sCtx, initial: endTime ?? startTime);
                 if (t != null) setD(() => endTime = t);
               }),
               const SizedBox(height: AppSpacing.md),
@@ -156,20 +156,15 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
       ),
     );
 
-    if (!saved || !mounted) {
-      periodCtrl.dispose();
-      labelCtrl.dispose();
-      return;
-    }
-    final period = int.tryParse(periodCtrl.text.trim());
-    if (period == null) {
-      periodCtrl.dispose();
-      labelCtrl.dispose();
-      return;
-    }
-    await Future.delayed(const Duration(milliseconds: 300));
+    final label = labelCtrl.text.trim();
+    final periodText = periodCtrl.text.trim();
     periodCtrl.dispose();
     labelCtrl.dispose();
+
+    if (!saved || !mounted) return;
+    final period = int.tryParse(periodText);
+    if (period == null || label.isEmpty) return;
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
     setState(() => _isSubmitting = true);
@@ -177,7 +172,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
       await ref.read(academicRepositoryProvider).createSchedule(
         dayOfWeek: selectedDay,
         periodNumber: period,
-        label: labelCtrl.text.trim(),
+        label: label,
         startTime: _formatTime(startTime!),
         endTime: _formatTime(endTime!),
         isBreak: isBreak,
@@ -204,7 +199,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (_, setD) => AppDialog(
+        builder: (sCtx, setD) => AppDialog(
           title: 'Edit Jam Pelajaran',
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -219,13 +214,13 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
               const SizedBox(height: AppSpacing.md),
               _textField(ctrl: labelCtrl, label: 'Label', hint: 'contoh: Jam 1 atau Istirahat'),
               const SizedBox(height: AppSpacing.md),
-              _timePicker(ctx: ctx, label: 'Jam Mulai', value: startTime, onTap: () async {
-                final t = await _pickTime(ctx, initial: startTime);
+              _timePicker(ctx: sCtx, label: 'Jam Mulai', value: startTime, onTap: () async {
+                final t = await _pickTime(sCtx, initial: startTime);
                 if (t != null) setD(() => startTime = t);
               }),
               const SizedBox(height: AppSpacing.md),
-              _timePicker(ctx: ctx, label: 'Jam Selesai', value: endTime, onTap: () async {
-                final t = await _pickTime(ctx, initial: endTime ?? startTime);
+              _timePicker(ctx: sCtx, label: 'Jam Selesai', value: endTime, onTap: () async {
+                final t = await _pickTime(sCtx, initial: endTime ?? startTime);
                 if (t != null) setD(() => endTime = t);
               }),
               const SizedBox(height: AppSpacing.md),
@@ -253,20 +248,15 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
       ),
     );
 
-    if (!saved || !mounted) {
-      periodCtrl.dispose();
-      labelCtrl.dispose();
-      return;
-    }
-    final period = int.tryParse(periodCtrl.text.trim());
-    if (period == null) {
-      periodCtrl.dispose();
-      labelCtrl.dispose();
-      return;
-    }
-    await Future.delayed(const Duration(milliseconds: 300));
+    final label = labelCtrl.text.trim();
+    final periodText = periodCtrl.text.trim();
     periodCtrl.dispose();
     labelCtrl.dispose();
+
+    if (!saved || !mounted) return;
+    final period = int.tryParse(periodText);
+    if (period == null || label.isEmpty) return;
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
     setState(() => _isSubmitting = true);
@@ -275,7 +265,7 @@ class _JadwalTabState extends ConsumerState<JadwalTab> {
         s.id,
         dayOfWeek: selectedDay,
         periodNumber: period,
-        label: labelCtrl.text.trim(),
+        label: label,
         startTime: _formatTime(startTime!),
         endTime: _formatTime(endTime!),
         isBreak: isBreak,
