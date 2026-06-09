@@ -127,6 +127,8 @@ class _KelasTabState extends ConsumerState<KelasTab> {
       await ref.read(academicRepositoryProvider).createClass(levelId, name, schoolId: resultSchoolId);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
+      ref.invalidate(subClassesProvider); // cascade: sub-classes reference classes
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference classes
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -183,6 +185,8 @@ class _KelasTabState extends ConsumerState<KelasTab> {
       await ref.read(academicRepositoryProvider).updateClass(kelas.id, levelId, name);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
+      ref.invalidate(subClassesProvider); // cascade: sub-classes reference classes
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference classes
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -209,6 +213,8 @@ class _KelasTabState extends ConsumerState<KelasTab> {
       await ref.read(academicRepositoryProvider).deleteClass(kelas.id);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(classesProvider);
+      ref.invalidate(subClassesProvider); // cascade: sub-classes reference classes
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference classes
       if (_filterLevelId == kelas.id) setState(() => _filterLevelId = 'all');
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -258,6 +264,7 @@ class _KelasTabState extends ConsumerState<KelasTab> {
                     ref.invalidate(classesProvider);
                     ref.invalidate(levelsProvider);
                     ref.invalidate(subClassesProvider);
+                    ref.invalidate(classroomsProvider); // cascade
                   },
                 ),
                 const SizedBox(width: AppSpacing.sm),

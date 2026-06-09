@@ -125,6 +125,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
         schoolId: resultSchoolId);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference academic year
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -190,6 +191,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
         ay.id, name, _formatIso(startDate!), _formatIso(endDate!), resultDesc ?? '');
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference academic year
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -211,6 +213,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
       await ref.read(academicRepositoryProvider).activateAcademicYear(ay.id);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
+      ref.invalidate(classroomsProvider); // cascade: activating year affects classrooms
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -232,6 +235,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
       await ref.read(academicRepositoryProvider).deleteAcademicYear(ay.id);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(academicYearsProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference academic year
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -281,6 +285,7 @@ class _TahunAjaranTabState extends ConsumerState<TahunAjaranTab> {
               onRefresh: () async {
                 await ref.read(cacheStoreProvider).clean();
                 ref.invalidate(academicYearsProvider);
+                ref.invalidate(classroomsProvider); // cascade
               },
             ),
             const SizedBox(width: AppSpacing.sm),

@@ -69,6 +69,19 @@ abstract final class EduAccessCachePolicies {
     );
   }
 
+  /// Academic module GET list/detail requests.
+  /// Honors the backend's Cache-Control / ETag headers so repeat navigations
+  /// return cached data instantly while the server can still push invalidation
+  /// via 200 + new ETag when data changes.
+  static CacheOptions academicList({CacheStore? store}) {
+    return CacheOptions(
+      store: store,
+      policy: CachePolicy.request,
+      priority: CachePriority.normal,
+      allowPostMethod: false,
+    );
+  }
+
   static CacheOptions bypass({CacheStore? store}) {
     return CacheOptions(
       store: store,

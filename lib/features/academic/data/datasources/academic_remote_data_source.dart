@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:eduaccess/core/api/api_endpoints.dart';
 import '../models/academic_year_model.dart';
 import '../models/class_model.dart';
@@ -137,9 +138,19 @@ abstract class AcademicRemoteDataSource {
 }
 
 class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
-  final Dio dio;
+  final Dio _dio;
+  final CacheOptions _academicListCacheOptions;
+  final CacheOptions _bypassCacheOptions;
 
-  AcademicRemoteDataSourceImpl({required this.dio});
+  AcademicRemoteDataSourceImpl({
+    required Dio dio,
+    required CacheOptions academicListCacheOptions,
+    required CacheOptions bypassCacheOptions,
+  })  : _dio = dio,
+        _academicListCacheOptions = academicListCacheOptions,
+        _bypassCacheOptions = bypassCacheOptions;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   Map<String, dynamic> _schoolParam({String? schoolId}) {
     final params = <String, dynamic>{};
@@ -156,11 +167,13 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }
 
   String _handleError(DioException e, String entity) {
-    if (e.response?.statusCode == 400)
+    if (e.response?.statusCode == 400) {
       return e.response?.data?['message'] ?? 'Data tidak valid.';
+    }
     if (e.response?.statusCode == 404) return '$entity tidak ditemukan.';
-    if (e.response?.statusCode == 409)
+    if (e.response?.statusCode == 409) {
       return e.response?.data?['message'] ?? 'Data sudah ada.';
+    }
     if (e.response?.statusCode == 500) return 'Server error. Coba lagi nanti.';
     return e.message ?? 'Terjadi kesalahan. Coba lagi.';
   }
@@ -171,9 +184,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<EducationLevelModel>> getLevels({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.academicLevels,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], EducationLevelModel.fromJson);
     } on DioException catch (e) {
@@ -188,10 +202,11 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.academicLevels,
         data: {'name': name},
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return EducationLevelModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -208,9 +223,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.academicLevelById(id),
         data: {'name': name},
+        options: _bypassCacheOptions.toOptions(),
       );
       return EducationLevelModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -223,7 +239,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteLevel(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.academicLevelById(id));
+      await _dio.delete(
+        ApiEndpoints.academicLevelById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Level pendidikan'));
     }
@@ -235,9 +254,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<ClassModel>> getClasses({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.academicClasses,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], ClassModel.fromJson);
     } on DioException catch (e) {
@@ -253,10 +273,11 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.academicClasses,
         data: {'level_id': educationLevelId, 'name': name},
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return ClassModel.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -272,9 +293,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.academicClassById(id),
         data: {'level_id': educationLevelId, 'name': name},
+        options: _bypassCacheOptions.toOptions(),
       );
       return ClassModel.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -285,7 +307,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteClass(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.academicClassById(id));
+      await _dio.delete(
+        ApiEndpoints.academicClassById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Kelas'));
     }
@@ -297,9 +322,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<SubClassModel>> getSubClasses({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.academicSubClasses,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], SubClassModel.fromJson);
     } on DioException catch (e) {
@@ -315,10 +341,11 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.academicSubClasses,
         data: {'class_id': classId, 'name': name},
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return SubClassModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -336,9 +363,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.academicSubClassById(id),
         data: {'class_id': classId, 'name': name},
+        options: _bypassCacheOptions.toOptions(),
       );
       return SubClassModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -351,7 +379,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteSubClass(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.academicSubClassById(id));
+      await _dio.delete(
+        ApiEndpoints.academicSubClassById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Sub-kelas'));
     }
@@ -363,9 +394,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<AcademicYearModel>> getAcademicYears({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.academicYearsList,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], AcademicYearModel.fromJson);
     } on DioException catch (e) {
@@ -383,7 +415,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.academicYearsList,
         data: {
           'name': name,
@@ -392,6 +424,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
           'description': description,
         },
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return AcademicYearModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -411,7 +444,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.academicYearById(id),
         data: {
           'name': name,
@@ -419,6 +452,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
           'end_date': endDate,
           'description': description,
         },
+        options: _bypassCacheOptions.toOptions(),
       );
       return AcademicYearModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -431,7 +465,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteAcademicYear(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.academicYearById(id));
+      await _dio.delete(
+        ApiEndpoints.academicYearById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Tahun ajaran'));
     }
@@ -440,7 +477,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> activateAcademicYear(String id, {String? schoolId}) async {
     try {
-      await dio.patch(ApiEndpoints.academicYearActivate(id));
+      await _dio.patch(
+        ApiEndpoints.academicYearActivate(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Tahun ajaran'));
     }
@@ -452,9 +492,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<SubjectModel>> getSubjects({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.subjectsList,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], SubjectModel.fromJson);
     } on DioException catch (e) {
@@ -470,10 +511,11 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.subjectsList,
         data: {'name': name, 'category': category},
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return SubjectModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -491,9 +533,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.subjectById(id),
         data: {'name': name, 'category': category},
+        options: _bypassCacheOptions.toOptions(),
       );
       return SubjectModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -506,7 +549,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteSubject(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.subjectById(id));
+      await _dio.delete(
+        ApiEndpoints.subjectById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Mata pelajaran'));
     }
@@ -518,9 +564,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   Future<List<ClassroomModel>> getClassrooms({String? schoolId}) async {
     try {
       final params = _schoolParam(schoolId: schoolId);
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.classroomsList,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], ClassroomModel.fromJson);
     } on DioException catch (e) {
@@ -557,10 +604,11 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
       if (subClassId != null && subClassId.isNotEmpty) body['sub_class_id'] = subClassId;
       if (academicYearId != null && academicYearId.isNotEmpty) body['academic_year_id'] = academicYearId;
       if (homeroomTeacherId != null && homeroomTeacherId.isNotEmpty) body['homeroom_teacher_id'] = homeroomTeacherId;
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.classroomsList,
         data: body,
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return ClassroomModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -600,9 +648,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
       if (subClassId != null && subClassId.isNotEmpty) body['sub_class_id'] = subClassId;
       if (academicYearId != null && academicYearId.isNotEmpty) body['academic_year_id'] = academicYearId;
       if (homeroomTeacherId != null && homeroomTeacherId.isNotEmpty) body['homeroom_teacher_id'] = homeroomTeacherId;
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.classroomById(id),
         data: body,
+        options: _bypassCacheOptions.toOptions(),
       );
       return ClassroomModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -615,7 +664,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteClassroom(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.classroomById(id));
+      await _dio.delete(
+        ApiEndpoints.classroomById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Ruang kelas'));
     }
@@ -631,9 +683,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     try {
       final params = _schoolParam(schoolId: schoolId);
       if (dayOfWeek != null) params['day_of_week'] = dayOfWeek;
-      final response = await dio.get(
+      final response = await _dio.get(
         ApiEndpoints.schedulesList,
         queryParameters: params.isNotEmpty ? params : null,
+        options: _academicListCacheOptions.toOptions(),
       );
       return _parseList(response.data['data'], ScheduleModel.fromJson);
     } on DioException catch (e) {
@@ -653,7 +706,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   }) async {
     try {
       final qp = _schoolParam(schoolId: schoolId);
-      final response = await dio.post(
+      final response = await _dio.post(
         ApiEndpoints.schedulesList,
         data: {
           'day_of_week': dayOfWeek,
@@ -664,6 +717,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
           'is_break': isBreak,
         },
         queryParameters: qp.isNotEmpty ? qp : null,
+        options: _bypassCacheOptions.toOptions(),
       );
       return ScheduleModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -685,7 +739,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
     String? schoolId,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await _dio.put(
         ApiEndpoints.scheduleById(id),
         data: {
           'day_of_week': dayOfWeek,
@@ -695,6 +749,7 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
           'end_time': endTime,
           'is_break': isBreak,
         },
+        options: _bypassCacheOptions.toOptions(),
       );
       return ScheduleModel.fromJson(
         response.data['data'] as Map<String, dynamic>,
@@ -707,7 +762,10 @@ class AcademicRemoteDataSourceImpl implements AcademicRemoteDataSource {
   @override
   Future<void> deleteSchedule(String id, {String? schoolId}) async {
     try {
-      await dio.delete(ApiEndpoints.scheduleById(id));
+      await _dio.delete(
+        ApiEndpoints.scheduleById(id),
+        options: _bypassCacheOptions.toOptions(),
+      );
     } on DioException catch (e) {
       throw Exception(_handleError(e, 'Jadwal'));
     }

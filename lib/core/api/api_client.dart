@@ -60,6 +60,11 @@ final dashboardStatsCacheOptionsProvider = Provider<CacheOptions>((ref) {
   return EduAccessCachePolicies.dashboardStats(store: cacheStore);
 });
 
+final academicListCacheOptionsProvider = Provider<CacheOptions>((ref) {
+  final cacheStore = ref.read(cacheStoreProvider);
+  return EduAccessCachePolicies.academicList(store: cacheStore);
+});
+
 final nonCacheableRequestOptionsProvider = Provider<CacheOptions>((ref) {
   return EduAccessCachePolicies.bypass();
 });

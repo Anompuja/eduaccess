@@ -89,6 +89,7 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
       await ref.read(academicRepositoryProvider).createLevel(name, schoolId: resultSchoolId);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
+      ref.invalidate(classesProvider); // cascade: classes reference levels
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -116,6 +117,7 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
       await ref.read(academicRepositoryProvider).updateLevel(level.id, name);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
+      ref.invalidate(classesProvider); // cascade: classes reference levels
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -144,6 +146,7 @@ class _JenjangTabState extends ConsumerState<JenjangTab> {
       await ref.read(academicRepositoryProvider).deleteLevel(level.id);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(levelsProvider);
+      ref.invalidate(classesProvider); // cascade: classes reference levels
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {

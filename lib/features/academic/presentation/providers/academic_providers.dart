@@ -18,7 +18,13 @@ import '../../../teachers/data/models/teacher_row_data.dart';
 
 final academicRepositoryProvider = Provider<AcademicRepository>((ref) {
   final dio = ref.watch(dioProvider);
-  final remoteDataSource = AcademicRemoteDataSourceImpl(dio: dio);
+  final academicListCacheOptions = ref.watch(academicListCacheOptionsProvider);
+  final bypassCacheOptions = ref.watch(nonCacheableRequestOptionsProvider);
+  final remoteDataSource = AcademicRemoteDataSourceImpl(
+    dio: dio,
+    academicListCacheOptions: academicListCacheOptions,
+    bypassCacheOptions: bypassCacheOptions,
+  );
   return AcademicRepositoryImpl(remoteDataSource: remoteDataSource);
 });
 

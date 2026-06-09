@@ -127,6 +127,7 @@ class _SubKelasTabState extends ConsumerState<SubKelasTab> {
       await ref.read(academicRepositoryProvider).createSubClass(classId, name, schoolId: resultSchoolId);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subClassesProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference sub-classes
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -183,6 +184,7 @@ class _SubKelasTabState extends ConsumerState<SubKelasTab> {
       await ref.read(academicRepositoryProvider).updateSubClass(sub.id, classId, name);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subClassesProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference sub-classes
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -204,6 +206,7 @@ class _SubKelasTabState extends ConsumerState<SubKelasTab> {
       await ref.read(academicRepositoryProvider).deleteSubClass(sub.id);
       await ref.read(cacheStoreProvider).clean();
       ref.invalidate(subClassesProvider);
+      ref.invalidate(classroomsProvider); // cascade: classrooms reference sub-classes
     } catch (e) {
       if (mounted) _showError(e.toString());
     } finally {
@@ -253,6 +256,7 @@ class _SubKelasTabState extends ConsumerState<SubKelasTab> {
                     ref.invalidate(subClassesProvider);
                     ref.invalidate(classesProvider);
                     ref.invalidate(levelsProvider);
+                    ref.invalidate(classroomsProvider); // cascade
                   },
                 ),
                 const SizedBox(width: AppSpacing.sm),
