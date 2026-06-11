@@ -1,150 +1,196 @@
-# EduAccess — School Management System
+# EduAccess — Flutter App
 
-A Flutter multiplatform app for managing school operations: attendance, CBT exams, student/teacher/staff data, and more.
-
-> **Demo Mode** — the app runs fully offline with no backend required. Pick any role on the login screen to explore the app.
-
-## Quick Start — Docker (Recommended for Assessment)
-
-> Requires: [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/)
-
-```bash
-# Clone the repo
-git clone <repo-url>
-cd eduaccess
-
-# Build and run (first run takes a few minutes to pull Flutter image)
-docker compose up --build
-
-# Open in browser
-# http://localhost:8080
-```
-
-To stop:
-
-```bash
-docker compose down
-```
+Aplikasi manajemen sekolah multiplatform (Flutter) yang terhubung ke EduAccess API backend.
 
 ---
 
-## Local Development
+## Quick Start
 
-### Prerequisites
+### Prasyarat
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) stable channel
-- Chrome browser (for web development)
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) stable channel (≥ 3.11)
+- Chrome browser (untuk Flutter Web) atau Android emulator / device fisik
 
-### Run on Chrome
+### Jalankan dengan Backend (Mode Penuh)
+
+Pastikan backend EduAccess API sudah berjalan di `http://localhost:8080` terlebih dahulu.
+
+```bash
+# Install dependencies
+flutter pub get
+
+# Jalankan di Chrome (web)
+flutter run -d chrome \
+  --dart-define=EDUACCESS_BASE_URL=http://localhost:8080/api/v1 \
+  --dart-define=EDUACCESS_WS_BASE=ws://localhost:8080
+
+# Jalankan di Android emulator
+flutter run -d emulator-5554 \
+  --dart-define=EDUACCESS_BASE_URL=http://10.0.2.2:8080/api/v1 \
+  --dart-define=EDUACCESS_WS_BASE=ws://10.0.2.2:8080
+
+# Jalankan di device fisik (ganti IP sesuai IP komputer di jaringan yang sama)
+flutter run \
+  --dart-define=EDUACCESS_BASE_URL=http://192.168.x.x:8080/api/v1 \
+  --dart-define=EDUACCESS_WS_BASE=ws://192.168.x.x:8080
+```
+
+### Jalankan Tanpa Backend (Fallback Demo)
 
 ```bash
 flutter pub get
 flutter run -d chrome
 ```
 
-### Run on other platforms
-
-```bash
-# List available devices
-flutter devices
-
-# Run on a specific device
-flutter run -d <device-id>
-```
-
-### Build web release
-
-```bash
-flutter build web --release --web-renderer canvaskit
-# Output: build/web/
-```
+App akan berjalan dengan data mock — fungsi core tetap bisa dieksplorasi.
 
 ---
 
-## Using the App (Demo Mode)
+## Environment Variables
 
-The app starts in **Demo Mode** — no backend or credentials needed.
+Dikonfigurasi via `--dart-define` saat build/run (tidak ada file `.env` di Flutter).
 
-1. Open the app in Chrome (or via Docker at `http://localhost:8080`)
-2. You are taken to the **Login** screen
-3. Tap any role card to sign in instantly:
+| Variabel               | Default                          | Keterangan                                  |
+| ---------------------- | -------------------------------- | ------------------------------------------- |
+| `EDUACCESS_BASE_URL`   | `http://localhost:8080/api/v1`   | Base URL REST API backend                   |
+| `EDUACCESS_WS_BASE`    | `ws://localhost:8080`            | Base URL WebSocket (tanpa path `/api/v1`)   |
 
-| Role           | Access                                    |
-| -------------- | ----------------------------------------- |
-| Super Admin    | All screens and all data                  |
-| Admin Sekolah  | All screens except subscription           |
-| Kepala Sekolah | Dashboard, reports, students, teachers    |
-| Guru           | Dashboard, attendance, CBT                |
-| Siswa          | Personal dashboard, own attendance, CBT   |
-| Orang Tua      | Personal dashboard, child attendance, CBT |
-| Staff          | Dashboard and attendance only             |
-
-4. Use the sidebar (desktop) or bottom nav (mobile) to navigate
-5. Tap your avatar or **Logout** in settings to switch roles
+Untuk Android emulator gunakan `10.0.2.2` sebagai pengganti `localhost`.
 
 ---
 
-## Project Structure
+## Arsitektur
+
+Setiap fitur mengikuti pola **Clean Architecture** dengan tiga layer yang terpisah:
 
 ```
 lib/
 ├── core/
-│   ├── auth/           # Auth state, notifier, token storage
-│   ├── api/            # Dio client, interceptors, endpoints
-│   ├── router/         # GoRouter config, route names, RBAC guard
-│   ├── theme/          # AppTheme, AppColors, AppTextStyles, AppSpacing
-│   ├── utils/          # Responsive breakpoints
-│   └── widgets/        # AppLayout, AppSidebar, shared widgets
+│   ├── api/          # Dio client, interceptors, endpoint constants, cache policies
+│   ├── auth/         # Auth state, token storage (FlutterSecureStorage)
+│   ├── providers/    # Root Riverpod providers
+│   ├── router/       # GoRouter + RBAC route guard
+│   ├── theme/        # AppTheme, warna, typography
+│   └── widgets/      # Shared layout widgets (AppSidebar, AppLayout)
 └── features/
-    ├── auth/           # Login screen (demo mode role picker)
-    ├── dashboard/      # Role-aware dashboard with charts
-    ├── students/       # Student management (CRUD modals)
-    ├── teachers/       # Teacher list
-    ├── staff/          # Staff list
-    ├── parents/        # Parent list
-    ├── profile/        # User profile
-    ├── settings/       # App settings
-    └── notifications/  # Notifications
-
-assets/
-└── images/
-    └── logo.png        # App logo (Image.asset)
-
-docker/
-└── nginx/
-    └── default.conf    # SPA routing config for Flutter web
+    └── {feature}/
+        ├── domain/
+        │   ├── entities/         # Pure Dart class (tanpa Flutter/Dio)
+        │   └── repositories/     # Abstract interface
+        ├── data/
+        │   ├── models/           # JSON ↔ entity mapping (fromJson/toJson)
+        │   ├── datasources/      # HTTP call via Dio (implementasi akses data)
+        │   └── repositories/     # Implementasi domain repository interface
+        └── presentation/
+            ├── pages/            # Widget layar utama
+            ├── widgets/          # Widget komponen per fitur
+            └── providers/        # Riverpod StateNotifier / FutureProvider / StreamProvider
 ```
+
+**Pemisahan layer:**
+- `presentation/` hanya berinteraksi dengan Riverpod provider — tidak ada `Dio.get()` di layer UI
+- `domain/` tidak punya import Flutter/Dio sama sekali — murni logika dan kontrak
+- `data/` menangani semua akses jaringan dan mapping JSON
+
+---
+
+## State Management — Riverpod
+
+Semua state global dikelola dengan **Riverpod 2** (`StateNotifierProvider`, `FutureProvider`, `StreamProvider`).
+
+Contoh alur ketika halaman daftar siswa dibuka:
+
+1. `StudentListPage` melakukan `ref.watch(studentListProvider)`
+2. `studentListProvider` adalah `FutureProvider` yang memanggil `StudentRepository.getStudents()`
+3. Repository memanggil `StudentRemoteDataSource.fetchStudents()` via Dio
+4. UI bereaksi otomatis terhadap state: loading → data → error
+
+Halaman admin, guru, orang tua, dan staff mengikuti pola yang sama persis — hanya berbeda entity dan endpoint yang dipanggil.
+
+---
+
+## Async — Future & Stream
+
+### Future (REST API)
+
+Semua operasi REST API menggunakan `Future` — operasi satu kali yang resolve ketika response diterima:
+
+```dart
+// lib/features/students/data/datasources/student_remote_data_source.dart
+Future<List<StudentModel>> fetchStudents({int page = 1}) async {
+  final response = await _dio.get(
+    ApiEndpoints.students,
+    queryParameters: {'page': page, 'per_page': 20},
+  );
+  return (response.data['data'] as List)
+      .map((e) => StudentModel.fromJson(e))
+      .toList();
+}
+```
+
+### Stream (WebSocket Real-time)
+
+Notifikasi real-time menggunakan `StreamProvider` — data mengalir terus-menerus dari koneksi WebSocket:
+
+```dart
+// lib/features/notifications/presentation/providers/notifications_provider.dart
+final notificationWsProvider = StreamProvider.autoDispose<NotificationEntity>((ref) async* {
+  final token = await ref.read(tokenStorageProvider).getAccessToken();
+  final channel = WebSocketChannel.connect(
+    Uri.parse('${_resolveWsBase()}/ws/notifications?token=${Uri.encodeComponent(token!)}'),
+  );
+  await channel.ready;
+
+  await for (final message in channel.stream) {
+    final json = jsonDecode(message as String) as Map<String, dynamic>;
+    final notification = NotificationModel.fromJson(json);
+    ref.invalidate(unreadNotificationsProvider); // refresh badge count
+    yield notification;
+  }
+});
+```
+
+`StreamProvider` di-dispose otomatis saat widget keluar dari tree — tidak ada memory leak.
+
+---
+
+## Caching HTTP
+
+Dio dikonfigurasi dengan `dio_cache_interceptor` yang menghormati header `Cache-Control` dan `ETag` dari backend:
+
+- Request pertama: data diambil dari server, disimpan di `MemCacheStore`
+- Request berikutnya (dalam TTL): data dikembalikan dari cache tanpa hit network
+- Setelah TTL habis: request dikirim dengan `If-None-Match: <etag>`, server membalas `304 Not Modified` jika data tidak berubah
+
+Cache dibersihkan saat logout agar data satu user tidak bocor ke user berikutnya.
 
 ---
 
 ## Tech Stack
 
-| Layer            | Technology                                                            |
-| ---------------- | --------------------------------------------------------------------- |
-| UI Framework     | Flutter 3 (Dart 3)                                                    |
-| State Management | Riverpod 2 (`StateNotifierProvider`)                                  |
-| Navigation       | GoRouter 14 (`ShellRoute`, role guards)                               |
-| HTTP Client      | Dio 5 (interceptors, token refresh)                                   |
-| Local Storage    | SharedPreferences (demo session) + FlutterSecureStorage (real tokens) |
-| Typography       | Google Fonts — Inter                                                  |
-| Charts           | fl_chart                                                              |
-| Container        | Docker + nginx (SPA)                                                  |
+| Layer            | Library                    | Versi   |
+| ---------------- | -------------------------- | ------- |
+| State Management | `flutter_riverpod`         | ^2.6.1  |
+| Navigation       | `go_router`                | ^14.6.3 |
+| HTTP Client      | `dio`                      | ^5.8.0  |
+| HTTP Cache       | `dio_cache_interceptor`    | ^4.0.6  |
+| WebSocket        | `web_socket_channel`       | ^3.0.1  |
+| Token Storage    | `flutter_secure_storage`   | ^9.2.4  |
+| Charts           | `fl_chart`                 | ^0.69.0 |
+| QR Scanner       | `mobile_scanner`           | ^6.0.0  |
 
 ---
 
-## Environment Configuration
+## Struktur Navigasi & Role
 
-To point the app at a real backend, pass the API base URL at build time:
+Akses halaman dikontrol oleh **RBAC guard** di GoRouter (`lib/core/router/`). Setiap role mendapat akses berbeda:
 
-```bash
-flutter run --dart-define=EDUACCESS_BASE_URL=http://your-api-host/api/v1
-```
-
-Default fallbacks (when no `--dart-define` is provided):
-
-- Web / Desktop: `http://localhost:8080/api/v1`
-- Android emulator: `http://10.0.2.2:8080/api/v1`
-
----
-
-© 2025 EduAccess
+| Role           | Akses                                                           |
+| -------------- | --------------------------------------------------------------- |
+| `superadmin`   | Semua halaman + manajemen sekolah dan langganan                 |
+| `admin_sekolah`| Dashboard, siswa, guru, staff, orang tua, notifikasi            |
+| `kepala_sekolah`| Dashboard, laporan, data siswa dan guru                        |
+| `guru`         | Dashboard, jadwal kelas, absensi, notifikasi                    |
+| `siswa`        | Dashboard pribadi, jadwal, absensi sendiri                      |
+| `orangtua`     | Dashboard, absensi anak, notifikasi                             |
+| `staff`        | Dashboard, absensi                                              |
